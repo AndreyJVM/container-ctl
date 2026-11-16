@@ -50,12 +50,12 @@
 
 ```bash
 # AMD64 (x86_64)
-wget https://github.com/AndreyJVM/dockpulse/releases/latest/download/dockpulse_0.10.0_amd64.deb
-sudo dpkg -i dockpulse_0.10.0_amd64.deb
+wget https://github.com/AndreyJVM/dockpulse/releases/latest/download/dockpulse_0.11.0_amd64.deb
+sudo dpkg -i dockpulse_0.11.0_amd64.deb
 
 # ARM64
-wget https://github.com/AndreyJVM/dockpulse/releases/latest/download/dockpulse_0.10.0_arm64.deb
-sudo dpkg -i dockpulse_0.10.0_arm64.deb
+wget https://github.com/AndreyJVM/dockpulse/releases/latest/download/dockpulse_0.11.0_arm64.deb
+sudo dpkg -i dockpulse_0.11.0_arm64.deb
 ```
 
 #### Pre-built Binaries (Linux)
@@ -64,7 +64,7 @@ Download the latest archive from [Releases](https://github.com/AndreyJVM/dockpul
 
 ```bash
 # Linux AMD64
-tar -xzf dockpulse_v0.10.0_linux_amd64.tar.gz
+tar -xzf dockpulse_v0.11.0_linux_amd64.tar.gz
 ./dockpulse
 ```
 
