@@ -15,6 +15,7 @@ type ComposeContext struct {
 	Projects     []monitor.ComposeProject
 	CursorIdx    int
 	FormatStatus func(status, display string) string
+	Width        int
 	I18n         *i18n.Dictionary
 }
 
@@ -29,29 +30,35 @@ func RenderCompose(ctx ComposeContext) string {
 		return s.String()
 	}
 
+	contentWidth := max(ctx.Width-4, 65)
+
 	for i, p := range ctx.Projects {
 		prefix := "  "
 		statusDisp := ctx.FormatStatus(p.Status, p.StatusDisplay)
-		headerText := fmt.Sprintf("┌─ %s  [%s]  "+ctx.I18n.ComposeServicesUp,
-			theme.BoldStyle.Render(p.Name), statusDisp, p.RunningServices, p.TotalServices,
+		headerTitle := fmt.Sprintf("┌─ %s  [%s]  "+ctx.I18n.ComposeServicesUp,
+			p.Name, statusDisp, p.RunningServices, p.TotalServices,
 		)
 		if i == ctx.CursorIdx {
 			prefix = theme.GreenStyle.Render("► ")
-			headerText = theme.SelectedRowStyle.Render(fmt.Sprintf("┌─ %s  [%s]  "+ctx.I18n.ComposeServicesUp,
-				p.Name, statusDisp, p.RunningServices, p.TotalServices,
-			))
+			s.WriteString(fmt.Sprintf("%s%s\n", prefix, theme.SelectedRowStyle.Render(headerTitle)))
+		} else {
+			headerText := fmt.Sprintf("┌─ %s  [%s]  "+ctx.I18n.ComposeServicesUp,
+				theme.BoldStyle.Render(p.Name), statusDisp, p.RunningServices, p.TotalServices,
+			)
+			s.WriteString(fmt.Sprintf("%s%s\n", prefix, headerText))
 		}
-		s.WriteString(fmt.Sprintf("%s%s\n", prefix, headerText))
 		for _, svc := range p.Services {
 			st := theme.DimStyle.Render("○ " + svc.State)
 			if svc.State == "running" {
 				st = theme.GreenStyle.Render("● running")
 			}
+			portsLen := max(10, contentWidth-66)
+			portsTrunc := components.Truncate(svc.Ports, portsLen)
 			s.WriteString(fmt.Sprintf("│   • %-16s %-20s %-22s %s\n",
-				theme.BoldStyle.Render(svc.Name), st, components.Truncate(svc.Image, 20), svc.Ports,
+				theme.BoldStyle.Render(svc.Name), st, components.Truncate(svc.Image, 20), portsTrunc,
 			))
 		}
-		s.WriteString("└" + strings.Repeat("─", 65) + "\n\n")
+		s.WriteString("└" + strings.Repeat("─", contentWidth) + "\n\n")
 	}
 
 	return s.String()

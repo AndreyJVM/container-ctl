@@ -8,6 +8,7 @@ import (
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/tui/components"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
+	"github.com/charmbracelet/lipgloss"
 )
 
 const (
@@ -26,6 +27,7 @@ type ImagesContext struct {
 	Error            string
 	IsFiltering      bool
 	FilterQuery      string
+	Width            int
 	I18n             *i18n.Dictionary
 }
 
@@ -63,10 +65,17 @@ func RenderImages(ctx ImagesContext) string {
 		return s.String()
 	}
 
-	headerText := fmt.Sprintf("  %-12s  %-24s  %-16s  %-10s  %-16s  %s",
-		d.ColID, d.ColRepository, d.ColTag, d.ColSize, d.ColCreated, d.ColStatus)
+	contentWidth := max(ctx.Width-4, 88)
+
+	// Dynamically distribute extra space to repository and tag columns
+	extraSpace := max(0, contentWidth-88)
+	repoWidth := colWidthImageRepo + (extraSpace * 6 / 10)
+	tagWidth := colWidthImageTag + (extraSpace * 4 / 10)
+
+	headerText := fmt.Sprintf("  %-12s  %-*s  %-*s  %-10s  %-16s  %s",
+		d.ColID, repoWidth, d.ColRepository, tagWidth, d.ColTag, d.ColSize, d.ColCreated, d.ColStatus)
 	s.WriteString(headerText + "\n")
-	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", 88)) + "\n")
+	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", contentWidth)) + "\n")
 
 	for index, img := range ctx.Images {
 		sizeStr := "-"
@@ -81,19 +90,17 @@ func RenderImages(ctx ImagesContext) string {
 			statusBadge = d.ImageDanglingBadge
 		}
 
-		row := fmt.Sprintf("%-12s  %-24s  %-16s  %-10s  %-16s  %s",
-			components.Truncate(img.ID, colWidthImageID),
-			components.Truncate(img.Repository, colWidthImageRepo),
-			components.Truncate(img.Tag, colWidthImageTag),
-			components.Truncate(sizeStr, colWidthImageSize),
-			components.Truncate(img.Created, colWidthImageDate),
-			statusBadge,
-		)
+		idPadded := components.Truncate(img.ID, colWidthImageID)
+		repoPadded := components.PadRight(components.Truncate(img.Repository, repoWidth), repoWidth)
+		tagPadded := components.PadRight(components.Truncate(img.Tag, tagWidth), tagWidth)
+		sizePadded := components.PadRight(components.Truncate(sizeStr, colWidthImageSize), colWidthImageSize)
+		datePadded := components.PadRight(components.Truncate(img.Created, colWidthImageDate), colWidthImageDate)
 
 		if index == ctx.CursorIdx {
-			s.WriteString(theme.GreenStyle.Render("► ") + theme.SelectedRowStyle.Render(row) + "\n")
+			plainRow := fmt.Sprintf("%-12s  %-*s  %-*s  %-10s  %-16s  %s",
+				idPadded, repoWidth, repoPadded, tagWidth, tagPadded, sizePadded, datePadded, statusBadge)
+			s.WriteString(theme.GreenStyle.Render("► ") + theme.SelectedRowStyle.Render(plainRow) + "\n")
 		} else {
-			// Color status badge when not selected
 			var coloredStatus string
 			if img.InUse {
 				coloredStatus = theme.GreenStyle.Render(statusBadge)
@@ -102,29 +109,32 @@ func RenderImages(ctx ImagesContext) string {
 			} else {
 				coloredStatus = theme.DimStyle.Render(statusBadge)
 			}
-			coloredRow := fmt.Sprintf("%-12s  %-24s  %-16s  %-10s  %-16s  %s",
-				components.Truncate(img.ID, colWidthImageID),
-				components.Truncate(img.Repository, colWidthImageRepo),
-				components.Truncate(img.Tag, colWidthImageTag),
-				components.Truncate(sizeStr, colWidthImageSize),
-				components.Truncate(img.Created, colWidthImageDate),
-				coloredStatus,
-			)
+			coloredRow := fmt.Sprintf("%-12s  %-*s  %-*s  %-10s  %-16s  %s",
+				idPadded, repoWidth, repoPadded, tagWidth, tagPadded, sizePadded, datePadded, coloredStatus)
 			s.WriteString("  " + coloredRow + "\n")
 		}
 	}
 
 	if ctx.CursorIdx >= 0 && ctx.CursorIdx < len(ctx.Images) {
 		img := ctx.Images[ctx.CursorIdx]
-		s.WriteString("\n" + theme.TitleStyle.Render(d.ImageDetailsTitle) + "\n")
-		s.WriteString(fmt.Sprintf("  %-18s %s\n", d.ImageFullIDLabel, valueOrDash(img.FullID)))
-		s.WriteString(fmt.Sprintf("  %-18s %s\n", d.ImageDigestLabel, valueOrDash(img.Digest)))
+		s.WriteString("\n")
+
+		cardWidth := contentWidth
+		title := fmt.Sprintf(" %s: %s:%s (%s) ", d.ImageDetailsTitle, img.Repository, img.Tag, img.ID)
+		topDashLen := cardWidth - lipgloss.Width(title) - 3
+		if topDashLen < 2 {
+			topDashLen = 2
+		}
+		s.WriteString("  " + theme.CyanStyle.Render("┌─") + theme.BoldStyle.Render(title) + theme.CyanStyle.Render(strings.Repeat("─", topDashLen)+"┐") + "\n")
+
+		s.WriteString(renderDetailRow(d.ImageFullIDLabel, valueOrDash(img.FullID)))
+		s.WriteString(renderDetailRow(d.ImageDigestLabel, valueOrDash(img.Digest)))
 
 		tagsStr := "<none>"
 		if len(img.AllTags) > 0 {
 			tagsStr = strings.Join(img.AllTags, ", ")
 		}
-		s.WriteString(fmt.Sprintf("  %-18s %s\n", d.ImageTagsLabel, tagsStr))
+		s.WriteString(renderDetailRow(d.ImageTagsLabel, tagsStr))
 
 		containersStr := "-"
 		if img.Containers >= 0 {
@@ -134,7 +144,9 @@ func RenderImages(ctx ImagesContext) string {
 				containersStr = fmt.Sprintf("%d %s", img.Containers, theme.DimStyle.Render(d.ImageUnusedBadge))
 			}
 		}
-		s.WriteString(fmt.Sprintf("  %-18s %s\n", d.ImageContainersLabel, containersStr))
+		s.WriteString(renderDetailRow(d.ImageContainersLabel, containersStr))
+
+		s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")
 	}
 
 	return s.String()

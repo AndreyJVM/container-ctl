@@ -15,6 +15,7 @@ type SwarmContext struct {
 	Swarm        monitor.SwarmSummary
 	CursorIdx    int
 	FormatStatus func(isActive bool) string
+	Width        int
 	I18n         *i18n.Dictionary
 }
 
@@ -38,13 +39,15 @@ func RenderSwarm(ctx SwarmContext) string {
 		theme.DimStyle.Render(ctx.I18n.SwarmManagers), ctx.Swarm.ManagersCount,
 	))
 
+	contentWidth := max(ctx.Width-4, 88)
+
 	if len(ctx.Swarm.Nodes) > 0 {
 		s.WriteString(theme.BoldStyle.Render("  "+ctx.I18n.SwarmNodesTitle) + "\n")
 		s.WriteString(fmt.Sprintf("  %-14s %-20s %-12s %-10s %-14s %-8s %-10s\n",
 			theme.DimStyle.Render(ctx.I18n.ColNodeID), theme.DimStyle.Render(ctx.I18n.ColHostname), theme.DimStyle.Render(ctx.I18n.ColRole),
 			theme.DimStyle.Render(ctx.I18n.ColState), theme.DimStyle.Render(ctx.I18n.ColAvailability), theme.DimStyle.Render(ctx.I18n.ColTasks), theme.DimStyle.Render(ctx.I18n.ColLeader),
 		))
-		s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", 88)) + "\n")
+		s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", contentWidth)) + "\n")
 		for _, n := range ctx.Swarm.Nodes {
 			leaderMark := ""
 			if n.IsLeader {
@@ -67,7 +70,7 @@ func RenderSwarm(ctx SwarmContext) string {
 			theme.DimStyle.Render(ctx.I18n.ColServiceID), theme.DimStyle.Render(ctx.I18n.ColName), theme.DimStyle.Render(ctx.I18n.ColImage),
 			theme.DimStyle.Render("MODE"), theme.DimStyle.Render(ctx.I18n.ColReplicas), theme.DimStyle.Render(ctx.I18n.ColPorts),
 		))
-		s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", 88)) + "\n")
+		s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", contentWidth)) + "\n")
 		for i, svc := range ctx.Swarm.Services {
 			prefix := "  "
 			if i == ctx.CursorIdx {

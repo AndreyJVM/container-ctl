@@ -158,6 +158,7 @@ func (m Model) renderImagesTab() string {
 		Error:            m.imageErr,
 		IsFiltering:      m.isFiltering,
 		FilterQuery:      m.filterQuery,
+		Width:            m.width,
 		I18n:             &m.i18n,
 	})
 }
@@ -167,6 +168,7 @@ func (m Model) renderComposeTab() string {
 		Projects:     m.compose,
 		CursorIdx:    m.composeCursorIdx,
 		FormatStatus: m.formatComposeStatus,
+		Width:        m.width,
 		I18n:         &m.i18n,
 	})
 }
@@ -176,6 +178,7 @@ func (m Model) renderNetworksTab() string {
 		Networks:  m.networks,
 		CursorIdx: m.networkCursorIdx,
 		Error:     m.networkErr,
+		Width:     m.width,
 		I18n:      &m.i18n,
 	})
 }
@@ -185,6 +188,7 @@ func (m Model) renderVolumesTab() string {
 		Volumes:   m.volumes,
 		CursorIdx: m.volumeCursorIdx,
 		Error:     m.volumeErr,
+		Width:     m.width,
 		I18n:      &m.i18n,
 	})
 }
@@ -194,6 +198,7 @@ func (m Model) renderSwarmTab() string {
 		Swarm:        m.swarm,
 		CursorIdx:    m.swarmCursorIdx,
 		FormatStatus: m.formatSwarmStatus,
+		Width:        m.width,
 		I18n:         &m.i18n,
 	})
 }

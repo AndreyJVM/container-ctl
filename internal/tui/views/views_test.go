@@ -155,6 +155,21 @@ func TestRenderImagesView(t *testing.T) {
 		t.Errorf("expected discovery error in images view, got: %s", errorView)
 	}
 
+	// Compact width vs wide width adaptive rendering
+	compactView := RenderImages(ImagesContext{
+		Images: []monitor.DockerImage{{ID: "c557bd415052", Repository: "sambryx-web", Tag: "latest"}},
+		Width:  80,
+		I18n:   &dict,
+	})
+	wideView := RenderImages(ImagesContext{
+		Images: []monitor.DockerImage{{ID: "c557bd415052", Repository: "sambryx-web", Tag: "latest"}},
+		Width:  160,
+		I18n:   &dict,
+	})
+	if !strings.Contains(compactView, "sambryx-web") || !strings.Contains(wideView, "sambryx-web") {
+		t.Errorf("expected repository in both compact and wide views")
+	}
+
 	// Empty view
 	emptyView := RenderImages(ImagesContext{I18n: &dict})
 	if !strings.Contains(emptyView, dict.NoImages) {
