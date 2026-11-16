@@ -1,3 +1,14 @@
+dockpulse (0.11.1) unstable; urgency=medium
+
+  * Version 0.11.1 release:
+    - Fixed integer overflow vulnerabilities in byte counter and shell key mapping (G115)
+    - Added FormatUintBytes supporting full uint64 ranges up to exabytes
+    - Fixed path traversal and unhandled errors in socket and stats modules (G703, G104)
+    - Made all tabs responsive to terminal width with dynamic column stretching
+    - Redesigned Images, Networks, and Volumes details cards with consistent boxed layouts
+
+ -- Andrey Vorobev <Andrey.Vorobev.AQA@gmail.com>  Tue, 17 Nov 2026 00:32:15 +0300
+
 dockpulse (0.11.0) unstable; urgency=medium
 
   * Version 0.11.0 release:

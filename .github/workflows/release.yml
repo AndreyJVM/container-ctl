@@ -114,11 +114,10 @@ jobs:
             A fast interactive TUI for monitoring and managing Docker containers and resources with no external runtime dependencies.
 
             ### What's new in ${{ steps.get_version.outputs.tag }}
-            - **Docker Images tab**: Dedicated inventory view for all local Docker images with ID, repository, tag, size, created date, and digest.
-            - **Image status indicators**: Clear visual badges for images currently in use by containers, unused images, and dangling images.
-            - **Fast search & filter**: Interactive `/` filter across image repositories, tags, IDs, and digests.
-            - **Safe image deletion**: Confirm image removal (`x` / `d`) with warnings when an image is actively referenced by running or stopped containers.
-            - **Expanded 6-tab navigation**: Seamlessly switch between Containers (1), Images (2), Compose (3), Networks (4), Volumes (5), and Swarm (6).
+            - **Hardened security & overflow prevention**: Resolved potential integer overflow issues (G115) with a dedicated `FormatUintBytes` helper supporting exabytes, and sanitized Unix socket paths (G703).
+            - **Responsive layout across all tabs**: Tables and cards automatically stretch to fit wide terminals, utilizing full screen width instead of fixed boundaries.
+            - **Dynamic column stretching**: Repository, tag, ports, and subnet columns automatically scale with the terminal width.
+            - **Consistent boxed card design**: Docker Images, Networks, and Volumes tabs now feature consistent, polished details cards matching the container dashboard.
 
             ### Installation
 
