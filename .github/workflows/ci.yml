@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ ubuntu-latest, macos-latest ]
 
     defaults:
       run:
@@ -88,3 +88,10 @@ jobs:
 
       - name: Build binary
         run: go build -v -ldflags="-s -w -X main.version=${{ github.sha }}" -o bin/dockpulse ./cmd/dockpulse
+
+      - name: Verify Unix cross-compilation
+        if: runner.os == 'Linux'
+        run: |
+          GOOS=darwin GOARCH=arm64 go build -o /dev/null ./cmd/dockpulse
+          GOOS=darwin GOARCH=amd64 go build -o /dev/null ./cmd/dockpulse
+          GOOS=freebsd GOARCH=amd64 go build -o /dev/null ./cmd/dockpulse

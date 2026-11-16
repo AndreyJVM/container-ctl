@@ -73,6 +73,86 @@ func TestRenderFooter(t *testing.T) {
 	if !strings.Contains(fRemoveImg, "(Remove Image)") {
 		t.Errorf("expected remove image modal footer, got: %s", fRemoveImg)
 	}
+
+	// Exec modal footer
+	fExec := RenderFooter(FooterContext{ActiveModal: "exec", I18n: &dict, Width: 80})
+	if !strings.Contains(fExec, dict.FooterSelectAction) {
+		t.Errorf("expected select action in exec footer, got: %s", fExec)
+	}
+
+	// Prune modal footers
+	fPrune := RenderFooter(FooterContext{ActiveModal: "prune", PruneConfirm: 0, I18n: &dict, Width: 80})
+	if !strings.Contains(fPrune, dict.FooterSelectAction) {
+		t.Errorf("expected select action in prune footer, got: %s", fPrune)
+	}
+	fPruneConf := RenderFooter(FooterContext{ActiveModal: "prune", PruneConfirm: 1, I18n: &dict, Width: 80})
+	if !strings.Contains(fPruneConf, dict.FooterConfirmPrune) {
+		t.Errorf("expected confirm prune in footer, got: %s", fPruneConf)
+	}
+
+	// Shell active footers
+	fShellUnf := RenderFooter(FooterContext{ShellActive: true, ShellFocused: false, I18n: &dict, Width: 80})
+	if !strings.Contains(fShellUnf, dict.FooterShellFocus) {
+		t.Errorf("expected shell focus hint, got: %s", fShellUnf)
+	}
+	fShellFoc := RenderFooter(FooterContext{ShellActive: true, ShellFocused: true, I18n: &dict, Width: 80})
+	if !strings.Contains(fShellFoc, dict.FooterShellReleaseFocus) {
+		t.Errorf("expected release focus hint, got: %s", fShellFoc)
+	}
+
+	// Other tab footers (3, 4, 6, default)
+	f3 := RenderFooter(FooterContext{ActiveTab: 3, I18n: &dict, Width: 80})
+	if !strings.Contains(f3, dict.FooterSelectStack) {
+		t.Errorf("expected select stack in tab 3, got: %s", f3)
+	}
+	f4 := RenderFooter(FooterContext{ActiveTab: 4, I18n: &dict, Width: 80})
+	if !strings.Contains(f4, dict.FooterRefresh) {
+		t.Errorf("expected refresh in tab 4, got: %s", f4)
+	}
+	f6 := RenderFooter(FooterContext{ActiveTab: 6, I18n: &dict, Width: 80})
+	if !strings.Contains(f6, dict.FooterServiceLogs) {
+		t.Errorf("expected service logs in tab 6, got: %s", f6)
+	}
+	fDef := RenderFooter(FooterContext{ActiveTab: 99, I18n: &dict, Width: 80})
+	if !strings.Contains(fDef, dict.FooterTabs) {
+		t.Errorf("expected tabs hint in default footer, got: %s", fDef)
+	}
+}
+
+func TestRenderEmbeddedShellView(t *testing.T) {
+	dict := i18n.Get()
+
+	// Unfocused with default starting output
+	viewUnf := RenderEmbeddedShell(EmbeddedShellContext{
+		ContainerName: "my-web-app",
+		Output:        "",
+		Width:         80,
+		Height:        20,
+		Focused:       false,
+		I18n:          &dict,
+	})
+	if !strings.Contains(viewUnf, "my-web-app") || !strings.Contains(viewUnf, dict.EmbeddedShellUnfocused) {
+		t.Errorf("expected unfocused shell title and status, got: %s", viewUnf)
+	}
+	if !strings.Contains(viewUnf, dict.EmbeddedShellStarting) {
+		t.Errorf("expected shell starting message, got: %s", viewUnf)
+	}
+
+	// Focused with output
+	viewFoc := RenderEmbeddedShell(EmbeddedShellContext{
+		ContainerName: "redis-db",
+		Output:        "root@container:/# ls -la",
+		Width:         100,
+		Height:        25,
+		Focused:       true,
+		I18n:          &dict,
+	})
+	if !strings.Contains(viewFoc, "redis-db") || !strings.Contains(viewFoc, dict.EmbeddedShellFocused) {
+		t.Errorf("expected focused shell title and status, got: %s", viewFoc)
+	}
+	if !strings.Contains(viewFoc, "root@container") {
+		t.Errorf("expected shell output in view, got: %s", viewFoc)
+	}
 }
 
 func TestRenderComposeView(t *testing.T) {
