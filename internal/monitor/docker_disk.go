@@ -27,25 +27,30 @@ type DockerDiskUsage struct {
 	TotalRecl  int64
 }
 
-// FormatBytes formats a byte count into a human-readable string (B, KB, MB, GB, TB).
+// FormatBytes formats an int64 byte count into a human-readable string (B, KB, MB, GB, TB).
 func FormatBytes(b int64) string {
-	const unit = 1024
 	if b < 0 {
-		b = 0
+		return "0 B"
 	}
+	return FormatUintBytes(uint64(b))
+}
+
+// FormatUintBytes formats a uint64 byte count into a human-readable string without integer overflow.
+func FormatUintBytes(b uint64) string {
+	const unit = 1024
 	if b < unit {
 		return fmt.Sprintf("%d B", b)
 	}
-	div, exp := int64(unit), 0
+	div, exp := uint64(unit), 0
 	for n := b / unit; n >= unit; n /= unit {
 		div *= unit
 		exp++
 	}
-	suffixes := []string{"KB", "MB", "GB", "TB"}
+	suffixes := []string{"KB", "MB", "GB", "TB", "PB", "EB"}
 	if exp < len(suffixes) {
 		return fmt.Sprintf("%.1f %s", float64(b)/float64(div), suffixes[exp])
 	}
-	return fmt.Sprintf("%.1f TB", float64(b)/float64(div))
+	return fmt.Sprintf("%.1f EB", float64(b)/float64(div))
 }
 
 type systemDFRaw struct {
@@ -190,6 +195,6 @@ func GetDockerDiskUsage() (DockerDiskUsage, error) {
 
 func parseCLIInt(s string) int {
 	var n int
-	fmt.Sscanf(strings.TrimSpace(s), "%d", &n)
+	_, _ = fmt.Sscanf(strings.TrimSpace(s), "%d", &n)
 	return n
 }

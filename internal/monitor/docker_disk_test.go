@@ -34,6 +34,32 @@ func TestFormatBytes(t *testing.T) {
 	}
 }
 
+func TestFormatUintBytes(t *testing.T) {
+	tests := []struct {
+		bytes    uint64
+		expected string
+	}{
+		{0, "0 B"},
+		{500, "500 B"},
+		{1024, "1.0 KB"},
+		{1536, "1.5 KB"},
+		{1024 * 1024, "1.0 MB"},
+		{1024 * 1024 * 1024, "1.0 GB"},
+		{uint64(1024) * 1024 * 1024 * 1024, "1.0 TB"},
+		{uint64(1024) * 1024 * 1024 * 1024 * 1024, "1.0 PB"},
+		{^uint64(0), "16.0 EB"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expected, func(t *testing.T) {
+			got := FormatUintBytes(tt.bytes)
+			if got != tt.expected {
+				t.Errorf("FormatUintBytes(%d) = %q; want %q", tt.bytes, got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestParseCLIInt(t *testing.T) {
 	tests := []struct {
 		input    string

@@ -31,9 +31,11 @@ var (
 // FindDockerSocket finds an available Docker or Podman Unix socket.
 func FindDockerSocket() string {
 	if dockerHost := os.Getenv("DOCKER_HOST"); strings.HasPrefix(dockerHost, "unix://") {
-		p := strings.TrimPrefix(dockerHost, "unix://")
-		if _, err := os.Stat(p); err == nil {
-			return p
+		p := filepath.Clean(strings.TrimPrefix(dockerHost, "unix://"))
+		if filepath.IsAbs(p) {
+			if _, err := os.Stat(p); err == nil { // #nosec G703 -- read-only stat on cleaned absolute socket path from DOCKER_HOST
+				return p
+			}
 		}
 	}
 

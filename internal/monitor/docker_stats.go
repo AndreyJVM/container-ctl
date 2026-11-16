@@ -156,11 +156,13 @@ func fetchContainerInspect(client *http.Client, containerID string) (restartPoli
 	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		if resp != nil && resp.Body != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 		return "", ""
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	var data struct {
 		HostConfig struct {

@@ -322,8 +322,8 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 	netIODisplay := theme.DimStyle.Render("0 B / 0 B")
 	if sel.State == "running" {
 		netIODisplay = fmt.Sprintf("%s / %s",
-			theme.GreenStyle.Render(monitor.FormatBytes(int64(sel.NetRxBytes))),
-			theme.CyanStyle.Render(monitor.FormatBytes(int64(sel.NetTxBytes))),
+			theme.GreenStyle.Render(monitor.FormatUintBytes(sel.NetRxBytes)),
+			theme.CyanStyle.Render(monitor.FormatUintBytes(sel.NetTxBytes)),
 		)
 	}
 	s.WriteString(renderDetailRow(dict.DetailNetIOLabel, netIODisplay))
@@ -332,8 +332,8 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 	blockIODisplay := theme.DimStyle.Render("0 B / 0 B")
 	if sel.State == "running" {
 		blockIODisplay = fmt.Sprintf("%s / %s",
-			theme.GreenStyle.Render(monitor.FormatBytes(int64(sel.BlockReadBytes))),
-			theme.YellowStyle.Render(monitor.FormatBytes(int64(sel.BlockWriteBytes))),
+			theme.GreenStyle.Render(monitor.FormatUintBytes(sel.BlockReadBytes)),
+			theme.YellowStyle.Render(monitor.FormatUintBytes(sel.BlockWriteBytes)),
 		)
 	}
 	s.WriteString(renderDetailRow(dict.DetailBlockIOLabel, blockIODisplay))

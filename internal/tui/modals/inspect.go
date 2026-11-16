@@ -44,11 +44,11 @@ func RenderInspect(d monitor.ContainerDetail, dict *i18n.Dictionary) string {
 		if d.NetRxBytes > 0 || d.NetTxBytes > 0 || d.BlockReadBytes > 0 || d.BlockWriteBytes > 0 {
 			s.WriteString(fmt.Sprintf("  %s %s / %s    %s %s / %s\n",
 				theme.DimStyle.Render("Net I/O:"),
-				monitor.FormatBytes(int64(d.NetRxBytes)),
-				monitor.FormatBytes(int64(d.NetTxBytes)),
+				monitor.FormatUintBytes(d.NetRxBytes),
+				monitor.FormatUintBytes(d.NetTxBytes),
 				theme.DimStyle.Render("Block I/O:"),
-				monitor.FormatBytes(int64(d.BlockReadBytes)),
-				monitor.FormatBytes(int64(d.BlockWriteBytes)),
+				monitor.FormatUintBytes(d.BlockReadBytes),
+				monitor.FormatUintBytes(d.BlockWriteBytes),
 			))
 		}
 	}

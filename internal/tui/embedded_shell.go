@@ -128,9 +128,15 @@ func shellKeyBytes(msg tea.KeyMsg) []byte {
 		return data
 	}
 
-	keyType := int(msg.Type)
-	if (keyType >= 0 && keyType <= 31) || keyType == 127 {
-		data := []byte{byte(keyType)}
+	if msg.Type >= 0 && msg.Type <= 31 {
+		data := []byte{byte(msg.Type)} // #nosec G115 -- bounded by msg.Type >= 0 && msg.Type <= 31
+		if msg.Alt {
+			return append([]byte{0x1b}, data...)
+		}
+		return data
+	}
+	if msg.Type == 127 {
+		data := []byte{127}
 		if msg.Alt {
 			return append([]byte{0x1b}, data...)
 		}
