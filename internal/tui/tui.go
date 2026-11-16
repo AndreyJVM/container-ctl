@@ -18,16 +18,18 @@ type TabID int
 const (
 	// TabDocker displays Docker containers, statuses, metrics, and actions.
 	TabDocker TabID = 1
+	// TabImages displays Docker images, tags, sizes, and actions.
+	TabImages TabID = 2
 	// TabCompose displays Docker Compose projects and aggregated service statuses.
-	TabCompose TabID = 2
+	TabCompose TabID = 3
 	// TabNetworks displays Docker networks and their configuration.
-	TabNetworks TabID = 3
+	TabNetworks TabID = 4
 	// TabVolumes displays Docker volumes and their usage details.
-	TabVolumes TabID = 4
+	TabVolumes TabID = 5
 	// TabSwarm displays Swarm cluster nodes and services.
-	TabSwarm TabID = 5
+	TabSwarm TabID = 6
 	// TabCount represents the total number of primary tabs.
-	TabCount = 5
+	TabCount = 6
 )
 
 // ModalType represents an active modal dialog.
@@ -60,6 +62,8 @@ const (
 	ModalPrune ModalType = "prune"
 	// ModalRemoveContainer displays confirmation for removing a container.
 	ModalRemoveContainer ModalType = "remove_container"
+	// ModalRemoveImage displays confirmation for removing a Docker image.
+	ModalRemoveImage ModalType = "remove_image"
 	// ModalExec displays the interactive container shell launcher.
 	ModalExec ModalType = "exec"
 )
@@ -95,6 +99,7 @@ type Model struct {
 
 	// Navigation and modal state.
 	cursorIdx           int
+	imageCursorIdx      int
 	composeCursorIdx    int
 	networkCursorIdx    int
 	volumeCursorIdx     int
@@ -123,6 +128,11 @@ type Model struct {
 	removeContainerTargetID   string
 	removeContainerTargetName string
 
+	// Remove image modal.
+	removeImageTargetID     string
+	removeImageTargetName   string
+	removeImageTargetInUse  bool
+
 	// Prune modal.
 	pruneUsage    monitor.DockerDiskUsage
 	pruneUsageErr string
@@ -136,10 +146,12 @@ type Model struct {
 	filterQuery string
 
 	dockerInfo monitor.DockerSummary
+	images     []monitor.DockerImage
 	compose    []monitor.ComposeProject
 	networks   []monitor.DockerNetwork
 	volumes    []monitor.DockerVolume
 	swarm      monitor.SwarmSummary
+	imageErr   string
 	networkErr string
 	volumeErr  string
 	lastUpdate string
@@ -166,10 +178,12 @@ func NewModel(refreshInterval time.Duration, initialTab int, version string) Mod
 
 func (m *Model) applyFetchedData(d dataFetchedMsg) {
 	m.dockerInfo = d.dockerInfo
+	m.images = d.images
 	m.compose = d.compose
 	m.networks = d.networks
 	m.volumes = d.volumes
 	m.swarm = d.swarm
+	m.imageErr = d.imageErr
 	m.networkErr = d.networkErr
 	m.volumeErr = d.volumeErr
 	m.lastUpdate = d.timestamp
@@ -185,14 +199,17 @@ func (m *Model) applyFetchedData(d dataFetchedMsg) {
 
 func (m *Model) fetchAllData() {
 	dockerInfo := monitor.GetDockerSummary()
+	images, imageErr := monitor.GetDockerImages()
 	networks, networkErr := monitor.GetDockerNetworks()
 	volumes, volumeErr := monitor.GetDockerVolumes()
 	m.applyFetchedData(dataFetchedMsg{
 		dockerInfo: dockerInfo,
+		images:     images,
 		compose:    monitor.GetComposeProjects(dockerInfo.Containers),
 		networks:   networks,
 		volumes:    volumes,
 		swarm:      monitor.GetSwarmSummary(),
+		imageErr:   formatFetchError(imageErr),
 		networkErr: formatFetchError(networkErr),
 		volumeErr:  formatFetchError(volumeErr),
 		timestamp:  time.Now().Format("15:04:05"),
@@ -267,6 +284,25 @@ func (m Model) getFilteredContainers() []monitor.ContainerItem {
 	return list
 }
 
+func (m Model) getFilteredImages() []monitor.DockerImage {
+	trimmedQuery := strings.TrimSpace(strings.ToLower(m.filterQuery))
+	if trimmedQuery == "" {
+		list := make([]monitor.DockerImage, len(m.images))
+		copy(list, m.images)
+		return list
+	}
+	var filtered []monitor.DockerImage
+	for _, img := range m.images {
+		if strings.Contains(strings.ToLower(img.ID), trimmedQuery) ||
+			strings.Contains(strings.ToLower(img.Repository), trimmedQuery) ||
+			strings.Contains(strings.ToLower(img.Tag), trimmedQuery) ||
+			strings.Contains(strings.ToLower(img.Digest), trimmedQuery) {
+			filtered = append(filtered, img)
+		}
+	}
+	return filtered
+}
+
 func (m *Model) clampCursor() {
 	containers := m.getFilteredContainers()
 	if len(containers) == 0 {
@@ -275,6 +311,15 @@ func (m *Model) clampCursor() {
 		m.cursorIdx = len(containers) - 1
 	} else if m.cursorIdx < 0 {
 		m.cursorIdx = 0
+	}
+
+	images := m.getFilteredImages()
+	if len(images) == 0 {
+		m.imageCursorIdx = 0
+	} else if m.imageCursorIdx >= len(images) {
+		m.imageCursorIdx = len(images) - 1
+	} else if m.imageCursorIdx < 0 {
+		m.imageCursorIdx = 0
 	}
 
 	if len(m.compose) == 0 {
@@ -351,6 +396,14 @@ func (m *Model) moveCursor(delta int) {
 			m.cursorIdx = (m.cursorIdx + delta) % len(containers)
 			if m.cursorIdx < 0 {
 				m.cursorIdx += len(containers)
+			}
+		}
+	case TabImages:
+		images := m.getFilteredImages()
+		if len(images) > 0 {
+			m.imageCursorIdx = (m.imageCursorIdx + delta) % len(images)
+			if m.imageCursorIdx < 0 {
+				m.imageCursorIdx += len(images)
 			}
 		}
 	case TabCompose:

@@ -54,11 +54,11 @@ func printUsage(w io.Writer) {
 	fmt.Fprintf(w, "  dockpulse [options]\n\n")
 	fmt.Fprintf(w, "Options:\n")
 	fmt.Fprintf(w, "  -i, --interval <duration>  Auto-refresh interval (default: %v, env: DOCKPULSE_INTERVAL)\n", defaultInterval)
-	fmt.Fprintf(w, "  -t, --tab <1-5|name>       Initial tab: 1|docker, 2|compose, 3|networks, 4|volumes, 5|swarm (default: %d, env: DOCKPULSE_TAB)\n", defaultTab)
+	fmt.Fprintf(w, "  -t, --tab <1-6|name>       Initial tab: 1|docker, 2|images, 3|compose, 4|networks, 5|volumes, 6|swarm (default: %d, env: DOCKPULSE_TAB)\n", defaultTab)
 	fmt.Fprintf(w, "  -v, --version              Show version\n")
 	fmt.Fprintf(w, "  -h, --help                 Show this help\n\n")
 	fmt.Fprintf(w, "TUI controls:\n")
-	fmt.Fprintf(w, "  1..5, Tab, ←/→             Switch tabs\n")
+	fmt.Fprintf(w, "  1..6, Tab, ←/→             Switch tabs\n")
 	fmt.Fprintf(w, "  r, R                       Refresh data immediately\n")
 	fmt.Fprintf(w, "  ?                          Show keyboard shortcuts\n")
 	fmt.Fprintf(w, "  q, Esc, Ctrl+C             Quit\n")
@@ -91,7 +91,7 @@ func parseFlags(args []string, stdout, stderr io.Writer) (*config, error) {
 
 	flags.DurationVar(&cfg.interval, "interval", intervalDefault, "Metrics refresh interval (for example: 1s, 2s, 500ms)")
 	flags.DurationVar(&cfg.interval, "i", intervalDefault, "Metrics refresh interval (short flag)")
-	flags.StringVar(&tabFlag, "tab", tabDefault, "Initial tab: 1|docker, 2|compose, 3|networks, 4|volumes, 5|swarm")
+	flags.StringVar(&tabFlag, "tab", tabDefault, "Initial tab: 1|docker, 2|images, 3|compose, 4|networks, 5|volumes, 6|swarm")
 	flags.StringVar(&tabFlag, "t", tabDefault, "Initial tab (short flag)")
 	flags.BoolVar(&cfg.showVersion, "version", false, "Show version")
 	flags.BoolVar(&cfg.showVersion, "v", false, "Show version (short flag)")
@@ -115,18 +115,20 @@ func parseFlags(args []string, stdout, stderr io.Writer) (*config, error) {
 
 func parseTab(val string) (int, error) {
 	switch strings.ToLower(strings.TrimSpace(val)) {
-	case "1", "docker":
+	case "1", "docker", "containers":
 		return 1, nil
-	case "2", "compose":
+	case "2", "images", "image":
 		return 2, nil
-	case "3", "networks", "network":
+	case "3", "compose":
 		return 3, nil
-	case "4", "volumes", "volume":
+	case "4", "networks", "network":
 		return 4, nil
-	case "5", "swarm":
+	case "5", "volumes", "volume":
 		return 5, nil
+	case "6", "swarm":
+		return 6, nil
 	default:
-		return 0, fmt.Errorf("invalid initial tab: %q (allowed: 1|docker, 2|compose, 3|networks, 4|volumes, 5|swarm)", val)
+		return 0, fmt.Errorf("invalid initial tab: %q (allowed: 1|docker, 2|images, 3|compose, 4|networks, 5|volumes, 6|swarm)", val)
 	}
 }
 
@@ -134,8 +136,8 @@ func validateConfig(cfg *config) error {
 	if cfg.interval < minInterval {
 		return fmt.Errorf("refresh interval must be at least %v (got: %v)", minInterval, cfg.interval)
 	}
-	if cfg.initialTab < 1 || cfg.initialTab > 5 {
-		return fmt.Errorf("initial tab must be between 1 and 5 (got: %d)", cfg.initialTab)
+	if cfg.initialTab < 1 || cfg.initialTab > 6 {
+		return fmt.Errorf("initial tab must be between 1 and 6 (got: %d)", cfg.initialTab)
 	}
 	return nil
 }

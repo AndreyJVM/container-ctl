@@ -63,7 +63,7 @@ func TestViewIncludesNetworksAndVolumesTabs(t *testing.T) {
 	m.width = 120
 	view := m.View()
 
-	for _, label := range []string{"3: Networks", "4: Volumes", "5: Swarm"} {
+	for _, label := range []string{"2: Images", "3: Compose", "4: Networks", "5: Volumes", "6: Swarm"} {
 		if !strings.Contains(view, label) {
 			t.Fatalf("expected tab %q in view, got: %s", label, view)
 		}
@@ -88,6 +88,7 @@ func TestModelNavigationAndUpdates(t *testing.T) {
 		key         string
 		expectedTab TabID
 	}{
+		{"tab", TabImages},
 		{"tab", TabCompose},
 		{"tab", TabNetworks},
 		{"right", TabVolumes},
@@ -96,10 +97,11 @@ func TestModelNavigationAndUpdates(t *testing.T) {
 		{"left", TabSwarm},
 		{"shift+tab", TabVolumes},
 		{"1", TabDocker},
-		{"2", TabCompose},
-		{"3", TabNetworks},
-		{"4", TabVolumes},
-		{"5", TabSwarm},
+		{"2", TabImages},
+		{"3", TabCompose},
+		{"4", TabNetworks},
+		{"5", TabVolumes},
+		{"6", TabSwarm},
 	}
 
 	for _, kt := range keyTests {
@@ -135,37 +137,44 @@ func TestRenderAllTabs(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.4.1")
 
 	// Render Tab 1: Docker
-	m.activeTab = 1
+	m.activeTab = TabDocker
 	v1 := m.View()
 	if !strings.Contains(v1, "DOCKER CONTAINERS") {
 		t.Errorf("expected Docker tab header in View()")
 	}
 
-	// Render Tab 2: Compose
-	m.activeTab = 2
+	// Render Tab 2: Images
+	m.activeTab = TabImages
 	v2 := m.View()
-	if !strings.Contains(v2, "DOCKER COMPOSE") {
+	if !strings.Contains(v2, "DOCKER IMAGES") {
+		t.Errorf("expected Images tab header in View()")
+	}
+
+	// Render Tab 3: Compose
+	m.activeTab = TabCompose
+	v3 := m.View()
+	if !strings.Contains(v3, "DOCKER COMPOSE") {
 		t.Errorf("expected Compose tab header in View()")
 	}
 
-	// Render Tab 3: Networks
-	m.activeTab = 3
-	v3 := m.View()
-	if !strings.Contains(v3, "DOCKER NETWORKS") {
+	// Render Tab 4: Networks
+	m.activeTab = TabNetworks
+	v4 := m.View()
+	if !strings.Contains(v4, "DOCKER NETWORKS") {
 		t.Errorf("expected Networks tab header in View()")
 	}
 
-	// Render Tab 4: Volumes
-	m.activeTab = 4
-	v4 := m.View()
-	if !strings.Contains(v4, "DOCKER VOLUMES") {
+	// Render Tab 5: Volumes
+	m.activeTab = TabVolumes
+	v5 := m.View()
+	if !strings.Contains(v5, "DOCKER VOLUMES") {
 		t.Errorf("expected Volumes tab header in View()")
 	}
 
-	// Render Tab 5: Swarm
-	m.activeTab = 5
-	v5 := m.View()
-	if !strings.Contains(v5, "DOCKER SWARM") {
+	// Render Tab 6: Swarm
+	m.activeTab = TabSwarm
+	v6 := m.View()
+	if !strings.Contains(v6, "DOCKER SWARM") {
 		t.Errorf("expected Swarm tab header in View()")
 	}
 
@@ -225,6 +234,22 @@ func TestNavigationMethods(t *testing.T) {
 	m.moveCursor(1) // Wrap back to 0
 	if m.cursorIdx != 0 {
 		t.Errorf("expected cursorIdx wrapped to 0, got %d", m.cursorIdx)
+	}
+
+	// moveCursor in Images tab
+	m.setTab(TabImages)
+	m.images = []monitor.DockerImage{
+		{ID: "img1", Repository: "repo1"},
+		{ID: "img2", Repository: "repo2"},
+	}
+	m.imageCursorIdx = 0
+	m.moveCursor(1)
+	if m.imageCursorIdx != 1 {
+		t.Errorf("expected imageCursorIdx 1, got %d", m.imageCursorIdx)
+	}
+	m.moveCursor(1) // Wrap
+	if m.imageCursorIdx != 0 {
+		t.Errorf("expected imageCursorIdx 0, got %d", m.imageCursorIdx)
 	}
 
 	// moveCursor in Compose tab

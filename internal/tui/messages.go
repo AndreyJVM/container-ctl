@@ -29,10 +29,12 @@ type embeddedShellExitedMsg struct {
 // dataFetchedMsg delivers freshly gathered metrics and container lists across all domains.
 type dataFetchedMsg struct {
 	dockerInfo monitor.DockerSummary
+	images     []monitor.DockerImage
 	compose    []monitor.ComposeProject
 	networks   []monitor.DockerNetwork
 	volumes    []monitor.DockerVolume
 	swarm      monitor.SwarmSummary
+	imageErr   string
 	networkErr string
 	volumeErr  string
 	timestamp  string

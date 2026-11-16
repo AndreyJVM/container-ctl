@@ -82,6 +82,9 @@ func RenderFooter(ctx FooterContext) string {
 		} else if ctx.ActiveModal == "remove_container" {
 			content = theme.RedStyle.Render("[Y]") + " " + d.FooterConfirm + " (Remove)  |  " +
 				theme.BoldStyle.Render("[N / Esc]") + " " + d.FooterCancel
+		} else if ctx.ActiveModal == "remove_image" {
+			content = theme.RedStyle.Render("[Y]") + " " + d.FooterConfirm + " (Remove Image)  |  " +
+				theme.BoldStyle.Render("[N / Esc]") + " " + d.FooterCancel
 		} else if ctx.ActiveModal == "exec" {
 			content = theme.BoldStyle.Render("[1-7 / Enter]") + " " + d.FooterSelectAction + "  |  " +
 				theme.BoldStyle.Render("[Esc / Q]") + " " + d.FooterCancel
@@ -136,6 +139,25 @@ func RenderFooter(ctx FooterContext) string {
 				theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
 		}
 	} else if ctx.ActiveTab == 2 {
+		if ctx.IsFiltering {
+			content = theme.BoldStyle.Render("[Enter]") + " " + d.FooterApplyFilter + "  |  " +
+				theme.BoldStyle.Render("[Esc]") + " " + d.FooterCancel
+		} else if ctx.FilterQuery != "" {
+			content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
+				theme.BoldStyle.Render("[Esc]") + " " + d.FooterResetFilter + "  |  " +
+				theme.BoldStyle.Render("[x]") + " " + d.FooterRemove + "  |  " +
+				theme.BoldStyle.Render("[C]") + " " + d.FooterPrune + "  |  " +
+				theme.BoldStyle.Render("[R]") + " " + d.FooterRefresh + "  |  " +
+				theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
+		} else {
+			content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
+				theme.BoldStyle.Render("[/]") + " " + d.FooterSearch + "  |  " +
+				theme.BoldStyle.Render("[x]") + " " + d.FooterRemove + "  |  " +
+				theme.BoldStyle.Render("[C]") + " " + d.FooterPrune + "  |  " +
+				theme.BoldStyle.Render("[R]") + " " + d.FooterRefresh + "  |  " +
+				theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
+		}
+	} else if ctx.ActiveTab == 3 {
 		content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelectStack + "  |  " +
 			theme.BoldStyle.Render("[L]") + " " + d.FooterLogs + "  |  " +
 			theme.BoldStyle.Render("[S]") + " " + d.FooterStop + "  |  " +
@@ -144,16 +166,16 @@ func RenderFooter(ctx FooterContext) string {
 			theme.BoldStyle.Render("[D]") + " " + d.FooterDown + "  |  " +
 			theme.BoldStyle.Render("[C]") + " " + d.FooterPrune + "  |  " +
 			theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
-	} else if ctx.ActiveTab == 3 || ctx.ActiveTab == 4 {
+	} else if ctx.ActiveTab == 4 || ctx.ActiveTab == 5 {
 		content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
 			theme.BoldStyle.Render("[R]") + " " + d.FooterRefresh + "  |  " +
 			theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
-	} else if ctx.ActiveTab == 5 {
+	} else if ctx.ActiveTab == 6 {
 		content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelectService + "  |  " +
 			theme.BoldStyle.Render("[L]") + " " + d.FooterServiceLogs + "  |  " +
 			theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
 	} else {
-		content = theme.BoldStyle.Render("[1-5 / Tab / ← →]") + " " + d.FooterTabs + "  |  " +
+		content = theme.BoldStyle.Render("[1-6 / Tab / ← →]") + " " + d.FooterTabs + "  |  " +
 			theme.BoldStyle.Render("[R]") + " " + d.FooterRefresh + "  |  " +
 			theme.BoldStyle.Render("[?]") + " " + d.FooterHelp + "  |  " +
 			theme.BoldStyle.Render("[Q]") + " " + d.FooterQuit

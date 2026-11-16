@@ -25,8 +25,23 @@ func TestEnglishLanguageModel(t *testing.T) {
 		t.Errorf("expected English 'Daemon: Running', got: %s", vDocker)
 	}
 
+	// Images tab.
+	m.activeTab = TabImages
+	m.images = []monitor.DockerImage{
+		{
+			ID:         "img1",
+			Repository: "demo-image",
+			Tag:        "latest",
+			InUse:      true,
+		},
+	}
+	vImages := m.View()
+	if !strings.Contains(vImages, "DOCKER IMAGES") {
+		t.Errorf("expected 'DOCKER IMAGES' in View(), got: %s", vImages)
+	}
+
 	// Compose tab.
-	m.activeTab = 2
+	m.activeTab = TabCompose
 	m.compose = []monitor.ComposeProject{
 		{
 			Name:            "demo-stack",
@@ -45,7 +60,7 @@ func TestEnglishLanguageModel(t *testing.T) {
 	}
 
 	// Swarm tab.
-	m.activeTab = 5
+	m.activeTab = TabSwarm
 	m.swarm = monitor.SwarmSummary{
 		IsActive:      false,
 		StatusDisplay: "Inactive",

@@ -210,6 +210,22 @@ func TestRenderRemoveContainer(t *testing.T) {
 	}
 }
 
+func TestRenderRemoveImage(t *testing.T) {
+	dict := i18n.Get()
+
+	// Normal unused image
+	view := RenderRemoveImage("nginx:alpine", "img12345", false, &dict)
+	if !strings.Contains(view, "nginx:alpine") || !strings.Contains(view, "img12345") || !strings.Contains(view, dict.RemoveImageTitle) {
+		t.Errorf("expected image name, id and title in remove image modal, got: %s", view)
+	}
+
+	// In use image with warning
+	viewInUse := RenderRemoveImage("redis:latest", "img67890", true, &dict)
+	if !strings.Contains(viewInUse, dict.RemoveImageInUseWarning) {
+		t.Errorf("expected in-use warning in modal, got: %s", viewInUse)
+	}
+}
+
 func TestRenderHelp(t *testing.T) {
 	dict := i18n.Get()
 

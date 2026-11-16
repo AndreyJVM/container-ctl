@@ -44,6 +44,28 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.activeModal == ModalRemoveImage {
+		switch msg.String() {
+		case "esc", "q", "n", "N":
+			m.closeModal()
+			m.removeImageTargetID = ""
+			m.removeImageTargetName = ""
+			m.removeImageTargetInUse = false
+			return m, nil
+		case "y", "Y":
+			targetID := m.removeImageTargetID
+			targetName := m.removeImageTargetName
+			inUse := m.removeImageTargetInUse
+			m.closeModal()
+			m.removeImageTargetID = ""
+			m.removeImageTargetName = ""
+			m.removeImageTargetInUse = false
+			m.showToast(fmt.Sprintf(m.i18n.ToastRemovingImage, targetName))
+			return m, removeImageCmd(targetID, targetName, inUse, m.i18n)
+		}
+		return m, nil
+	}
+
 	if m.activeModal == ModalExec {
 		return m.handleExecModalInput(msg)
 	}

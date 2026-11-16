@@ -38,9 +38,9 @@ func TestParseFlags_CustomValues(t *testing.T) {
 	}{
 		{
 			name:         "short flags numeric",
-			args:         []string{"-i", "1s", "-t", "3"},
+			args:         []string{"-i", "1s", "-t", "4"},
 			wantInterval: 1 * time.Second,
-			wantTab:      3,
+			wantTab:      4,
 		},
 		{
 			name:         "long flags numeric",
@@ -55,16 +55,22 @@ func TestParseFlags_CustomValues(t *testing.T) {
 			wantTab:      1,
 		},
 		{
+			name:         "named tab images",
+			args:         []string{"-t", "images"},
+			wantInterval: defaultInterval,
+			wantTab:      2,
+		},
+		{
 			name:         "named tab compose",
 			args:         []string{"--tab", "compose"},
 			wantInterval: defaultInterval,
-			wantTab:      2,
+			wantTab:      3,
 		},
 		{
 			name:         "named tab swarm",
 			args:         []string{"-t", "swarm"},
 			wantInterval: defaultInterval,
-			wantTab:      5,
+			wantTab:      6,
 		},
 	}
 
@@ -105,8 +111,8 @@ func TestParseFlags_EnvVariables(t *testing.T) {
 	if cfg.interval != 3*time.Second {
 		t.Errorf("expected interval from env 3s, got %v", cfg.interval)
 	}
-	if cfg.initialTab != 2 {
-		t.Errorf("expected tab from env 2 (compose), got %d", cfg.initialTab)
+	if cfg.initialTab != 3 {
+		t.Errorf("expected tab from env 3 (compose), got %d", cfg.initialTab)
 	}
 	// CLI flags must override env variables
 	cfgOverridden, err := parseFlags([]string{"-i", "500ms", "-t", "swarm"}, &stdout, &stderr)
@@ -116,8 +122,8 @@ func TestParseFlags_EnvVariables(t *testing.T) {
 	if cfgOverridden.interval != 500*time.Millisecond {
 		t.Errorf("expected overridden interval 500ms, got %v", cfgOverridden.interval)
 	}
-	if cfgOverridden.initialTab != 5 {
-		t.Errorf("expected overridden tab 5 (swarm), got %d", cfgOverridden.initialTab)
+	if cfgOverridden.initialTab != 6 {
+		t.Errorf("expected overridden tab 6 (swarm), got %d", cfgOverridden.initialTab)
 	}
 }
 
@@ -130,15 +136,18 @@ func TestParseTab(t *testing.T) {
 		{"1", 1, false},
 		{"docker", 1, false},
 		{"2", 2, false},
-		{"compose", 2, false},
+		{"images", 2, false},
+		{"image", 2, false},
 		{"3", 3, false},
-		{"networks", 3, false},
+		{"compose", 3, false},
 		{"4", 4, false},
-		{"volumes", 4, false},
+		{"networks", 4, false},
 		{"5", 5, false},
-		{"swarm", 5, false},
+		{"volumes", 5, false},
+		{"6", 6, false},
+		{"swarm", 6, false},
 		{"host", 0, true},
-		{"6", 0, true},
+		{"7", 0, true},
 		{"unknown", 0, true},
 		{"", 0, true},
 	}
@@ -164,13 +173,15 @@ func TestParseTabUsesDockerFocusedTabs(t *testing.T) {
 		{input: "1", want: 1},
 		{input: "docker", want: 1},
 		{input: "2", want: 2},
-		{input: "compose", want: 2},
+		{input: "images", want: 2},
 		{input: "3", want: 3},
-		{input: "networks", want: 3},
+		{input: "compose", want: 3},
 		{input: "4", want: 4},
-		{input: "volumes", want: 4},
+		{input: "networks", want: 4},
 		{input: "5", want: 5},
-		{input: "swarm", want: 5},
+		{input: "volumes", want: 5},
+		{input: "6", want: 6},
+		{input: "swarm", want: 6},
 	}
 
 	for _, tt := range tests {
@@ -188,8 +199,8 @@ func TestParseTabUsesDockerFocusedTabs(t *testing.T) {
 	if _, err := parseTab("host"); err == nil {
 		t.Fatal("expected the removed host tab name to be rejected")
 	}
-	if _, err := parseTab("6"); err == nil {
-		t.Fatal("expected tab 6 to be rejected")
+	if _, err := parseTab("7"); err == nil {
+		t.Fatal("expected tab 7 to be rejected")
 	}
 }
 
@@ -198,11 +209,12 @@ func TestParseTabSupportsDockerResources(t *testing.T) {
 		input string
 		want  int
 	}{
-		{input: "networks", want: 3},
-		{input: "4", want: 4},
-		{input: "volumes", want: 4},
+		{input: "images", want: 2},
+		{input: "networks", want: 4},
 		{input: "5", want: 5},
-		{input: "swarm", want: 5},
+		{input: "volumes", want: 5},
+		{input: "6", want: 6},
+		{input: "swarm", want: 6},
 	}
 
 	for _, tt := range tests {
@@ -253,7 +265,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name:    "valid boundary values",
-			cfg:     config{interval: 100 * time.Millisecond, initialTab: 5},
+			cfg:     config{interval: 100 * time.Millisecond, initialTab: 6},
 			wantErr: false,
 		},
 		{
@@ -273,7 +285,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name:    "tab too high",
-			cfg:     config{interval: 1 * time.Second, initialTab: 6},
+			cfg:     config{interval: 1 * time.Second, initialTab: 7},
 			wantErr: true,
 		},
 	}

@@ -52,12 +52,14 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "1":
 		m.setTab(TabDocker)
 	case "2":
-		m.setTab(TabCompose)
+		m.setTab(TabImages)
 	case "3":
-		m.setTab(TabNetworks)
+		m.setTab(TabCompose)
 	case "4":
-		m.setTab(TabVolumes)
+		m.setTab(TabNetworks)
 	case "5":
+		m.setTab(TabVolumes)
+	case "6":
 		m.setTab(TabSwarm)
 
 	case "r", "R":
@@ -82,9 +84,9 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-	// Container search.
+	// Search & filter on Docker and Images tabs.
 	case "/":
-		if m.activeTab == TabDocker {
+		if m.activeTab == TabDocker || m.activeTab == TabImages {
 			m.isFiltering = true
 			return m, nil
 		}
@@ -186,7 +188,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, startComposeCmd(proj.Name, m.dockerInfo.Containers, m.i18n)
 		}
 
-	// Down a Compose project or remove a container.
+	// Down a Compose project, remove a container, or remove an image.
 	case "d", "D":
 		if m.activeTab == TabDocker && !m.isFiltering {
 			containers := m.getFilteredContainers()
@@ -195,6 +197,20 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.removeContainerTargetID = c.ID
 				m.removeContainerTargetName = c.Name
 				m.openModal(ModalRemoveContainer)
+				return m, nil
+			}
+		} else if m.activeTab == TabImages && !m.isFiltering {
+			images := m.getFilteredImages()
+			if len(images) > 0 && m.imageCursorIdx < len(images) {
+				img := images[m.imageCursorIdx]
+				displayName := img.Repository
+				if img.Tag != "" && img.Tag != "<none>" {
+					displayName = fmt.Sprintf("%s:%s", img.Repository, img.Tag)
+				}
+				m.removeImageTargetID = img.ID
+				m.removeImageTargetName = displayName
+				m.removeImageTargetInUse = img.InUse
+				m.openModal(ModalRemoveImage)
 				return m, nil
 			}
 		} else if m.activeTab == TabCompose && len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
@@ -243,7 +259,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	// Remove a container.
+	// Remove a container or an image.
 	case "x", "X":
 		if m.activeTab == TabDocker && !m.isFiltering {
 			containers := m.getFilteredContainers()
@@ -252,6 +268,20 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.removeContainerTargetID = c.ID
 				m.removeContainerTargetName = c.Name
 				m.openModal(ModalRemoveContainer)
+				return m, nil
+			}
+		} else if m.activeTab == TabImages && !m.isFiltering {
+			images := m.getFilteredImages()
+			if len(images) > 0 && m.imageCursorIdx < len(images) {
+				img := images[m.imageCursorIdx]
+				displayName := img.Repository
+				if img.Tag != "" && img.Tag != "<none>" {
+					displayName = fmt.Sprintf("%s:%s", img.Repository, img.Tag)
+				}
+				m.removeImageTargetID = img.ID
+				m.removeImageTargetName = displayName
+				m.removeImageTargetInUse = img.InUse
+				m.openModal(ModalRemoveImage)
 				return m, nil
 			}
 		}
@@ -273,7 +303,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	// Prune unused Docker resources.
 	case "c", "C":
-		if (m.activeTab == TabDocker || m.activeTab == TabCompose) && !m.isFiltering {
+		if (m.activeTab == TabDocker || m.activeTab == TabImages || m.activeTab == TabCompose) && !m.isFiltering {
 			m.openModal(ModalPrune)
 			m.pruneConfirm = 0
 			usage, err := monitor.GetDockerDiskUsage()

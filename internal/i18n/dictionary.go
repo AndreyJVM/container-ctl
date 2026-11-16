@@ -4,6 +4,7 @@ package i18n
 type Dictionary struct {
 	// Tabs.
 	TabDocker   string
+	TabImages   string
 	TabCompose  string
 	TabNetworks string
 	TabVolumes  string
@@ -96,6 +97,27 @@ type Dictionary struct {
 	ComposeTabTitle   string
 	NoComposeProjects string
 	ComposeServicesUp string
+
+	// Images tab.
+	ImagesTabTitle          string
+	NoImages                string
+	ImagesUnavailable       string
+	ColRepository           string
+	ColTag                  string
+	ColDigest               string
+	ColCreated              string
+	ImageDetailsTitle       string
+	ImageFullIDLabel        string
+	ImageDigestLabel        string
+	ImageTagsLabel          string
+	ImageContainersLabel    string
+	ImageInUseBadge         string
+	ImageUnusedBadge        string
+	ImageDanglingBadge      string
+	RemoveImageTitle        string
+	RemoveImageNotice       string
+	RemoveImageConfirm      string
+	RemoveImageInUseWarning string
 
 	// Networks tab.
 	NetworksTabTitle       string
@@ -276,14 +298,18 @@ type Dictionary struct {
 	ToastRemovingCont        string
 	ToastContainerRemoved    string
 	ToastErrorRemovingCont   string
+	ToastRemovingImage       string
+	ToastImageRemoved        string
+	ToastErrorRemovingImage  string
 }
 
 var English = Dictionary{
 	TabDocker:   "1: Containers",
-	TabCompose:  "2: Compose",
-	TabNetworks: "3: Networks",
-	TabVolumes:  "4: Volumes",
-	TabSwarm:    "5: Swarm",
+	TabImages:   "2: Images",
+	TabCompose:  "3: Compose",
+	TabNetworks: "4: Networks",
+	TabVolumes:  "5: Volumes",
+	TabSwarm:    "6: Swarm",
 
 	StatusRunning:      "Running",
 	StatusStopped:      "Stopped",
@@ -367,6 +393,26 @@ var English = Dictionary{
 	ComposeTabTitle:   "DOCKER COMPOSE PROJECTS (%d)",
 	NoComposeProjects: "No Docker Compose projects detected (missing com.docker.compose.project labels).",
 	ComposeServicesUp: "(Services up: %d/%d)",
+
+	ImagesTabTitle:          "DOCKER IMAGES (%d)",
+	NoImages:                "No Docker images found.",
+	ImagesUnavailable:       "Docker images are unavailable: %s",
+	ColRepository:           "REPOSITORY",
+	ColTag:                  "TAG",
+	ColDigest:               "DIGEST",
+	ColCreated:              "CREATED",
+	ImageDetailsTitle:       "SELECTED IMAGE DETAILS",
+	ImageFullIDLabel:        "Full ID:",
+	ImageDigestLabel:        "Digest:",
+	ImageTagsLabel:          "All Tags:",
+	ImageContainersLabel:    "Containers:",
+	ImageInUseBadge:         "[In Use]",
+	ImageUnusedBadge:        "[Unused]",
+	ImageDanglingBadge:      "[Dangling]",
+	RemoveImageTitle:        "CONFIRM IMAGE REMOVAL",
+	RemoveImageNotice:       "The Docker image will be deleted (docker rmi).",
+	RemoveImageConfirm:      "Are you sure you want to remove image %s?",
+	RemoveImageInUseWarning: "Warning: Image is currently in use by containers. Force removal (-f) will be applied.",
 
 	NetworksTabTitle:       "DOCKER NETWORKS (%d)",
 	NoNetworks:             "No Docker networks found.",
@@ -480,7 +526,7 @@ var English = Dictionary{
 	HelpSecContainers: "CONTAINERS",
 	HelpSecCompose:    "COMPOSE & SWARM",
 	HelpSecGeneral:    "SYSTEM & GENERAL",
-	HelpKeyTabs:       "Switch tabs (1: Host, 2: Docker, 3: Compose, 4: Swarm)",
+	HelpKeyTabs:       "Switch tabs (1: Containers, 2: Images, 3: Compose, 4: Networks, 5: Volumes, 6: Swarm)",
 	HelpKeyPrev:       "Next / previous tab",
 	HelpKeyNav:        "Move cursor (containers, Compose stacks, Swarm services)",
 	HelpKeySearch:     "Search and filter containers by name, image, or ID",
@@ -536,6 +582,9 @@ var English = Dictionary{
 	ToastRemovingCont:        "Removing container %s...",
 	ToastContainerRemoved:    "Container %s removed successfully",
 	ToastErrorRemovingCont:   "Error removing container: ",
+	ToastRemovingImage:       "Removing image %s...",
+	ToastImageRemoved:        "Image %s removed successfully",
+	ToastErrorRemovingImage:  "Error removing image: ",
 }
 
 // Get returns the English UI dictionary.

@@ -27,10 +27,13 @@ func TestRenderHeaderAndTabs(t *testing.T) {
 	}
 
 	// Tabs
-	tabs := []string{dict.TabDocker, dict.TabCompose, dict.TabNetworks, dict.TabVolumes, dict.TabSwarm}
+	tabs := []string{dict.TabDocker, dict.TabImages, dict.TabCompose, dict.TabNetworks, dict.TabVolumes, dict.TabSwarm}
 	tabBar := RenderTabs(tabs, 1, 80)
 	if !strings.Contains(tabBar, "[1: Containers]") {
 		t.Errorf("expected active tab bracketed, got: %s", tabBar)
+	}
+	if !strings.Contains(tabBar, "2: Images") {
+		t.Errorf("expected 2: Images tab in tab bar, got: %s", tabBar)
 	}
 }
 
@@ -49,6 +52,12 @@ func TestRenderFooter(t *testing.T) {
 		t.Errorf("expected apply filter hint in footer, got: %s", f1Filter)
 	}
 
+	// Tab 2 (Images) footer
+	f2 := RenderFooter(FooterContext{ActiveTab: 2, I18n: &dict, Width: 80})
+	if !strings.Contains(f2, dict.FooterSearch) || !strings.Contains(f2, dict.FooterRemove) {
+		t.Errorf("expected Search and Remove hints in footer 2, got: %s", f2)
+	}
+
 	// Modal footers
 	fDown := RenderFooter(FooterContext{ActiveModal: "compose_down", I18n: &dict, Width: 80})
 	if !strings.Contains(fDown, "(Down)") {
@@ -58,6 +67,11 @@ func TestRenderFooter(t *testing.T) {
 	fRemove := RenderFooter(FooterContext{ActiveModal: "remove_container", I18n: &dict, Width: 80})
 	if !strings.Contains(fRemove, "(Remove)") {
 		t.Errorf("expected remove container modal footer, got: %s", fRemove)
+	}
+
+	fRemoveImg := RenderFooter(FooterContext{ActiveModal: "remove_image", I18n: &dict, Width: 80})
+	if !strings.Contains(fRemoveImg, "(Remove Image)") {
+		t.Errorf("expected remove image modal footer, got: %s", fRemoveImg)
 	}
 }
 
@@ -90,6 +104,61 @@ func TestRenderComposeView(t *testing.T) {
 	})
 	if !strings.Contains(view, "web-stack") || !strings.Contains(view, "nginx:alpine") {
 		t.Errorf("expected project details in compose view, got: %s", view)
+	}
+}
+
+func TestRenderImagesView(t *testing.T) {
+	dict := i18n.Get()
+	view := RenderImages(ImagesContext{
+		Images: []monitor.DockerImage{
+			{
+				ID:         "c557bd415052",
+				FullID:     "sha256:c557bd415052858081f023e8d17500073317df437ae79ea4d2c4077cd9a1a6ae",
+				Repository: "sambryx-web",
+				Tag:        "latest (+1)",
+				AllTags:    []string{"sambryx-web:latest", "sambryx-web:v1.0"},
+				Size:       359214108,
+				Created:    "2026-11-16 15:23",
+				Containers: 1,
+				Digest:     "1234567890ab",
+				InUse:      true,
+			},
+			{
+				ID:         "a857ab57fe2d",
+				FullID:     "sha256:a857ab57fe2d98a0a33432586f16a6b0d2e256ed9d915ec56ecfaaeb81ac36bd",
+				Repository: "<none>",
+				Tag:        "<none>",
+				Size:       1048576,
+				Created:    "2026-11-10 12:46",
+				Containers: 0,
+				Dangling:   true,
+			},
+		},
+		CursorIdx: 0,
+		I18n:      &dict,
+	})
+
+	for _, expected := range []string{"c557bd415052", "sambryx-web", "latest (+1)", "DOCKER IMAGES", dict.ImageInUseBadge, dict.ImageDanglingBadge} {
+		if !strings.Contains(view, expected) {
+			t.Errorf("expected %q in images view, got: %s", expected, view)
+		}
+	}
+
+	// Details card for selected image
+	if !strings.Contains(view, dict.ImageDetailsTitle) || !strings.Contains(view, "sambryx-web:latest, sambryx-web:v1.0") {
+		t.Errorf("expected image details card in images view, got: %s", view)
+	}
+
+	// Error view
+	errorView := RenderImages(ImagesContext{Error: "daemon unavailable", I18n: &dict})
+	if !strings.Contains(errorView, "daemon unavailable") {
+		t.Errorf("expected discovery error in images view, got: %s", errorView)
+	}
+
+	// Empty view
+	emptyView := RenderImages(ImagesContext{I18n: &dict})
+	if !strings.Contains(emptyView, dict.NoImages) {
+		t.Errorf("expected no images notice in images view, got: %s", emptyView)
 	}
 }
 

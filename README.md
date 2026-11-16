@@ -31,6 +31,12 @@
   - Safe container removal with confirmation (`x`, `d`).
   - Docker System Prune modal (`C`) with disk reclaim estimates and confirmation.
   - Socket support: Docker daemon, Rootless Docker, and Podman (<2 ms latency).
+- **Docker Images**:
+  - Local image inventory with Image ID, Repository, Tag, Size, Created timestamp, and Digest.
+  - Status indicators: `[In Use]`, `[Unused]`, and `[Dangling]` (`<none>:<none>`).
+  - Search & filter by repository, tag, ID, or digest (`/`).
+  - Selected image details panel (full ID, digest, all tags, container usage count).
+  - Safe image removal with confirmation (`x`, `d`), including warning for in-use images.
 - **Docker Compose**: Automatic project/service grouping, aggregated stack health, live stack logs (`L`), service control (`U` / `S` / `P`), and stack teardown (`D` / down) with confirmation.
 - **Docker Networks**: Network driver, scope, connected container count, subnet, gateway, and Compose ownership.
 - **Docker Volumes**: Volume driver, scope, reference count, disk usage, mountpoint, and Compose ownership.
@@ -79,7 +85,7 @@ Usage:
 
 Options:
   -i, --interval <duration>  Auto-refresh interval (default: 2s, e.g., 1s, 500ms)
-  -t, --tab <1-5|name>       Initial active tab (1: Docker, 2: Compose, 3: Networks, 4: Volumes, 5: Swarm) (default: 1)
+  -t, --tab <1-6|name>       Initial active tab (1: Docker, 2: Images, 3: Compose, 4: Networks, 5: Volumes, 6: Swarm) (default: 1)
   -v, --version              Show version information
   -h, --help                 Show help message
 ```
@@ -88,7 +94,7 @@ Options:
 
 | Key | Action |
 |---|---|
-| `1`..`5` / `Tab` / `←`/`→` | Switch tabs (Docker, Compose, Networks, Volumes, Swarm) |
+| `1`..`6` / `Tab` / `←`/`→` | Switch tabs (Docker, Images, Compose, Networks, Volumes, Swarm) |
 | `r`, `R` | Force immediate refresh |
 | `↑` / `↓` (or `k` / `j`) | Navigate rows / select items |
 | `/` | Search & filter (`Esc` to clear) |
@@ -102,7 +108,7 @@ Options:
 | `S` | Start / Stop container or Compose stack |
 | `P` | Restart container or Compose stack |
 | `K` | Force kill (`SIGKILL`) container |
-| `x`, `d` | Remove container (with confirmation) |
+| `x`, `d` | Remove container or image (with confirmation) |
 | `U` | Start Compose stack |
 | `D` | Compose down (`docker compose down`) with confirmation |
 | `C` | Docker system prune (cleanup unused resources) |

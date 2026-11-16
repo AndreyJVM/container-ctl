@@ -26,6 +26,7 @@ func (m Model) View() string {
 	// 2. Tabs
 	tabs := []string{
 		m.i18n.TabDocker,
+		m.i18n.TabImages,
 		m.i18n.TabCompose,
 		m.i18n.TabNetworks,
 		m.i18n.TabVolumes,
@@ -49,6 +50,8 @@ func (m Model) View() string {
 		content = m.renderComposeDownModal()
 	case ModalRemoveContainer:
 		content = m.renderRemoveContainerModal()
+	case ModalRemoveImage:
+		content = m.renderRemoveImageModal()
 	case ModalExec:
 		content = m.renderExecModal()
 	case ModalPrune:
@@ -60,6 +63,8 @@ func (m Model) View() string {
 			switch m.activeTab {
 			case TabDocker:
 				content = m.renderDockerTab()
+			case TabImages:
+				content = m.renderImagesTab()
 			case TabCompose:
 				content = m.renderComposeTab()
 			case TabNetworks:
@@ -144,6 +149,19 @@ func (m Model) renderDockerTab() string {
 	})
 }
 
+func (m Model) renderImagesTab() string {
+	images := m.getFilteredImages()
+	return views.RenderImages(views.ImagesContext{
+		Images:           images,
+		TotalImagesCount: len(m.images),
+		CursorIdx:        m.imageCursorIdx,
+		Error:            m.imageErr,
+		IsFiltering:      m.isFiltering,
+		FilterQuery:      m.filterQuery,
+		I18n:             &m.i18n,
+	})
+}
+
 func (m Model) renderComposeTab() string {
 	return views.RenderCompose(views.ComposeContext{
 		Projects:     m.compose,
@@ -198,6 +216,10 @@ func (m Model) renderComposeDownModal() string {
 
 func (m Model) renderRemoveContainerModal() string {
 	return modals.RenderRemoveContainer(m.removeContainerTargetName, m.removeContainerTargetID, &m.i18n)
+}
+
+func (m Model) renderRemoveImageModal() string {
+	return modals.RenderRemoveImage(m.removeImageTargetName, m.removeImageTargetID, m.removeImageTargetInUse, &m.i18n)
 }
 
 func (m Model) renderExecModal() string {

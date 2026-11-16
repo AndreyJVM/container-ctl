@@ -22,14 +22,17 @@ const (
 
 func fetchAllData() dataFetchedMsg {
 	dockerInfo := monitor.GetDockerSummary()
+	images, imageErr := monitor.GetDockerImages()
 	networks, networkErr := monitor.GetDockerNetworks()
 	volumes, volumeErr := monitor.GetDockerVolumes()
 	return dataFetchedMsg{
 		dockerInfo: dockerInfo,
+		images:     images,
 		compose:    monitor.GetComposeProjects(dockerInfo.Containers),
 		networks:   networks,
 		volumes:    volumes,
 		swarm:      monitor.GetSwarmSummary(),
+		imageErr:   formatFetchError(imageErr),
 		networkErr: formatFetchError(networkErr),
 		volumeErr:  formatFetchError(volumeErr),
 		timestamp:  time.Now().Format(TimeFormat),
@@ -88,6 +91,14 @@ func removeContainerCmd(id, name string, dict i18n.Dictionary) tea.Cmd {
 		func() error { return monitor.RemoveContainer(id) },
 		dict.ToastErrorRemovingCont,
 		fmt.Sprintf(dict.ToastContainerRemoved, name),
+	)
+}
+
+func removeImageCmd(id, name string, force bool, dict i18n.Dictionary) tea.Cmd {
+	return makeActionCmd(
+		func() error { return monitor.RemoveDockerImage(id, force) },
+		dict.ToastErrorRemovingImage,
+		fmt.Sprintf(dict.ToastImageRemoved, name),
 	)
 }
 

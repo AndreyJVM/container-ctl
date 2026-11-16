@@ -110,8 +110,8 @@ func TestPruneModalAndWorkflow(t *testing.T) {
 		t.Errorf("expected pruneConfirm to reset to 0, got %d", m.pruneConfirm)
 	}
 
-	// 6. Test opening prune modal on Tab 2 (Compose)
-	m.activeTab = 2
+	// 6. Test opening prune modal on Tab 2 (Images) and Tab 3 (Compose)
+	m.activeTab = TabImages
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("C")})
 	m = res.(Model)
 	if m.activeModal != "prune" {
@@ -125,15 +125,21 @@ func TestPruneModalAndWorkflow(t *testing.T) {
 		t.Errorf("expected activeModal to close on Esc, got %q", m.activeModal)
 	}
 
-	// 8. Check footer hints on Docker and Compose tabs.
-	m.activeTab = 1
+	// 8. Check footer hints on Docker, Images, and Compose tabs.
+	m.activeTab = TabDocker
 	m.activeModal = ""
 	dockerView := m.View()
 	if !strings.Contains(dockerView, "[C]") || !strings.Contains(dockerView, "Prune") {
 		t.Errorf("expected [C] Prune in Docker footer, got: %s", dockerView)
 	}
 
-	m.activeTab = 2
+	m.activeTab = TabImages
+	imagesView := m.View()
+	if !strings.Contains(imagesView, "[C]") || !strings.Contains(imagesView, "Prune") {
+		t.Errorf("expected [C] Prune in Images footer, got: %s", imagesView)
+	}
+
+	m.activeTab = TabCompose
 	composeView := m.View()
 	if !strings.Contains(composeView, "[C]") || !strings.Contains(composeView, "Prune") {
 		t.Errorf("expected [C] Prune in Compose footer, got: %s", composeView)
