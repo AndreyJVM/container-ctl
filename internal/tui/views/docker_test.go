@@ -6,6 +6,7 @@ import (
 
 	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/dockpulse/internal/testutil"
 )
 
 func TestRenderDockerView(t *testing.T) {
@@ -20,27 +21,19 @@ func TestRenderDockerView(t *testing.T) {
 		t.Errorf("expected no containers running in docker view, got: %s", emptyView)
 	}
 
-	// Containers table with details panel
+	// Containers table with details panel using fixture builder
 	containers := []monitor.ContainerItem{
-		{
-			ID:              "c12345678901",
-			Name:            "api-server",
-			Image:           "golang:alpine",
-			State:           "running",
-			Health:          "healthy",
-			CPUPerc:         12.5,
-			MemUsageMB:      250.0,
-			MemLimitMB:      1024.0,
-			MemPerc:         24.4,
-			Ports:           "8080->8080/tcp",
-			Mounts:          []string{"/vol -> /app (rw)"},
-			ComposeProject:  "my-app",
-			ComposeService:  "api",
-			NetRxBytes:      1024 * 1024,
-			NetTxBytes:      2048 * 1024,
-			BlockReadBytes:  512 * 1024,
-			BlockWriteBytes: 1536 * 1024,
-		},
+		testutil.AContainer(
+			testutil.WithID("c12345678901"),
+			testutil.WithName("api-server"),
+			testutil.WithImage("golang:alpine"),
+			testutil.WithMetrics(12.5, 250.0, 1024.0),
+			testutil.WithPorts("8080->8080/tcp"),
+			testutil.WithMounts("/vol -> /app (rw)"),
+			testutil.WithCompose("my-app", "api"),
+			testutil.WithNetworkIO(1024*1024, 2048*1024),
+			testutil.WithBlockIO(512*1024, 1536*1024),
+		),
 	}
 
 	view := RenderDocker(DockerContext{
@@ -243,18 +236,17 @@ func TestRenderContainerDetailsCard_Extended(t *testing.T) {
 	dict := i18n.Get()
 
 	// 1. Container with complete extended fields (IP, Network, RestartPolicy, Created)
-	cFull := monitor.ContainerItem{
-		ID:            "c123456789ab",
-		Name:          "prod-api",
-		Image:         "api:v2",
-		State:         "running",
-		Status:        "Up 4 hours",
-		IPAddress:     "10.0.1.25",
-		NetworkName:   "backend-net",
-		RestartPolicy: "always",
-		Created:       "2026-11-07 12:00:00",
-		Ports:         "0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp",
-	}
+	cFull := testutil.AContainer(
+		testutil.WithID("c123456789ab"),
+		testutil.WithName("prod-api"),
+		testutil.WithImage("api:v2"),
+		testutil.WithState("running", "Up 4 hours"),
+		testutil.WithPorts("0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp"),
+	)
+	cFull.IPAddress = "10.0.1.25"
+	cFull.NetworkName = "backend-net"
+	cFull.RestartPolicy = "always"
+	cFull.Created = "2026-11-07 12:00:00"
 
 	viewFull := RenderDocker(DockerContext{
 		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cFull}},
@@ -278,14 +270,14 @@ func TestRenderContainerDetailsCard_Extended(t *testing.T) {
 	}
 
 	// 2. Container with on-failure restart policy and no IP
-	cOnFailure := monitor.ContainerItem{
-		ID:            "c98765432100",
-		Name:          "worker-job",
-		Image:         "job:latest",
-		State:         "stopped",
-		Status:        "Exited (1)",
-		RestartPolicy: "on-failure",
-	}
+	cOnFailure := testutil.AContainer(
+		testutil.WithID("c98765432100"),
+		testutil.WithName("worker-job"),
+		testutil.WithImage("job:latest"),
+		testutil.WithState("stopped", "Exited (1)"),
+	)
+	cOnFailure.RestartPolicy = "on-failure"
+	cOnFailure.IPAddress = ""
 
 	viewOnFail := RenderDocker(DockerContext{
 		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cOnFailure}},

@@ -6,20 +6,20 @@ import (
 
 	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/dockpulse/internal/testutil"
 )
 
 func TestRenderVolumesView(t *testing.T) {
 	dict := i18n.Get()
+	vol := testutil.AVolume(func(v *monitor.DockerVolume) {
+		v.Name = "shop_data"
+		v.Mountpoint = "/var/lib/docker/volumes/shop_data/_data"
+		v.Size = 4096
+		v.RefCount = 2
+		v.ComposeProject = "shop"
+	})
 	view := RenderVolumes(VolumesContext{
-		Volumes: []monitor.DockerVolume{{
-			Name:           "shop_data",
-			Driver:         "local",
-			Scope:          "local",
-			Mountpoint:     "/var/lib/docker/volumes/shop_data/_data",
-			Size:           4096,
-			RefCount:       2,
-			ComposeProject: "shop",
-		}},
+		Volumes:   []monitor.DockerVolume{vol},
 		CursorIdx: 0,
 		Width:     100,
 		I18n:      &dict,

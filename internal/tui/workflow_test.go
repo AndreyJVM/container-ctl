@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/dockpulse/internal/testutil"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -161,7 +162,7 @@ func TestExecModalWorkflow(t *testing.T) {
 	m.dockerInfo = monitor.DockerSummary{
 		Status: "running",
 		Containers: []monitor.ContainerItem{
-			{ID: "c123", Name: "app-test", State: "running"},
+			testutil.AContainer(testutil.WithID("c123"), testutil.WithName("app-test"), testutil.WithState("running", "Up")),
 		},
 	}
 	m.cursorIdx = 0

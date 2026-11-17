@@ -9,14 +9,15 @@ import (
 
 	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/dockpulse/internal/testutil"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func TestAsyncCommandTriggers(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.5.0")
 	m.dockerInfo.Containers = []monitor.ContainerItem{
-		{ID: "c1", Name: "web", State: "running"},
-		{ID: "c2", Name: "db", State: "exited"},
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("web"), testutil.WithState("running", "Up")),
+		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("db"), testutil.WithState("exited", "Exited")),
 	}
 	m.cursorIdx = 0
 

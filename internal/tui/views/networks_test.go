@@ -6,22 +6,21 @@ import (
 
 	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/dockpulse/internal/testutil"
 )
 
 func TestRenderNetworksView(t *testing.T) {
 	dict := i18n.Get()
+	net := testutil.ANetwork(func(n *monitor.DockerNetwork) {
+		n.ID = "abc123456789"
+		n.Name = "frontend"
+		n.Containers = 2
+		n.Subnet = "172.20.0.0/16"
+		n.Gateway = "172.20.0.1"
+		n.ComposeProject = "shop"
+	})
 	view := RenderNetworks(NetworksContext{
-		Networks: []monitor.DockerNetwork{{
-			ID:             "abc123456789",
-			Name:           "frontend",
-			Driver:         "bridge",
-			Scope:          "local",
-			Containers:     2,
-			Subnet:         "172.20.0.0/16",
-			Gateway:        "172.20.0.1",
-			Attachable:     true,
-			ComposeProject: "shop",
-		}},
+		Networks:  []monitor.DockerNetwork{net},
 		CursorIdx: 0,
 		Width:     100,
 		I18n:      &dict,

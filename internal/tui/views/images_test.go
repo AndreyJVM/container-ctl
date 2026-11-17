@@ -6,34 +6,24 @@ import (
 
 	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/dockpulse/internal/testutil"
 )
 
 func TestRenderImagesView(t *testing.T) {
 	dict := i18n.Get()
 	view := RenderImages(ImagesContext{
 		Images: []monitor.DockerImage{
-			{
-				ID:         "c557bd415052",
-				FullID:     "sha256:c557bd415052858081f023e8d17500073317df437ae79ea4d2c4077cd9a1a6ae",
-				Repository: "sambryx-web",
-				Tag:        "latest (+1)",
-				AllTags:    []string{"sambryx-web:latest", "sambryx-web:v1.0"},
-				Size:       359214108,
-				Created:    "2026-11-16 15:23",
-				Containers: 1,
-				Digest:     "1234567890ab",
-				InUse:      true,
-			},
-			{
-				ID:         "a857ab57fe2d",
-				FullID:     "sha256:a857ab57fe2d98a0a33432586f16a6b0d2e256ed9d915ec56ecfaaeb81ac36bd",
-				Repository: "<none>",
-				Tag:        "<none>",
-				Size:       1048576,
-				Created:    "2026-11-10 12:46",
-				Containers: 0,
-				Dangling:   true,
-			},
+			testutil.AnImage(
+				testutil.WithImageID("c557bd415052", "sha256:c557bd415052858081f023e8d17500073317df437ae79ea4d2c4077cd9a1a6ae"),
+				testutil.WithRepoTag("sambryx-web", "latest (+1)"),
+				testutil.WithAllTags("sambryx-web:latest", "sambryx-web:v1.0"),
+				testutil.WithImageStatus(true, false, 1),
+			),
+			testutil.AnImage(
+				testutil.WithImageID("a857ab57fe2d", "sha256:a857ab57fe2d98a0a33432586f16a6b0d2e256ed9d915ec56ecfaaeb81ac36bd"),
+				testutil.WithRepoTag("<none>", "<none>"),
+				testutil.WithImageStatus(false, true, 0),
+			),
 		},
 		CursorIdx: 0,
 		Width:     100,

@@ -8,29 +8,27 @@ import (
 	"time"
 
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/dockpulse/internal/testutil"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func TestContainerCursorAndModals(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.4.1")
 
-	// Populate dummy containers
+	// Populate dummy containers using fixture builder
 	m.dockerInfo.Containers = []monitor.ContainerItem{
-		{
-			ID:         "c1",
-			Name:       "web-server",
-			Image:      "nginx:latest",
-			State:      "running",
-			CPUPerc:    5.2,
-			MemUsageMB: 45.0,
-			MemPerc:    12.0,
-		},
-		{
-			ID:    "c2",
-			Name:  "database",
-			Image: "postgres:16",
-			State: "stopped",
-		},
+		testutil.AContainer(
+			testutil.WithID("c1"),
+			testutil.WithName("web-server"),
+			testutil.WithImage("nginx:latest"),
+			testutil.WithMetrics(5.2, 45.0, 375.0),
+		),
+		testutil.AContainer(
+			testutil.WithID("c2"),
+			testutil.WithName("database"),
+			testutil.WithImage("postgres:16"),
+			testutil.WithState("stopped", "exited"),
+		),
 	}
 	m.cursorIdx = 0
 
@@ -109,9 +107,9 @@ func TestContainerCursorAndModals(t *testing.T) {
 func TestFilterContainers(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.4.1")
 	m.dockerInfo.Containers = []monitor.ContainerItem{
-		{ID: "c1", Name: "web-gateway", Image: "nginx:alpine", ComposeProject: "infra"},
-		{ID: "c2", Name: "db-postgres", Image: "postgres:16", ComposeProject: "backend"},
-		{ID: "c3", Name: "redis-cache", Image: "redis:7-alpine", ComposeProject: "cache"},
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("web-gateway"), testutil.WithImage("nginx:alpine"), testutil.WithCompose("infra", "")),
+		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("db-postgres"), testutil.WithImage("postgres:16"), testutil.WithCompose("backend", "")),
+		testutil.AContainer(testutil.WithID("c3"), testutil.WithName("redis-cache"), testutil.WithImage("redis:7-alpine"), testutil.WithCompose("cache", "")),
 	}
 
 	// Empty query
@@ -158,8 +156,8 @@ func TestFilterContainers(t *testing.T) {
 func TestFilterModeKeys(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.4.1")
 	m.dockerInfo.Containers = []monitor.ContainerItem{
-		{ID: "c1", Name: "web", Image: "nginx"},
-		{ID: "c2", Name: "worker", Image: "app"},
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("web"), testutil.WithImage("nginx")),
+		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("worker"), testutil.WithImage("app")),
 	}
 
 	// 1. Activate search mode with '/'
@@ -210,7 +208,7 @@ func TestRenderDockerTabFilteringView(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.4.1")
 	m.activeTab = 1
 	m.dockerInfo.Containers = []monitor.ContainerItem{
-		{ID: "c1", Name: "alpha", Image: "alpine"},
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("alpha"), testutil.WithImage("alpine")),
 	}
 
 	// Active search input
@@ -240,10 +238,10 @@ func TestDockerTabHealthBadges(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.4.1")
 	m.activeTab = 1
 	m.dockerInfo.Containers = []monitor.ContainerItem{
-		{ID: "c1", Name: "healthy-app", Image: "nginx", State: "running", Health: "healthy"},
-		{ID: "c2", Name: "broken-app", Image: "postgres", State: "running", Health: "unhealthy"},
-		{ID: "c3", Name: "booting-app", Image: "redis", State: "running", Health: "starting"},
-		{ID: "c4", Name: "plain-app", Image: "busybox", State: "running", Health: ""},
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("healthy-app"), testutil.WithImage("nginx"), testutil.WithState("running", "Up"), testutil.WithHealth("healthy")),
+		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("broken-app"), testutil.WithImage("postgres"), testutil.WithState("running", "Up"), testutil.WithHealth("unhealthy")),
+		testutil.AContainer(testutil.WithID("c3"), testutil.WithName("booting-app"), testutil.WithImage("redis"), testutil.WithState("running", "Up"), testutil.WithHealth("starting")),
+		testutil.AContainer(testutil.WithID("c4"), testutil.WithName("plain-app"), testutil.WithImage("busybox"), testutil.WithState("running", "Up"), testutil.WithHealth("")),
 	}
 
 	view := m.View()
@@ -265,24 +263,20 @@ func TestDockerTabSelectedContainerDetails(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.6.2")
 	m.activeTab = 1
 	m.dockerInfo.Containers = []monitor.ContainerItem{
-		{
-			ID:              "abcdef123456",
-			Name:            "web-server",
-			Image:           "nginx:alpine",
-			State:           "running",
-			Ports:           "8080->80/tcp, 8443->443/tcp",
-			Mounts:          []string{"/var/www -> /usr/share/nginx/html (ro)", "nginx-logs -> /var/log/nginx (rw)"},
-			ComposeProject:  "my-stack",
-			ComposeService:  "web",
-			IPAddress:       "172.18.0.5",
-			NetworkName:     "my-network",
-			RestartPolicy:   "unless-stopped",
-			Created:         "2026-11-07 15:30:00",
-			NetRxBytes:      12 * 1024 * 1024,
-			NetTxBytes:      45 * 1024 * 1024,
-			BlockReadBytes:  10 * 1024 * 1024,
-			BlockWriteBytes: 20 * 1024 * 1024,
-		},
+		testutil.AContainer(
+			testutil.WithID("abcdef123456"),
+			testutil.WithName("web-server"),
+			testutil.WithImage("nginx:alpine"),
+			testutil.WithState("running", "Up 2 hours"),
+			testutil.WithPorts("8080->80/tcp, 8443->443/tcp"),
+			testutil.WithMounts("/var/www -> /usr/share/nginx/html (ro)", "nginx-logs -> /var/log/nginx (rw)"),
+			testutil.WithCompose("my-stack", "web"),
+			testutil.WithNetwork("172.18.0.5", "my-network"),
+			testutil.WithRestartPolicy("unless-stopped"),
+			testutil.WithCreated("2026-11-07 15:30:00"),
+			testutil.WithNetworkIO(12*1024*1024, 45*1024*1024),
+			testutil.WithBlockIO(10*1024*1024, 20*1024*1024),
+		),
 	}
 
 	view := m.View()
@@ -318,9 +312,9 @@ func TestDockerTabSelectedContainerDetails(t *testing.T) {
 func TestFilterContainersByHealth(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.4.1")
 	m.dockerInfo.Containers = []monitor.ContainerItem{
-		{ID: "c1", Name: "web", Image: "nginx", Health: "healthy"},
-		{ID: "c2", Name: "db", Image: "postgres", Health: "unhealthy"},
-		{ID: "c3", Name: "cache", Image: "redis", Health: "starting"},
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("web"), testutil.WithImage("nginx"), testutil.WithHealth("healthy")),
+		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("db"), testutil.WithImage("postgres"), testutil.WithHealth("unhealthy")),
+		testutil.AContainer(testutil.WithID("c3"), testutil.WithName("cache"), testutil.WithImage("redis"), testutil.WithHealth("starting")),
 	}
 
 	m.filterQuery = "unhealthy"
@@ -351,7 +345,7 @@ func TestContainerExecHotkeysAndMessages(t *testing.T) {
 		Status:        "running",
 		StatusDisplay: "Running",
 		Containers: []monitor.ContainerItem{
-			{ID: "c1", Name: "running-container", State: "running", Status: "Up 2 hours"},
+			testutil.AContainer(testutil.WithID("c1"), testutil.WithName("running-container"), testutil.WithState("running", "Up 2 hours")),
 		},
 	}
 	mUnavailable.cursorIdx = 0
@@ -371,8 +365,8 @@ func TestContainerExecHotkeysAndMessages(t *testing.T) {
 		Status:        "running",
 		StatusDisplay: "Running",
 		Containers: []monitor.ContainerItem{
-			{ID: "c1", Name: "running-container", State: "running", Status: "Up 2 hours"},
-			{ID: "c2", Name: "stopped-container", State: "exited", Status: "Exited (0) 5 mins ago"},
+			testutil.AContainer(testutil.WithID("c1"), testutil.WithName("running-container"), testutil.WithState("running", "Up 2 hours")),
+			testutil.AContainer(testutil.WithID("c2"), testutil.WithName("stopped-container"), testutil.WithState("exited", "Exited (0) 5 mins ago")),
 		},
 	}
 	m.cursorIdx = 0
@@ -441,10 +435,10 @@ func TestContainerSorting(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.6.3")
 	m.activeTab = 1
 	m.dockerInfo.Containers = []monitor.ContainerItem{
-		{ID: "c1", Name: "zeta-app", State: "running", CPUPerc: 10.0, MemUsageMB: 200.0, Health: "healthy"},
-		{ID: "c2", Name: "alpha-app", State: "running", CPUPerc: 50.0, MemUsageMB: 50.0, Health: "unhealthy"},
-		{ID: "c3", Name: "beta-app", State: "stopped", CPUPerc: 0.0, MemUsageMB: 0.0},
-		{ID: "c4", Name: "gamma-app", State: "running", CPUPerc: 30.0, MemUsageMB: 500.0, Health: "starting"},
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("zeta-app"), testutil.WithState("running", "Up"), testutil.WithMetrics(10.0, 200.0, 1024.0), testutil.WithHealth("healthy")),
+		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("alpha-app"), testutil.WithState("running", "Up"), testutil.WithMetrics(50.0, 50.0, 1024.0), testutil.WithHealth("unhealthy")),
+		testutil.AContainer(testutil.WithID("c3"), testutil.WithName("beta-app"), testutil.WithState("stopped", "Exited"), testutil.WithMetrics(0.0, 0.0, 1024.0)),
+		testutil.AContainer(testutil.WithID("c4"), testutil.WithName("gamma-app"), testutil.WithState("running", "Up"), testutil.WithMetrics(30.0, 500.0, 1024.0), testutil.WithHealth("starting")),
 	}
 
 	// 1. Default order
@@ -519,8 +513,8 @@ func TestContainerKillAndRemoveWorkflow(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.6.3")
 	m.activeTab = 1
 	m.dockerInfo.Containers = []monitor.ContainerItem{
-		{ID: "c1", Name: "app-run", State: "running"},
-		{ID: "c2", Name: "app-stop", State: "stopped"},
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("app-run"), testutil.WithState("running", "Up")),
+		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("app-stop"), testutil.WithState("stopped", "Exited")),
 	}
 	m.cursorIdx = 0
 
