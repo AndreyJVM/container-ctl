@@ -6,6 +6,7 @@ import (
 
 	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/dockpulse/internal/testutil"
 )
 
 func TestRenderHeaderAndTabs(t *testing.T) {
@@ -19,22 +20,18 @@ func TestRenderHeaderAndTabs(t *testing.T) {
 		FormattedDockerStatus: "Running",
 		I18n:                  &dict,
 	})
-	if !strings.Contains(hdr, "Dockpulse") || !strings.Contains(hdr, "v0.6.3") || !strings.Contains(hdr, "12:00:00") {
-		t.Errorf("unexpected header output: %s", hdr)
-	}
-	if !strings.Contains(hdr, "Containers: 2 active, 1 stopped") || !strings.Contains(hdr, "27.4.0") {
-		t.Errorf("expected persistent Docker summary, got: %s", hdr)
-	}
+	testutil.AssertContainsAll(t, hdr,
+		"Dockpulse",
+		"v0.6.3",
+		"12:00:00",
+		"Containers: 2 active, 1 stopped",
+		"27.4.0",
+	)
 
 	// Tabs
 	tabs := []string{dict.TabDocker, dict.TabImages, dict.TabCompose, dict.TabNetworks, dict.TabVolumes, dict.TabSwarm}
 	tabBar := RenderTabs(tabs, 1, 80)
-	if !strings.Contains(tabBar, "[1: Containers]") {
-		t.Errorf("expected active tab bracketed, got: %s", tabBar)
-	}
-	if !strings.Contains(tabBar, "2: Images") {
-		t.Errorf("expected 2: Images tab in tab bar, got: %s", tabBar)
-	}
+	testutil.AssertContainsInOrder(t, tabBar, "[1: Containers]", "2: Images")
 }
 
 func TestRenderFooter(t *testing.T) {

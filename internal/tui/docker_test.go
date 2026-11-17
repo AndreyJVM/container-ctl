@@ -486,6 +486,7 @@ func TestContainerSorting(t *testing.T) {
 	if list[0].Name != "alpha-app" || list[1].Name != "beta-app" || list[2].Name != "gamma-app" || list[3].Name != "zeta-app" {
 		t.Errorf("unexpected name sorting order: %v", list)
 	}
+	testutil.AssertContainsInOrder(t, m.View(), "alpha-app", "beta-app", "gamma-app", "zeta-app")
 
 	// 5. Press O -> Status
 	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o'}})

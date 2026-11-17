@@ -45,18 +45,17 @@ func TestRenderDockerView(t *testing.T) {
 		I18n:                 &dict,
 	})
 
-	if !strings.Contains(view, "api-server") || !strings.Contains(view, "[healthy]") || !strings.Contains(view, "8080->8080/tcp") {
-		t.Errorf("expected container row and details in docker view, got: %s", view)
-	}
-	if !strings.Contains(view, "/vol -> /app (rw)") || !strings.Contains(view, "my-app") {
-		t.Errorf("expected mounts and compose info in details panel, got: %s", view)
-	}
-	if !strings.Contains(view, "Net I/O:") || !strings.Contains(view, "1.0 MB / 2.0 MB") {
-		t.Errorf("expected Net I/O in details panel, got: %s", view)
-	}
-	if !strings.Contains(view, "Block I/O:") || !strings.Contains(view, "512.0 KB / 1.5 MB") {
-		t.Errorf("expected Block I/O in details panel, got: %s", view)
-	}
+	testutil.AssertContainsAll(t, view,
+		"api-server",
+		"[healthy]",
+		"8080->8080/tcp",
+		"/vol -> /app (rw)",
+		"my-app",
+		"Net I/O:",
+		"1.0 MB / 2.0 MB",
+		"Block I/O:",
+		"512.0 KB / 1.5 MB",
+	)
 }
 
 func TestFormatContainerStatus(t *testing.T) {
@@ -242,11 +241,10 @@ func TestRenderContainerDetailsCard_Extended(t *testing.T) {
 		testutil.WithImage("api:v2"),
 		testutil.WithState("running", "Up 4 hours"),
 		testutil.WithPorts("0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp"),
+		testutil.WithNetwork("10.0.1.25", "backend-net"),
+		testutil.WithRestartPolicy("always"),
+		testutil.WithCreated("2026-11-07 12:00:00"),
 	)
-	cFull.IPAddress = "10.0.1.25"
-	cFull.NetworkName = "backend-net"
-	cFull.RestartPolicy = "always"
-	cFull.Created = "2026-11-07 12:00:00"
 
 	viewFull := RenderDocker(DockerContext{
 		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cFull}},
@@ -256,18 +254,13 @@ func TestRenderContainerDetailsCard_Extended(t *testing.T) {
 		Width:      100,
 	})
 
-	if !strings.Contains(viewFull, "10.0.1.25") || !strings.Contains(viewFull, "backend-net") {
-		t.Errorf("expected IP and network name in details card, got: %s", viewFull)
-	}
-	if !strings.Contains(viewFull, "always") {
-		t.Errorf("expected restart policy always in details card, got: %s", viewFull)
-	}
-	if !strings.Contains(viewFull, "2026-11-07 12:00:00") {
-		t.Errorf("expected created timestamp in details card, got: %s", viewFull)
-	}
-	if !strings.Contains(viewFull, "0.0.0.0:8080 → 8080/tcp") {
-		t.Errorf("expected arrow formatted port in details card, got: %s", viewFull)
-	}
+	testutil.AssertContainsAll(t, viewFull,
+		"10.0.1.25",
+		"backend-net",
+		"always",
+		"2026-11-07 12:00:00",
+		"0.0.0.0:8080 → 8080/tcp",
+	)
 
 	// 2. Container with on-failure restart policy and no IP
 	cOnFailure := testutil.AContainer(
@@ -275,9 +268,9 @@ func TestRenderContainerDetailsCard_Extended(t *testing.T) {
 		testutil.WithName("worker-job"),
 		testutil.WithImage("job:latest"),
 		testutil.WithState("stopped", "Exited (1)"),
+		testutil.WithRestartPolicy("on-failure"),
+		testutil.WithNetwork("", ""),
 	)
-	cOnFailure.RestartPolicy = "on-failure"
-	cOnFailure.IPAddress = ""
 
 	viewOnFail := RenderDocker(DockerContext{
 		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cOnFailure}},
@@ -287,10 +280,8 @@ func TestRenderContainerDetailsCard_Extended(t *testing.T) {
 		Width:      100,
 	})
 
-	if !strings.Contains(viewOnFail, "on-failure") {
-		t.Errorf("expected on-failure restart policy, got: %s", viewOnFail)
-	}
-	if !strings.Contains(viewOnFail, "none") {
-		t.Errorf("expected none for missing IP, got: %s", viewOnFail)
-	}
+	testutil.AssertContainsAll(t, viewOnFail,
+		"on-failure",
+		"none",
+	)
 }
