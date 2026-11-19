@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release:
@@ -16,126 +17,35 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
           cache: true
           cache-dependency-path: go.sum
 
-      - name: Extract tag and version
-        id: get_version
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG#v}"
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-
-      - name: Run unit tests
-        run: go test -v ./...
-
-      - name: Create dist directory
-        run: mkdir -p dist
-
-      - name: Cross-compile Go binaries
-        run: |
-          VERSION="${{ steps.get_version.outputs.version }}"
-          TAG="${{ steps.get_version.outputs.tag }}"
-          LDFLAGS="-s -w -X main.version=${TAG}"
-
-          TARGETS=(
-            "linux/amd64"
-            "linux/arm64"
-          )
-
-          for TARGET in "${TARGETS[@]}"; do
-            OS="${TARGET%%/*}"
-            ARCH="${TARGET##*/}"
-            OUT_DIR="bin/dockpulse_${TAG}_${OS}_${ARCH}"
-            mkdir -p "${OUT_DIR}"
-            echo "==> Building ${OS}/${ARCH}..."
-            CGO_ENABLED=0 GOOS="${OS}" GOARCH="${ARCH}" go build -ldflags="${LDFLAGS}" -o "${OUT_DIR}/dockpulse" ./cmd/dockpulse
-
-            ARCHIVE="dist/dockpulse_${TAG}_${OS}_${ARCH}.tar.gz"
-            tar -czf "${ARCHIVE}" -C "${OUT_DIR}" dockpulse
-            echo "Created ${ARCHIVE}"
-          done
-
-      - name: Build Debian packages (.deb)
-        run: |
-          VERSION="${{ steps.get_version.outputs.version }}"
-          PKG_VERSION="${VERSION}"
-
-          for ARCH in amd64 arm64; do
-            echo "==> Building .deb for ${ARCH}..."
-            PKG_DIR="deb_pkg_${ARCH}"
-            rm -rf "${PKG_DIR}"
-            mkdir -p "${PKG_DIR}/DEBIAN"
-            mkdir -p "${PKG_DIR}/usr/bin"
-
-            cp "bin/dockpulse_${{ steps.get_version.outputs.tag }}_linux_${ARCH}/dockpulse" "${PKG_DIR}/usr/bin/"
-            chmod 755 "${PKG_DIR}/usr/bin/dockpulse"
-
-            {
-              echo "Package: dockpulse"
-              echo "Version: ${PKG_VERSION}"
-              echo "Section: utils"
-              echo "Priority: optional"
-              echo "Architecture: ${ARCH}"
-              echo "Maintainer: Andrey Vorobev <andrey.vorobev.aqa@gmail.com>"
-              echo "Homepage: https://github.com/AndreyJVM/dockpulse"
-              echo "Description: Fast Docker resources terminal monitor"
-              echo " A lightweight terminal dashboard (TUI) written in Go to monitor"
-              echo " Docker containers, Compose projects, networks, volumes, and Swarm clusters."
-            } > "${PKG_DIR}/DEBIAN/control"
-
-            dpkg-deb --build --root-owner-group "${PKG_DIR}" "dist/dockpulse_${PKG_VERSION}_${ARCH}.deb"
-            rm -rf "${PKG_DIR}"
-          done
-
-      - name: Generate Checksums
-        run: |
-          cd dist
-          sha256sum * > checksums.txt
-          cd ..
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: |
-            ## Dockpulse ${{ steps.get_version.outputs.tag }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-            A fast interactive TUI for monitoring and managing Docker containers and resources with no external runtime dependencies.
-
-            ### What's new in ${{ steps.get_version.outputs.tag }}
-            - **Modular Monitor Architecture**: Decomposed monolithic `internal/monitor` package into clear, isolated domain sub-packages (`docker`, `compose`, `swarm`, `system`, and `prune`).
-            - **Zero-Breakage Facade**: Provided backward-compatible public facade re-exporting all types, functions, and constants.
-            - **Decomposed Modular Testing**: Reorganized test suites with isolated unit tests for every sub-package and introduced dedicated testutil fixtures and builders.
-            - **Enhanced CI Cross-Platform Coverage**: Added macOS (Darwin) and FreeBSD Unix build matrix validation in continuous integration.
-
-            ### Installation
-
-            #### Debian / Ubuntu / Linux Mint (.deb)
-            ```bash
-            # x86_64 / amd64
-            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/dockpulse_${{ steps.get_version.outputs.version }}_amd64.deb
-            sudo dpkg -i dockpulse_${{ steps.get_version.outputs.version }}_amd64.deb
-
-            # ARM64 (Raspberry Pi and ARM servers)
-            wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/dockpulse_${{ steps.get_version.outputs.version }}_arm64.deb
-            sudo dpkg -i dockpulse_${{ steps.get_version.outputs.version }}_arm64.deb
-            ```
-
-            #### Run the standalone Linux binary
-            ```bash
-            tar -xzf dockpulse_${{ steps.get_version.outputs.tag }}_linux_amd64.tar.gz
-            ./dockpulse
-            ```
-          files: |
-            dist/*
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -38,24 +38,27 @@ dockpulse/
 ├── cmd/
 │   └── dockpulse/          # Application entrypoint (main.go), CLI flags, and initialization
 ├── internal/               # Core internal packages (not importable by external projects)
-│   ├── monitor/            # Monitoring engine and Docker engine integrations
-│   │   ├── docker*.go      # Docker client, container stats, logs, inspect, exec, prune
-│   │   ├── compose*.go     # Docker Compose service discovery and lifecycle
-│   │   ├── swarm*.go       # Docker Swarm cluster nodes and services monitoring
-│   │   └── system*.go      # Host system metrics (CPU, RAM, Disk, Network)
+│   ├── monitor/            # Monitoring engine facade and sub-domain packages
+│   │   ├── docker/         # Docker client, container stats, logs, inspect, exec
+│   │   ├── compose/        # Docker Compose service discovery and lifecycle
+│   │   ├── swarm/          # Docker Swarm cluster nodes and services monitoring
+│   │   ├── prune/          # Docker system prune and disk reclamation
+│   │   └── system/         # Host system metrics (CPU, RAM, Disk, Network)
 │   ├── tui/                # Terminal User Interface (Bubble Tea & Lip Gloss)
-│   │   ├── views/          # Primary views (containers, Compose, networks, volumes, Swarm)
+│   │   ├── views/          # Primary views (containers, images, Compose, networks, volumes, Swarm)
 │   │   ├── modals/         # Interactive dialogs (logs, inspect, exec, prune, help)
 │   │   ├── components/     # Reusable UI widgets (progress bar, sparkline, tables)
+│   │   ├── shell/          # Embedded PTY terminal engine
 │   │   ├── theme/          # Color schemes, styles, and borders
 │   │   └── update*.go      # Event handling, keybindings, and command dispatchers
+│   ├── testutil/           # Test fixtures, builders, and assertions
 │   └── i18n/               # English UI text catalog
 ├── docs/                   # Documentation and screenshots
 └── debian/                 # Debian/Ubuntu packaging metadata
 ```
 
 **Where to make your changes:**
-- Adding or modifying metrics/Docker logic? Work in `internal/monitor/`.
+- Adding or modifying metrics/Docker logic? Work in `internal/monitor/` and its subpackages.
 - Adding a new dashboard view? Work in `internal/tui/views/`.
 - Adding a popup modal or action? Work in `internal/tui/modals/`.
 - Adding UI components or widgets? Work in `internal/tui/components/`.
@@ -74,6 +77,9 @@ make test
 
 # Run code style and quality checks (go vet + revive)
 make lint
+
+# Test cross-platform release packaging locally with GoReleaser
+make snapshot
 
 # Run locally in development mode
 make run

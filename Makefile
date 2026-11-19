@@ -2,7 +2,7 @@ PACKAGE_NAME = dockpulse
 VERSION = $(shell cat VERSION)
 BINARY = dockpulse
 
-.PHONY: all clean clean-all build install reinstall remove purge check test lint info files run help version version-patch version-minor version-major update-changelog release release-check release-help release-tag release-patch release-minor release-major
+.PHONY: all clean clean-all build install reinstall remove purge check test lint info files run help version version-patch version-minor version-major update-changelog release release-check release-help release-tag release-patch release-minor release-major snapshot
 
 all: build
 
@@ -114,6 +114,16 @@ release-major: version-major update-changelog
 	@git commit -m "Bump version to $$(cat VERSION)"
 	@$(MAKE) release-tag
 
+# Test build with GoReleaser locally (creates snapshot in dist/).
+snapshot:
+	@if command -v goreleaser >/dev/null 2>&1; then \
+		goreleaser release --snapshot --clean --skip=publish --skip=docker; \
+	elif [ -f "$$(go env GOPATH)/bin/goreleaser" ]; then \
+		$$(go env GOPATH)/bin/goreleaser release --snapshot --clean --skip=publish --skip=docker; \
+	else \
+		echo "goreleaser not found, run: go install github.com/goreleaser/goreleaser/v2@latest"; \
+	fi
+
 # Show help.
 help:
 	@echo "Available commands:"
@@ -122,6 +132,7 @@ help:
 	@echo "  make lint            - Run Go style and quality checks (go vet + revive)"
 	@echo "  make build           - Build standalone Go binary"
 	@echo "  make run             - Run the application locally via go run"
+	@echo "  make snapshot        - Build local snapshot release across all targets with GoReleaser"
 	@echo "  make release         - Create release tag for current version v$(VERSION)"
 	@echo "  make release-patch   - Bump patch version and create release tag"
 	@echo "  make release-minor   - Bump minor version and create release tag"

@@ -42,33 +42,44 @@
 - **Docker Volumes**: Volume driver, scope, reference count, disk usage, mountpoint, and Compose ownership.
 - **Docker Swarm**: Cluster node roles (Leader, Manager, Worker), service listings, replica counts with degradation highlights, and live service logs (`L`).
 - **English Interface**: Consistent English UI, CLI help, diagnostics, and documentation.
-- **Zero Dependencies**: Standalone binary (<12 MB) with zero external runtime dependencies. Runs on Linux.
+- **Zero Dependencies**: Standalone binary (<12 MB) with zero external runtime dependencies. Runs on Linux, macOS, and FreeBSD.
 
 ### Installation
 
-#### Pre-built `.deb` Package (Debian / Ubuntu / Linux Mint)
+#### Docker (Zero Installation)
+
+Run Dockpulse directly without installing any local dependencies:
 
 ```bash
-# AMD64 (x86_64)
-wget https://github.com/AndreyJVM/dockpulse/releases/latest/download/dockpulse_0.12.0_amd64.deb
-sudo dpkg -i dockpulse_0.12.0_amd64.deb
-
-# ARM64
-wget https://github.com/AndreyJVM/dockpulse/releases/latest/download/dockpulse_0.12.0_arm64.deb
-sudo dpkg -i dockpulse_0.12.0_arm64.deb
+docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock ghcr.io/andreyjvm/dockpulse:latest
 ```
 
-#### Pre-built Binaries (Linux)
+#### Linux Packages (.deb / .rpm / .apk)
 
-Download the latest archive from [Releases](https://github.com/AndreyJVM/dockpulse/releases):
+Pre-built packages for **amd64** and **arm64** are available on the [Releases](https://github.com/AndreyJVM/dockpulse/releases) page:
 
 ```bash
-# Linux AMD64
-tar -xzf dockpulse_v0.12.0_linux_amd64.tar.gz
+# Debian / Ubuntu / Linux Mint (.deb)
+sudo dpkg -i dockpulse_0.12.0_amd64.deb
+
+# RHEL / Fedora / Rocky Linux (.rpm)
+sudo rpm -i dockpulse_0.12.0_amd64.rpm
+
+# Alpine Linux (.apk)
+apk add --allow-untrusted dockpulse_0.12.0_amd64.apk
+```
+
+#### Pre-built Binaries (Linux, macOS, FreeBSD)
+
+Download the archive for your operating system and architecture from [Releases](https://github.com/AndreyJVM/dockpulse/releases):
+
+```bash
+# Example: Linux AMD64
+tar -xzf dockpulse_0.12.0_linux_amd64.tar.gz
 ./dockpulse
 ```
 
-#### Build from Source (Go 1.27.3+)
+#### Build from Source (Go 1.27+)
 
 ```bash
 git clone https://github.com/AndreyJVM/dockpulse.git
@@ -115,12 +126,25 @@ Options:
 | `?` | Toggle help / hotkey shortcuts modal |
 | `q` / `Esc` / `Ctrl+C` | Quit application |
 
-### Contributing
+### Community & Governance
 
-Contributions are welcome! Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing guidelines, and pull request workflow.
+- **Contributing**: Please review [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, architectural guidelines, and test instructions.
+- **Code of Conduct**: We follow the [Contributor Covenant](CODE_OF_CONDUCT.md) to ensure an open and welcoming community.
+- **Security Policy**: Read [SECURITY.md](SECURITY.md) for instructions on reporting vulnerabilities responsibly.
+- **License**: Dockpulse is released under the [MIT License](LICENSE).
 
 ---
 
-## Screenshots
+### Dashboard Views
 
-> Place real UI screenshots in [`docs/screenshots/`](docs/screenshots/).
+| Tab | View | Description |
+|:---:|---|---|
+| `1` | **Docker** | Live container stats, CPU & RAM bars, health badges, ports, and embedded shell (`E`) |
+| `2` | **Images** | Local image inventory, digest, tags, sizes, usage status, and image pruning |
+| `3` | **Compose** | Service orchestration grouping, live project logs (`L`), and stack control (`U`/`S`/`D`) |
+| `4` | **Networks** | Network drivers, IPAM subnets, gateways, and attached container list |
+| `5` | **Volumes** | Volume drivers, disk usage, mount points, and container references |
+| `6` | **Swarm** | Cluster node inventory, roles, service replica distribution, and task logs |
+
+> Detailed screenshots and visual guides are available in [docs/screenshots/](docs/screenshots/).
+

@@ -1,0 +1,93 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: dockpulse
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: dockpulse
+    main: ./cmd/dockpulse
+    binary: dockpulse
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: freebsd
+        goarch: arm64
+    ldflags:
+      - -s -w -X main.version={{ if .Tag }}{{ .Tag }}{{ else }}v{{ .Version }}-dev{{ end }}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+      - CONTRIBUTING.md
+
+nfpms:
+  - id: packages
+    package_name: dockpulse
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}"
+    vendor: "Dockpulse"
+    homepage: "https://github.com/AndreyJVM/dockpulse"
+    maintainer: "Andrey Vorobev <andrey.vorobev.aqa@gmail.com>"
+    description: "Fast terminal TUI for Docker containers, Compose, and Swarm"
+    license: "MIT"
+    section: "utils"
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/bin
+
+dockers_v2:
+  - id: dockpulse
+    images:
+      - "ghcr.io/andreyjvm/dockpulse"
+    tags:
+      - "{{ .Version }}"
+      - "latest"
+    dockerfile: Dockerfile
+    platforms:
+      - linux/amd64
+      - linux/arm64
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^Merge pull request'
+      - '^Merge branch'
+  groups:
+    - title: "✨ Features"
+      regexp: '^.*?feat(\([^\)]+\))?:'
+      order: 0
+    - title: "🐛 Bug Fixes"
+      regexp: '^.*?fix(\([^\)]+\))?:'
+      order: 1
+    - title: "⚡ Refactoring & Performance"
+      regexp: '^.*?(refactor|perf)(\([^\)]+\))?:'
+      order: 2
+    - title: "🔧 Maintenance & Other"
+      order: 999
