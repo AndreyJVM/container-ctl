@@ -99,6 +99,39 @@ func TestEmbeddedShellLifecycleAndFocus(t *testing.T) {
 	}
 }
 
+func TestEmbeddedShell_UnfocusedDoesNotInterceptKeysInFilterOrModal(t *testing.T) {
+	fake := &fakeEmbeddedShell{}
+	m := NewModel(2*time.Second, int(TabDocker), "v0.9.0")
+	m.embeddedShell = fake
+	m.shellFocused = false
+	m.isFiltering = true
+
+	// User types 'e' while filtering containers
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}})
+	m = updated.(Model)
+	if m.shellFocused {
+		t.Fatal("expected shell not to steal focus when isFiltering is true")
+	}
+	if m.filterQuery != "e" {
+		t.Fatalf("expected filterQuery to be 'e', got %q", m.filterQuery)
+	}
+
+	// User types 'e' inside modal (e.g. exec custom command input)
+	m.isFiltering = false
+	m.activeModal = ModalExec
+	m.execIsCustomInput = true
+	m.execCustomCmd = "echo"
+
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}})
+	m = updated.(Model)
+	if m.shellFocused {
+		t.Fatal("expected shell not to steal focus when inside modal")
+	}
+	if m.execCustomCmd != "echoe" {
+		t.Fatalf("expected execCustomCmd to receive 'e', got %q", m.execCustomCmd)
+	}
+}
+
 func TestEmbeddedShellStartFailureDoesNotLaunchFallback(t *testing.T) {
 	originalStart := startEmbeddedShell
 	defer func() { startEmbeddedShell = originalStart }()

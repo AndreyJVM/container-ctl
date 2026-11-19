@@ -46,10 +46,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
+		if m.embeddedShell != nil && m.shellFocused {
+			return m.handleEmbeddedShellKey(msg)
+		}
+
+		// Active modals intercept keyboard input.
+		if m.activeModal != ModalNone {
+			return m.handleModalInput(msg)
+		}
+
+		// Search and filter mode on Docker and Images tabs.
+		if m.isFiltering && (m.activeTab == TabDocker || m.activeTab == TabImages) {
+			return m.handleFilterInput(msg)
+		}
+
+		// Help modal.
+		if m.showHelp {
+			return m.handleHelpInput(msg)
+		}
+
+		// Unfocused embedded shell hotkeys.
 		if m.embeddedShell != nil {
-			if m.shellFocused {
-				return m.handleEmbeddedShellKey(msg)
-			}
 			switch msg.Type {
 			case tea.KeyCtrlX:
 				m.closeEmbeddedShell()
@@ -59,21 +76,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.shellFocused = true
 				return m, nil
 			}
-		}
-
-		// Active modals intercept keyboard input.
-		if m.activeModal != ModalNone {
-			return m.handleModalInput(msg)
-		}
-
-		// Container search and filter mode.
-		if m.isFiltering && m.activeTab == TabDocker {
-			return m.handleFilterInput(msg)
-		}
-
-		// Help modal.
-		if m.showHelp {
-			return m.handleHelpInput(msg)
 		}
 
 		// Main input mode.
