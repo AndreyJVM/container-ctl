@@ -65,7 +65,7 @@ func DemuxDockerLogs(r io.Reader) string {
 		idx += 8 + size
 	}
 
-	if sb.Len() > 0 && idx == len(all) {
+	if idx == len(all) && idx > 0 {
 		return sb.String()
 	}
 	return string(all)
