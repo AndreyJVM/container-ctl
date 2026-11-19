@@ -204,6 +204,60 @@ func TestFilterModeKeys(t *testing.T) {
 	}
 }
 
+func TestFilterModeKeys_ImagesTab(t *testing.T) {
+	m := NewModel(2*time.Second, int(TabImages), "v0.9.0")
+	m.images = []monitor.DockerImage{
+		testutil.AnImage(testutil.WithImageID("img1", "sha256:111"), testutil.WithRepoTag("alpine", "latest")),
+		testutil.AnImage(testutil.WithImageID("img2", "sha256:222"), testutil.WithRepoTag("ubuntu", "22.04")),
+		testutil.AnImage(testutil.WithImageID("img3", "sha256:333"), testutil.WithRepoTag("redis", "alpine")),
+	}
+
+	// 1. Activate search mode on images tab with '/'
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("/")})
+	m = res.(Model)
+	if !m.isFiltering {
+		t.Fatalf("expected isFiltering=true after '/' on TabImages")
+	}
+
+	// 2. Type "alpine"
+	for _, r := range []rune("alpine") {
+		res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = res.(Model)
+	}
+	if m.filterQuery != "alpine" {
+		t.Fatalf("expected filterQuery='alpine', got %q", m.filterQuery)
+	}
+
+	filtered := m.getFilteredImages()
+	if len(filtered) != 2 {
+		t.Fatalf("expected 2 filtered images matching 'alpine', got %d", len(filtered))
+	}
+
+	// 3. Backspace
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
+	m = res.(Model)
+	if m.filterQuery != "alpin" {
+		t.Fatalf("expected filterQuery='alpin' after backspace, got %q", m.filterQuery)
+	}
+
+	// 4. Enter to apply filter and exit typing mode
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = res.(Model)
+	if m.isFiltering {
+		t.Fatalf("expected isFiltering=false after Enter")
+	}
+	if m.filterQuery != "alpin" {
+		t.Fatalf("expected filterQuery to persist after Enter")
+	}
+
+	// 5. Esc in normal mode clears filter
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.filterQuery != "" {
+		t.Fatalf("expected filterQuery='' after Esc, got %q", m.filterQuery)
+	}
+}
+
 func TestRenderDockerTabFilteringView(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.4.1")
 	m.activeTab = 1

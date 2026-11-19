@@ -6,6 +6,9 @@ import (
 
 // Truncate truncates a string to maxLen runes, appending ellipsis if truncated.
 func Truncate(str string, maxLen int) string {
+	if maxLen <= 0 {
+		return ""
+	}
 	runes := []rune(str)
 	if len(runes) <= maxLen {
 		return str
@@ -18,6 +21,9 @@ func Truncate(str string, maxLen int) string {
 
 // PadRight pads string with spaces on the right up to width runes.
 func PadRight(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
 	r := []rune(s)
 	if len(r) >= width {
 		return string(r[:width])
@@ -27,6 +33,9 @@ func PadRight(s string, width int) string {
 
 // PadLeft pads string with spaces on the left up to width runes.
 func PadLeft(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
 	r := []rune(s)
 	if len(r) >= width {
 		return string(r[:width])

@@ -173,6 +173,27 @@ func TestDemuxDockerLogs(t *testing.T) {
 			t.Errorf("expected empty string for empty input, got %q", res)
 		}
 	})
+
+	t.Run("multiplexed stream with zero-length payload frame", func(t *testing.T) {
+		var buf bytes.Buffer
+		var hdr [8]byte
+		hdr[0] = 1 // stdout
+		binary.BigEndian.PutUint32(hdr[4:8], 0)
+		buf.Write(hdr[:])
+
+		res := DemuxDockerLogs(&buf)
+		if res != "" {
+			t.Errorf("expected empty string for empty frame payload, got %q", res)
+		}
+	})
+
+	t.Run("plain text shorter than 8 byte header", func(t *testing.T) {
+		shortText := "info"
+		res := DemuxDockerLogs(strings.NewReader(shortText))
+		if res != shortText {
+			t.Errorf("expected %q, got %q", shortText, res)
+		}
+	})
 }
 
 func TestFormatPorts(t *testing.T) {
