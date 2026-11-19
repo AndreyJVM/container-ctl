@@ -114,10 +114,10 @@ jobs:
             A fast interactive TUI for monitoring and managing Docker containers and resources with no external runtime dependencies.
 
             ### What's new in ${{ steps.get_version.outputs.tag }}
-            - **Hardened security & overflow prevention**: Resolved potential integer overflow issues (G115) with a dedicated `FormatUintBytes` helper supporting exabytes, and sanitized Unix socket paths (G703).
-            - **Responsive layout across all tabs**: Tables and cards automatically stretch to fit wide terminals, utilizing full screen width instead of fixed boundaries.
-            - **Dynamic column stretching**: Repository, tag, ports, and subnet columns automatically scale with the terminal width.
-            - **Consistent boxed card design**: Docker Images, Networks, and Volumes tabs now feature consistent, polished details cards matching the container dashboard.
+            - **Modular Monitor Architecture**: Decomposed monolithic `internal/monitor` package into clear, isolated domain sub-packages (`docker`, `compose`, `swarm`, `system`, and `prune`).
+            - **Zero-Breakage Facade**: Provided backward-compatible public facade re-exporting all types, functions, and constants.
+            - **Decomposed Modular Testing**: Reorganized test suites with isolated unit tests for every sub-package and introduced dedicated testutil fixtures and builders.
+            - **Enhanced CI Cross-Platform Coverage**: Added macOS (Darwin) and FreeBSD Unix build matrix validation in continuous integration.
 
             ### Installation
 

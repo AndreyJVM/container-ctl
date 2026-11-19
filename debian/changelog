@@ -1,3 +1,15 @@
+dockpulse (0.12.0) unstable; urgency=medium
+
+  * Version 0.12.0 release:
+    - Decomposed monolithic internal/monitor package into modular sub-packages: docker, compose, swarm, system, and prune
+    - Implemented thin backward-compatible monitor facade preserving existing public API
+    - Decomposed monitor tests and added comprehensive sub-package test suites
+    - Introduced testutil fixtures and builders for test entities
+    - Modularized TUI view test suites
+    - Added macOS and FreeBSD cross-compilation target coverage in CI
+
+ -- Andrey Vorobev <Andrey.Vorobev.AQA@gmail.com>  Thu, 19 Nov 2026 23:41:53 +0300
+
 dockpulse (0.11.1) unstable; urgency=medium
 
   * Version 0.11.1 release:
