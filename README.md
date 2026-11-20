@@ -14,6 +14,10 @@
 
 ---
 
+<p align="center">
+  <img src="docs/screenshots/docker.png" alt="Dockpulse Terminal UI" width="850">
+</p>
+
 </div>
 
 ### Key Features

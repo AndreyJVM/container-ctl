@@ -29,7 +29,7 @@ func RenderSwarm(ctx SwarmContext) string {
 	if !ctx.Swarm.IsActive {
 		s.WriteString(fmt.Sprintf("  %s %s\n\n", ctx.I18n.DaemonStatus, swarmStatus))
 		s.WriteString("  " + theme.DimStyle.Render(ctx.I18n.SwarmInactive) + "\n")
-		s.WriteString("  " + fmt.Sprintf(ctx.I18n.SwarmInitHint, theme.BoldStyle.Render("docker swarm init")) + "\n")
+		s.WriteString("  " + ctx.I18n.SwarmInitHint + "\n")
 		return s.String()
 	}
 
