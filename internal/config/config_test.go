@@ -391,3 +391,111 @@ func TestFindConfigFile(t *testing.T) {
 		t.Errorf("expected %s from DOCKPULSE_CONFIG, got %s", tmpFile.Name(), got)
 	}
 }
+
+func TestValidate_Errors(t *testing.T) {
+	if err := Validate(nil); err == nil {
+		t.Errorf("expected error on nil config")
+	}
+
+	cfg := DefaultConfig()
+	cfg.InitialTab = 0
+	if err := Validate(cfg); err == nil {
+		t.Errorf("expected error on initial tab 0")
+	}
+
+	cfg.InitialTab = 7
+	if err := Validate(cfg); err == nil {
+		t.Errorf("expected error on initial tab 7")
+	}
+
+	cfg.InitialTab = 1
+	cfg.UI.DefaultSort = "invalid_sort_mode"
+	if err := Validate(cfg); err == nil {
+		t.Errorf("expected error on invalid sort mode")
+	}
+}
+
+func TestTabName_Unknown(t *testing.T) {
+	if name := TabName(99); name != "unknown" {
+		t.Errorf("expected 'unknown' for invalid tab ID, got %s", name)
+	}
+	if name := TabName(1); name != "docker" {
+		t.Errorf("expected 'docker', got %s", name)
+	}
+	if name := TabName(4); name != "networks" {
+		t.Errorf("expected 'networks', got %s", name)
+	}
+	if name := TabName(6); name != "swarm" {
+		t.Errorf("expected 'swarm', got %s", name)
+	}
+}
+
+func TestLoadConfig_TypesAndShowSwarm(t *testing.T) {
+	yamlContent := `
+interval: [unsupported, list]
+`
+	tmpFile, err := os.CreateTemp("", "bad-type-*.yaml")
+	if err != nil {
+		t.Fatalf("temp file error: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.WriteString(yamlContent)
+	tmpFile.Close()
+
+	if _, err := LoadConfig(tmpFile.Name()); err == nil {
+		t.Errorf("expected error on unsupported interval type")
+	}
+
+	yamlTabBadType := `
+initial_tab: [bad]
+`
+	tmpFile2, _ := os.CreateTemp("", "bad-tab-*.yaml")
+	defer os.Remove(tmpFile2.Name())
+	tmpFile2.WriteString(yamlTabBadType)
+	tmpFile2.Close()
+
+	if _, err := LoadConfig(tmpFile2.Name()); err == nil {
+		t.Errorf("expected error on unsupported initial_tab type")
+	}
+
+	yamlTabBadVal := `
+initial_tab: "not_a_valid_tab"
+`
+	tmpFile3, _ := os.CreateTemp("", "bad-tab-val-*.yaml")
+	defer os.Remove(tmpFile3.Name())
+	tmpFile3.WriteString(yamlTabBadVal)
+	tmpFile3.Close()
+
+	if _, err := LoadConfig(tmpFile3.Name()); err == nil {
+		t.Errorf("expected error on invalid initial_tab string")
+	}
+
+	yamlBadSort := `
+ui:
+  default_sort: "unknown-sort-mode"
+`
+	tmpFile4, _ := os.CreateTemp("", "bad-sort-*.yaml")
+	defer os.Remove(tmpFile4.Name())
+	tmpFile4.WriteString(yamlBadSort)
+	tmpFile4.Close()
+
+	if _, err := LoadConfig(tmpFile4.Name()); err == nil {
+		t.Errorf("expected error on invalid default_sort")
+	}
+
+	yamlTabSwarm := `
+initial_tab: swarm
+`
+	tmpFile5, _ := os.CreateTemp("", "swarm-tab-*.yaml")
+	defer os.Remove(tmpFile5.Name())
+	tmpFile5.WriteString(yamlTabSwarm)
+	tmpFile5.Close()
+
+	cfg, err := LoadConfig(tmpFile5.Name())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !cfg.ShowSwarm {
+		t.Errorf("expected ShowSwarm to be true when initial_tab is swarm (6)")
+	}
+}

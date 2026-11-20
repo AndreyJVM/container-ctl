@@ -272,3 +272,48 @@ func TestContainerAndComposeCommandsExecution(t *testing.T) {
 		})
 	}
 }
+
+func TestRemoveImageCmdExecution(t *testing.T) {
+	cmd := removeImageCmd("img-id", "nginx:alpine", false)
+	if cmd == nil {
+		t.Fatal("expected non-nil tea.Cmd for removeImageCmd")
+	}
+	msg := cmd()
+	afm, ok := msg.(actionFinishedMsg)
+	if !ok {
+		t.Fatalf("expected actionFinishedMsg, got %T", msg)
+	}
+	if afm.err == nil && !strings.Contains(afm.message, "nginx:alpine") {
+		t.Errorf("expected image name in message if no error, got: %+v", afm)
+	}
+}
+
+func TestFilterModesAndSortSetters(t *testing.T) {
+	m := NewModel(2*time.Second, 1, "v0.19.0")
+	if m.IsOnlyUnusedImages() {
+		t.Errorf("expected default IsOnlyUnusedImages to be false")
+	}
+
+	m.SetOnlyUnusedImages(true)
+	if !m.IsOnlyUnusedImages() {
+		t.Errorf("expected IsOnlyUnusedImages to be true after setter")
+	}
+
+	m.SetOnlyUnusedImages(false)
+	if m.IsOnlyUnusedImages() {
+		t.Errorf("expected IsOnlyUnusedImages to be false after setter")
+	}
+
+	m.SetContainerSortMode(SortCPU)
+	if m.containerSortMode != SortCPU {
+		t.Errorf("expected SortCPU, got %d", m.containerSortMode)
+	}
+	m.SetContainerSortMode(SortMem)
+	if m.containerSortMode != SortMem {
+		t.Errorf("expected SortMem, got %d", m.containerSortMode)
+	}
+	m.SetContainerSortMode(999) // Invalid mode out of bounds
+	if m.containerSortMode != SortMem {
+		t.Errorf("expected mode to remain SortMem when invalid passed, got %d", m.containerSortMode)
+	}
+}

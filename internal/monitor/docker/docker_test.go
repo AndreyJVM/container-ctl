@@ -51,3 +51,19 @@ func TestSocketClientPool(t *testing.T) {
 
 	ResetSocketClientsPool()
 }
+
+func TestSetCustomSocketPath(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "custom-socket-*.sock")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	SetCustomSocketPath(tmpFile.Name())
+	defer SetCustomSocketPath("")
+
+	detected := FindDockerSocket()
+	if detected != tmpFile.Name() {
+		t.Errorf("expected custom socket %s, got %s", tmpFile.Name(), detected)
+	}
+}
