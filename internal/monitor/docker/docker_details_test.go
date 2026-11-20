@@ -237,6 +237,13 @@ func TestFormatPorts(t *testing.T) {
 			},
 			expected: "80->80/tcp, 443->443/tcp",
 		},
+		{
+			name: "custom ip binding",
+			ports: []rawPort{
+				{IP: "127.0.0.1", PublicPort: 8080, PrivatePort: 80, Type: "tcp"},
+			},
+			expected: "127.0.0.1:8080->80/tcp",
+		},
 	}
 
 	for _, tt := range tests {
@@ -358,8 +365,11 @@ func TestParseHealthStatus(t *testing.T) {
 		{"exact unhealthy", "unhealthy", "unhealthy"},
 		{"exact starting", "starting", "starting"},
 		{"status with (healthy)", "Up 2 hours (healthy)", "healthy"},
+		{"status with (health: healthy)", "Up 2 hours (health: healthy)", "healthy"},
 		{"status with (unhealthy)", "Up 35 minutes (unhealthy)", "unhealthy"},
+		{"status with (health: unhealthy)", "Up 35 minutes (health: unhealthy)", "unhealthy"},
 		{"status with (health: starting)", "Up 12 seconds (health: starting)", "starting"},
+		{"status with (starting)", "Up 12 seconds (starting)", "starting"},
 		{"status without healthcheck", "Up 4 days", ""},
 		{"empty string", "", ""},
 		{"whitespace string", "   ", ""},

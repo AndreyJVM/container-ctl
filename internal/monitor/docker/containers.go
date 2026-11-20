@@ -1,10 +1,11 @@
 package docker
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -27,13 +28,13 @@ func ParseHealthStatus(val string) string {
 		return HealthStatusStarting
 	}
 
-	if strings.Contains(s, "("+HealthStatusHealthy+")") {
-		return HealthStatusHealthy
-	}
-	if strings.Contains(s, "("+HealthStatusUnhealthy+")") {
+	if strings.Contains(s, "("+HealthStatusUnhealthy+")") || strings.Contains(s, "(health: "+HealthStatusUnhealthy+")") {
 		return HealthStatusUnhealthy
 	}
-	if strings.Contains(s, "(health: "+HealthStatusStarting+")") || (strings.Contains(s, HealthStatusStarting) && strings.Contains(s, "health")) {
+	if strings.Contains(s, "("+HealthStatusHealthy+")") || strings.Contains(s, "(health: "+HealthStatusHealthy+")") {
+		return HealthStatusHealthy
+	}
+	if strings.Contains(s, "(health: "+HealthStatusStarting+")") || strings.Contains(s, "("+HealthStatusStarting+")") || (strings.Contains(s, HealthStatusStarting) && strings.Contains(s, "health")) {
 		return HealthStatusStarting
 	}
 
@@ -88,7 +89,11 @@ func formatPorts(ports []rawPort) string {
 	for _, p := range ports {
 		var entry string
 		if p.PublicPort > 0 {
-			entry = fmt.Sprintf("%d->%d/%s", p.PublicPort, p.PrivatePort, p.Type)
+			if p.IP != "" && p.IP != "0.0.0.0" && p.IP != "::" {
+				entry = fmt.Sprintf("%s:%d->%d/%s", p.IP, p.PublicPort, p.PrivatePort, p.Type)
+			} else {
+				entry = fmt.Sprintf("%d->%d/%s", p.PublicPort, p.PrivatePort, p.Type)
+			}
 		} else if p.PrivatePort > 0 {
 			entry = fmt.Sprintf("%d/%s", p.PrivatePort, p.Type)
 		}
@@ -165,10 +170,17 @@ func parseRawSocketContainers(rawContainers []rawSocketContainer) []ContainerIte
 
 		var ipAddr, netName string
 		if len(c.NetworkSettings.Networks) > 0 {
+			sortedNets := make([]string, 0, len(c.NetworkSettings.Networks))
+			for nName := range c.NetworkSettings.Networks {
+				sortedNets = append(sortedNets, nName)
+			}
+			sort.Strings(sortedNets)
+
 			var ips []string
 			var nets []string
-			for nName, nData := range c.NetworkSettings.Networks {
+			for _, nName := range sortedNets {
 				nets = append(nets, nName)
+				nData := c.NetworkSettings.Networks[nName]
 				if nData.IPAddress != "" {
 					ips = append(ips, nData.IPAddress)
 				}
@@ -224,18 +236,15 @@ func enrichContainersWithSocketMetrics(client *http.Client, containers []Contain
 				containers[idx].NetTxBytes = stats.NetTxBytes
 				containers[idx].BlockReadBytes = stats.BlockReadBytes
 				containers[idx].BlockWriteBytes = stats.BlockWriteBytes
-			} else {
-				if failed, _ := IsContainerFailed(state, containers[idx].Status); failed {
-					if rawLogs, err := GetContainerLogs(cID, 3); err == nil && rawLogs != "" {
-						containers[idx].ErrorSnippet = CleanLogSnippet(rawLogs, 3)
-					}
-				}
 			}
-			if containers[idx].Health == HealthStatusUnhealthy && containers[idx].ErrorSnippet == "" {
+
+			failed, _ := IsContainerFailed(state, containers[idx].Status)
+			if failed || containers[idx].Health == HealthStatusUnhealthy {
 				if rawLogs, err := GetContainerLogs(cID, 3); err == nil && rawLogs != "" {
 					containers[idx].ErrorSnippet = CleanLogSnippet(rawLogs, 3)
 				}
 			}
+
 			rp, started := fetchContainerInspect(client, cID)
 			if rp != "" {
 				containers[idx].RestartPolicy = rp
@@ -251,39 +260,42 @@ func enrichContainersWithSocketMetrics(client *http.Client, containers []Contain
 func fetchDockerSummaryViaSocket(sockPath string, summary *DockerSummary) bool {
 	client := SocketClientFactory(sockPath)
 
+	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	defer cancel()
+
 	// 1. Query /info endpoint
-	resp, err := client.Get("http://localhost/info")
-	if err == nil {
-		func() {
-			defer resp.Body.Close()
-			if resp.StatusCode != http.StatusOK {
-				return
+	var infoData struct {
+		Containers        int    `json:"Containers"`
+		ContainersRunning int    `json:"ContainersRunning"`
+		ContainersStopped int    `json:"ContainersStopped"`
+		Images            int    `json:"Images"`
+		ServerVersion     string `json:"ServerVersion"`
+	}
+	infoSuccess := false
+
+	reqInfo, errInfo := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost/info", nil)
+	if errInfo == nil {
+		resp, err := client.Do(reqInfo)
+		if err == nil {
+			if resp.StatusCode == http.StatusOK {
+				if err := json.NewDecoder(resp.Body).Decode(&infoData); err == nil {
+					infoSuccess = true
+				}
 			}
-			body, readErr := io.ReadAll(resp.Body)
-			if readErr != nil {
-				return
-			}
-			var infoData struct {
-				Containers        int    `json:"Containers"`
-				ContainersRunning int    `json:"ContainersRunning"`
-				ContainersStopped int    `json:"ContainersStopped"`
-				Images            int    `json:"Images"`
-				ServerVersion     string `json:"ServerVersion"`
-			}
-			if json.Unmarshal(body, &infoData) == nil {
-				summary.Status = DockerStatusRunning
-				summary.StatusDisplay = DockerStatusDisplayRunning
-				summary.TotalContainers = infoData.Containers
-				summary.RunningContainers = infoData.ContainersRunning
-				summary.StoppedContainers = infoData.ContainersStopped
-				summary.ImagesCount = infoData.Images
-				summary.Version = infoData.ServerVersion
-			}
-		}()
+			_ = resp.Body.Close()
+		} else {
+			// If dialing the socket failed (connection refused, permission denied, etc.),
+			// there is no point in trying /containers/json.
+			return false
+		}
 	}
 
 	// 2. Query /containers/json?all=1 endpoint
-	respC, errC := client.Get("http://localhost/containers/json?all=1")
+	reqC, errCReq := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost/containers/json?all=1", nil)
+	if errCReq != nil {
+		return false
+	}
+	respC, errC := client.Do(reqC)
 	if errC != nil {
 		return false
 	}
@@ -292,22 +304,41 @@ func fetchDockerSummaryViaSocket(sockPath string, summary *DockerSummary) bool {
 		return false
 	}
 
-	bodyC, readErr := io.ReadAll(respC.Body)
-	if readErr != nil {
-		return false
-	}
-
 	var rawContainers []rawSocketContainer
-	if err := json.Unmarshal(bodyC, &rawContainers); err != nil {
+	if err := json.NewDecoder(respC.Body).Decode(&rawContainers); err != nil {
 		return false
 	}
 
+	// Update summary atomically
 	summary.Status = DockerStatusRunning
 	summary.StatusDisplay = DockerStatusDisplayRunning
+	if infoSuccess {
+		summary.TotalContainers = infoData.Containers
+		summary.RunningContainers = infoData.ContainersRunning
+		summary.StoppedContainers = infoData.ContainersStopped
+		summary.ImagesCount = infoData.Images
+		summary.Version = infoData.ServerVersion
+	}
+
 	summary.Containers = parseRawSocketContainers(rawContainers)
+
+	// Fallback count calculation if /info was unavailable or returned zeroes
 	if summary.TotalContainers == 0 {
 		summary.TotalContainers = len(summary.Containers)
 	}
+	if !infoSuccess {
+		var running, stopped int
+		for _, c := range summary.Containers {
+			if c.State == "running" {
+				running++
+			} else {
+				stopped++
+			}
+		}
+		summary.RunningContainers = running
+		summary.StoppedContainers = stopped
+	}
+
 	enrichContainersWithSocketMetrics(client, summary.Containers)
 	return true
 }
@@ -335,6 +366,8 @@ func GetDockerSummary() DockerSummary {
 		}
 	}
 
-	fetchDockerSummaryViaCLI(&summary)
+	if cliErr == nil {
+		fetchDockerSummaryViaCLI(&summary)
+	}
 	return summary
 }

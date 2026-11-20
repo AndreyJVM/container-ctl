@@ -183,3 +183,137 @@ func TestGetDockerSummary_CLIFallback(t *testing.T) {
 		t.Errorf("unexpected inspect enrichment: restart=%s ip=%s", c.RestartPolicy, c.IPAddress)
 	}
 }
+
+func TestGetDockerSummary_SocketInfoFails_ContainersSucceed(t *testing.T) {
+	origFinder := DockerSocketFinder
+	origFactory := SocketClientFactory
+	defer func() {
+		DockerSocketFinder = origFinder
+		SocketClientFactory = origFactory
+	}()
+
+	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	SocketClientFactory = func(_ string) *http.Client {
+		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
+			path := req.URL.Path
+			switch {
+			case path == "/info":
+				// Simulating /info endpoint failure
+				return mockStringResponse(http.StatusInternalServerError, "internal error"), nil
+			case path == "/containers/json":
+				return mockStringResponse(http.StatusOK, `[
+					{
+						"Id": "111111111111111111",
+						"Names": ["/c1"],
+						"State": "running",
+						"Status": "Up 5 minutes"
+					},
+					{
+						"Id": "222222222222222222",
+						"Names": ["/c2"],
+						"State": "exited",
+						"Status": "Exited (0) 10 minutes ago"
+					}
+				]`), nil
+			case strings.Contains(path, "/stats"):
+				return mockStringResponse(http.StatusOK, `{}`), nil
+			case strings.Contains(path, "/json"):
+				return mockStringResponse(http.StatusOK, `{}`), nil
+			}
+			return mockStringResponse(http.StatusNotFound, "not found"), nil
+		})
+	}
+
+	summary := GetDockerSummary()
+	if summary.Status != DockerStatusRunning {
+		t.Fatalf("expected status %q, got %q", DockerStatusRunning, summary.Status)
+	}
+	if summary.TotalContainers != 2 {
+		t.Errorf("expected TotalContainers 2, got %d", summary.TotalContainers)
+	}
+	if summary.RunningContainers != 1 {
+		t.Errorf("expected RunningContainers 1, got %d", summary.RunningContainers)
+	}
+	if summary.StoppedContainers != 1 {
+		t.Errorf("expected StoppedContainers 1, got %d", summary.StoppedContainers)
+	}
+}
+
+func TestGetDockerSummary_NoCLI_SocketFails(t *testing.T) {
+	origFinder := DockerSocketFinder
+	origLookPath := ExecLookPath
+	origRunner := DockerCLIRunner
+	origFactory := SocketClientFactory
+	defer func() {
+		DockerSocketFinder = origFinder
+		ExecLookPath = origLookPath
+		DockerCLIRunner = origRunner
+		SocketClientFactory = origFactory
+	}()
+
+	ExecLookPath = func(_ string) (string, error) {
+		return "", errors.New("docker not found")
+	}
+	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+
+	cliInvoked := false
+	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+		cliInvoked = true
+		return nil, errors.New("cli should not be invoked")
+	}
+
+	SocketClientFactory = func(_ string) *http.Client {
+		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
+			return nil, errors.New("connection refused")
+		})
+	}
+
+	summary := GetDockerSummary()
+	if summary.Status != DockerStatusStopped {
+		t.Errorf("expected status %q, got %q", DockerStatusStopped, summary.Status)
+	}
+	if cliInvoked {
+		t.Error("expected DockerCLIRunner NOT to be invoked when docker is not installed")
+	}
+}
+
+func TestParseRawSocketContainers_DeterministicNetworks(t *testing.T) {
+	raw := []rawSocketContainer{
+		{
+			ID:    "abc123456789012345",
+			Names: []string{"/test-container"},
+			NetworkSettings: struct {
+				Networks map[string]struct {
+					IPAddress string `json:"IPAddress"`
+					Gateway   string `json:"Gateway"`
+				} `json:"Networks"`
+			}{
+				Networks: map[string]struct {
+					IPAddress string `json:"IPAddress"`
+					Gateway   string `json:"Gateway"`
+				}{
+					"zebra-net": {IPAddress: "10.0.0.2"},
+					"alpha-net": {IPAddress: "172.18.0.2"},
+					"beta-net":  {IPAddress: "192.168.1.2"},
+				},
+			},
+		},
+	}
+
+	// Repeated parses must yield identical, sorted output
+	for i := 0; i < 10; i++ {
+		items := parseRawSocketContainers(raw)
+		if len(items) != 1 {
+			t.Fatalf("expected 1 item, got %d", len(items))
+		}
+		expectedNets := "alpha-net, beta-net, zebra-net"
+		expectedIPs := "172.18.0.2, 192.168.1.2, 10.0.0.2"
+		if items[0].NetworkName != expectedNets {
+			t.Errorf("iteration %d: expected networks %q, got %q", i, expectedNets, items[0].NetworkName)
+		}
+		if items[0].IPAddress != expectedIPs {
+			t.Errorf("iteration %d: expected IPs %q, got %q", i, expectedIPs, items[0].IPAddress)
+		}
+	}
+}
+
