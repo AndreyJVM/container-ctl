@@ -689,3 +689,103 @@ func TestContainerKillAndRemoveWorkflow(t *testing.T) {
 		t.Errorf("expected remove toast, got: %s", m.actionMessage)
 	}
 }
+
+func TestContainerCopyAndOpenURL(t *testing.T) {
+	m := NewModel(2*time.Second, 1, "v0.16.0")
+	m.dockerInfo.Status = "running"
+	m.dockerInfo.Containers = []monitor.ContainerItem{
+		testutil.AContainer(
+			testutil.WithID("c1"),
+			testutil.WithName("web-frontend"),
+			testutil.WithPorts("0.0.0.0:3000->3000/tcp"),
+		),
+		testutil.AContainer(
+			testutil.WithID("c2"),
+			testutil.WithName("headless-worker"),
+			testutil.WithPorts(""),
+		),
+	}
+
+	// 1. Press 'y' on container with ports -> copies docker exec command
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+	m = res.(Model)
+	if !strings.Contains(m.actionMessage, "Copied to clipboard: docker exec -it web-frontend sh") {
+		t.Errorf("expected copy toast, got: %s", m.actionMessage)
+	}
+
+	// 2. Press 'w' on container with ports -> tries to open URL & copies it
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
+	m = res.(Model)
+	if !strings.Contains(m.actionMessage, "http://localhost:3000") {
+		t.Errorf("expected URL toast, got: %s", m.actionMessage)
+	}
+
+	// 3. Move cursor down to container without ports and press 'w'
+	m.cursorIdx = 1
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
+	m = res.(Model)
+	if !strings.Contains(m.actionMessage, "No mapped ports for headless-worker") {
+		t.Errorf("expected no mapped ports toast, got: %s", m.actionMessage)
+	}
+}
+
+func TestModalLogsSearch(t *testing.T) {
+	m := NewModel(2*time.Second, 1, "v0.16.0")
+	m.activeModal = ModalLogs
+	m.logsTargetName = "test-app"
+	m.logsTargetID = "c123"
+	m.logsLines = []string{
+		"2026-11-20 INFO starting service",
+		"2026-11-20 ERROR connection failed",
+		"2026-11-20 INFO healthy",
+	}
+
+	// 1. Press '/' to activate log search
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = res.(Model)
+	if !m.logsFiltering {
+		t.Fatalf("expected logsFiltering to be true after pressing '/'")
+	}
+
+	// 2. Type "ERROR"
+	for _, r := range "ERROR" {
+		res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = res.(Model)
+	}
+	if m.logsFilterQuery != "ERROR" {
+		t.Errorf("expected logsFilterQuery 'ERROR', got %q", m.logsFilterQuery)
+	}
+
+	// View should display Search prompt and matching line
+	view := m.View()
+	if !strings.Contains(view, "Search:") || !strings.Contains(view, "connection failed") {
+		t.Errorf("expected search prompt and matching line in view, got: %s", view)
+	}
+
+	// 3. Press Enter to lock search
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = res.(Model)
+	if m.logsFiltering {
+		t.Errorf("expected logsFiltering false after Enter")
+	}
+	if m.logsFilterQuery != "ERROR" {
+		t.Errorf("expected query preserved after Enter, got %q", m.logsFilterQuery)
+	}
+
+	// 4. Press Esc to clear filter query
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.logsFilterQuery != "" {
+		t.Errorf("expected logsFilterQuery cleared after Esc, got %q", m.logsFilterQuery)
+	}
+	if m.activeModal != ModalLogs {
+		t.Errorf("modal should remain open after clearing filter")
+	}
+
+	// 5. Press Esc again to close modal
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.activeModal != "" {
+		t.Errorf("expected modal closed after second Esc, got %s", m.activeModal)
+	}
+}

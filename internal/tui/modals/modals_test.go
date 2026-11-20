@@ -133,6 +133,80 @@ func TestRenderInspect(t *testing.T) {
 	if !strings.Contains(view, "unless-stopped") || !strings.Contains(view, "Restart Policy:") {
 		t.Errorf("expected Restart Policy in inspect view, got: %s", view)
 	}
+
+	// Environment rendering with masked secrets
+	detailWithEnv := detail
+	detailWithEnv.Env = []string{
+		"APP_ENV=production",
+		"DB_PASSWORD=supersecret",
+		"API_KEY=abcdef123456",
+		"PORT=8080",
+	}
+	envView := RenderInspect(detailWithEnv, &dict)
+	if !strings.Contains(envView, "APP_ENV=production") || !strings.Contains(envView, "PORT=8080") {
+		t.Errorf("expected regular env vars rendered, got: %s", envView)
+	}
+	if !strings.Contains(envView, "DB_PASSWORD=******") || strings.Contains(envView, "supersecret") {
+		t.Errorf("expected DB_PASSWORD to be masked, got: %s", envView)
+	}
+	if !strings.Contains(envView, "API_KEY=******") || strings.Contains(envView, "abcdef123456") {
+		t.Errorf("expected API_KEY to be masked, got: %s", envView)
+	}
+}
+
+func TestMaskEnvVar(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"PORT=8080", "PORT=8080"},
+		{"DB_PASS=mysecret", "DB_PASS=******"},
+		{"AUTH_TOKEN=jwt1234", "AUTH_TOKEN=******"},
+		{"AWS_SECRET_ACCESS_KEY=xyz", "AWS_SECRET_ACCESS_KEY=******"},
+		{"CREDENTIALS_FILE=/tmp/cred", "CREDENTIALS_FILE=******"},
+		{"NO_EQUALS", "NO_EQUALS"},
+	}
+
+	for _, tt := range tests {
+		actual := MaskEnvVar(tt.input)
+		if actual != tt.expected {
+			t.Errorf("MaskEnvVar(%q) = %q, expected %q", tt.input, actual, tt.expected)
+		}
+	}
+}
+
+func TestRenderLogs_Filter(t *testing.T) {
+	dict := i18n.Get()
+	lines := []string{
+		"2026-11-20 INFO starting server on port 8080",
+		"2026-11-20 ERROR failed to connect to database",
+		"2026-11-20 WARN retrying in 5 seconds",
+		"2026-11-20 INFO heartbeat ok",
+	}
+
+	// Filter query for ERROR
+	filteredView := RenderLogs(lines, 0, "api-srv", "c999", 80, &dict, "ERROR", "false")
+	if !strings.Contains(filteredView, "failed to connect to database") {
+		t.Errorf("expected error line in filtered logs, got: %s", filteredView)
+	}
+	if strings.Contains(filteredView, "starting server") {
+		t.Errorf("did not expect info line when filtered by ERROR, got: %s", filteredView)
+	}
+	if !strings.Contains(filteredView, "1 matches") {
+		t.Errorf("expected match count in filtered logs view, got: %s", filteredView)
+	}
+
+	// Active search input
+	activeSearchView := RenderLogs(lines, 0, "api-srv", "c999", 80, &dict, "WARN", "true")
+	if !strings.Contains(activeSearchView, "Search:") || !strings.Contains(activeSearchView, "WARN") {
+		t.Errorf("expected active search bar in view, got: %s", activeSearchView)
+	}
+
+	// No matching filter query
+	noMatchView := RenderLogs(lines, 0, "api-srv", "c999", 80, &dict, "FATAL", "false")
+	if !strings.Contains(noMatchView, "No log lines match filter") {
+		t.Errorf("expected no log lines match message, got: %s", noMatchView)
+	}
 }
 
 func TestRenderPrune(t *testing.T) {

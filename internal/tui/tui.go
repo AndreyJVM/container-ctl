@@ -115,6 +115,8 @@ type Model struct {
 	logsTargetID        string
 	logsLines           []string
 	logsScroll          int
+	logsFilterQuery     string
+	logsFiltering       bool
 	inspectTarget       monitor.ContainerDetail
 	actionMessage       string
 	actionMessageExpiry time.Time
@@ -249,6 +251,10 @@ func formatFetchError(err error) string {
 // openModal activates the specified modal dialog.
 func (m *Model) openModal(modal ModalType) {
 	m.activeModal = modal
+	if modal == ModalLogs {
+		m.logsFiltering = false
+		m.logsFilterQuery = ""
+	}
 }
 
 // closeModal dismisses the active modal dialog and cleans ephemeral input state.
@@ -256,4 +262,6 @@ func (m *Model) closeModal() {
 	m.activeModal = ModalNone
 	m.execIsCustomInput = false
 	m.execCustomCmd = ""
+	m.logsFiltering = false
+	m.logsFilterQuery = ""
 }

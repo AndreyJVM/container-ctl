@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/AndreyJVM/dockpulse/internal/i18n"
@@ -23,6 +24,57 @@ func renderDetailRow(label, value string) string {
 		formattedLabel,
 		value,
 	)
+}
+
+// ExtractPortURLs extracts reachable localhost HTTP/HTTPS URLs from Docker port mapping strings.
+func ExtractPortURLs(portsStr string) []string {
+	if strings.TrimSpace(portsStr) == "" {
+		return nil
+	}
+	rawParts := strings.Split(portsStr, ",")
+	seen := make(map[string]bool)
+	var urls []string
+
+	for _, p := range rawParts {
+		tr := strings.TrimSpace(p)
+		if tr == "" {
+			continue
+		}
+		var hostPart string
+		if idx := strings.Index(tr, "->"); idx != -1 {
+			hostPart = tr[:idx]
+		} else if idx := strings.Index(tr, " → "); idx != -1 {
+			hostPart = tr[:idx]
+		} else {
+			continue
+		}
+
+		hostPart = strings.TrimSpace(hostPart)
+		portStr := hostPart
+		if colonIdx := strings.LastIndex(hostPart, ":"); colonIdx != -1 {
+			portStr = hostPart[colonIdx+1:]
+		}
+
+		portNum, err := strconv.Atoi(portStr)
+		if err != nil || portNum <= 0 {
+			continue
+		}
+
+		var u string
+		if portNum == 443 {
+			u = "https://localhost"
+		} else if portNum == 80 {
+			u = "http://localhost"
+		} else {
+			u = fmt.Sprintf("http://localhost:%d", portNum)
+		}
+
+		if !seen[u] {
+			seen[u] = true
+			urls = append(urls, u)
+		}
+	}
+	return urls
 }
 
 // FormatPortDisplay converts a raw comma-separated ports string into clean,
@@ -135,7 +187,7 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 	}
 	s.WriteString(renderDetailRow(dict.DetailRestartPolicyLabel, restartDisplay))
 
-	// 4. Ports
+	// 4. Ports & Localhost URLs
 	portItems := FormatPortDisplay(sel.Ports)
 	if len(portItems) == 0 {
 		s.WriteString(renderDetailRow(dict.DetailPortsLabel, theme.DimStyle.Render(dict.DetailNone)))
@@ -149,6 +201,10 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 			}
 			s.WriteString(renderDetailRow(label, theme.CyanStyle.Render("• ")+theme.CyanStyle.Render(port)))
 		}
+	}
+	urls := ExtractPortURLs(sel.Ports)
+	if len(urls) > 0 {
+		s.WriteString(renderDetailRow(dict.DetailURLLabel, theme.CyanStyle.Render(strings.Join(urls, ", "))))
 	}
 
 	// 5. Volumes / Mounts
@@ -164,25 +220,36 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 		}
 	}
 
-	// 6. Network I/O
-	netIODisplay := theme.DimStyle.Render("0 B / 0 B")
-	if sel.State == "running" {
-		netIODisplay = fmt.Sprintf("%s / %s",
-			theme.GreenStyle.Render(monitor.FormatUintBytes(sel.NetRxBytes)),
-			theme.CyanStyle.Render(monitor.FormatUintBytes(sel.NetTxBytes)),
-		)
-	}
-	s.WriteString(renderDetailRow(dict.DetailNetIOLabel, netIODisplay))
+	// 6. Last Error Snippet or I/O Metrics
+	if sel.ErrorSnippet != "" {
+		lines := strings.Split(sel.ErrorSnippet, "\n")
+		for idx, line := range lines {
+			label := ""
+			if idx == 0 {
+				label = dict.DetailLastErrorLabel
+			}
+			maxLen := max(20, cardWidth-detailColWidth-8)
+			s.WriteString(renderDetailRow(label, theme.RedStyle.Render("✖ ")+theme.RedStyle.Render(components.Truncate(line, maxLen))))
+		}
+	} else {
+		netIODisplay := theme.DimStyle.Render("0 B / 0 B")
+		if sel.State == "running" {
+			netIODisplay = fmt.Sprintf("%s / %s",
+				theme.GreenStyle.Render(monitor.FormatUintBytes(sel.NetRxBytes)),
+				theme.CyanStyle.Render(monitor.FormatUintBytes(sel.NetTxBytes)),
+			)
+		}
+		s.WriteString(renderDetailRow(dict.DetailNetIOLabel, netIODisplay))
 
-	// 7. Block I/O
-	blockIODisplay := theme.DimStyle.Render("0 B / 0 B")
-	if sel.State == "running" {
-		blockIODisplay = fmt.Sprintf("%s / %s",
-			theme.GreenStyle.Render(monitor.FormatUintBytes(sel.BlockReadBytes)),
-			theme.YellowStyle.Render(monitor.FormatUintBytes(sel.BlockWriteBytes)),
-		)
+		blockIODisplay := theme.DimStyle.Render("0 B / 0 B")
+		if sel.State == "running" {
+			blockIODisplay = fmt.Sprintf("%s / %s",
+				theme.GreenStyle.Render(monitor.FormatUintBytes(sel.BlockReadBytes)),
+				theme.YellowStyle.Render(monitor.FormatUintBytes(sel.BlockWriteBytes)),
+			)
+		}
+		s.WriteString(renderDetailRow(dict.DetailBlockIOLabel, blockIODisplay))
 	}
-	s.WriteString(renderDetailRow(dict.DetailBlockIOLabel, blockIODisplay))
 
 	// 8. Compose Info
 	if sel.ComposeProject != "" {

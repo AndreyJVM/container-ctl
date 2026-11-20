@@ -49,6 +49,8 @@ func RenderHelp(refreshInterval time.Duration, dict *i18n.Dictionary, swarmVisib
 				{key: "[O]", desc: d.HelpKeySort},
 				{key: "[L]", desc: d.HelpKeyLogs},
 				{key: "[Enter] / [I]", desc: d.HelpKeyInfo},
+				{key: "[w]", desc: d.HelpKeyOpenURL},
+				{key: "[y]", desc: d.HelpKeyCopy},
 				{key: "[E]", desc: d.HelpKeyShell},
 				{key: "[S]", desc: d.HelpKeySS},
 				{key: "[P]", desc: d.HelpKeyRest},

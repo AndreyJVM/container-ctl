@@ -183,6 +183,42 @@ func getContainerDetailViaCLI(containerID string) (ContainerDetail, error) {
 	if detail.Health == "" {
 		detail.Health = ParseHealthStatus(detail.Status)
 	}
+	if created, ok := first["Created"].(string); ok {
+		detail.Created = created
+	}
+	if config, ok := first["Config"].(map[string]interface{}); ok {
+		if img, ok := config["Image"].(string); ok {
+			detail.Image = img
+		}
+		if cmd, ok := config["Cmd"].([]interface{}); ok {
+			var cmdParts []string
+			for _, part := range cmd {
+				if s, ok := part.(string); ok {
+					cmdParts = append(cmdParts, s)
+				}
+			}
+			detail.Command = strings.Join(cmdParts, " ")
+		}
+		if env, ok := config["Env"].([]interface{}); ok {
+			for _, e := range env {
+				if s, ok := e.(string); ok {
+					detail.Env = append(detail.Env, s)
+				}
+			}
+		}
+	}
+	if mounts, ok := first["Mounts"].([]interface{}); ok {
+		for _, m := range mounts {
+			if mMap, ok := m.(map[string]interface{}); ok {
+				src, _ := mMap["Source"].(string)
+				dst, _ := mMap["Destination"].(string)
+				mode, _ := mMap["Mode"].(string)
+				if src != "" && dst != "" {
+					detail.Mounts = append(detail.Mounts, fmt.Sprintf("%s -> %s (%s)", src, dst, mode))
+				}
+			}
+		}
+	}
 	return detail, nil
 }
 

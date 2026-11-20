@@ -294,4 +294,54 @@ func TestRenderContainerDetailsCard_Extended(t *testing.T) {
 		"on-failure",
 		"none",
 	)
+
+	// 3. Container with ErrorSnippet
+	cError := testutil.AContainer(
+		testutil.WithID("cfail123"),
+		testutil.WithName("crashed-db"),
+		testutil.WithImage("postgres:15"),
+		testutil.WithState("exited", "Exited (1) 2 minutes ago"),
+	)
+	cError.ErrorSnippet = "FATAL: password authentication failed\nLOG: database system is shut down"
+
+	viewError := RenderDocker(DockerContext{
+		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cError}},
+		Containers: []monitor.ContainerItem{cError},
+		CursorIdx:  0,
+		I18n:       &dict,
+		Width:      100,
+	})
+
+	testutil.AssertContainsAll(t, viewError,
+		"Last Error:",
+		"password authentication failed",
+	)
+}
+
+func TestExtractPortURLs(t *testing.T) {
+	tests := []struct {
+		ports    string
+		expected []string
+	}{
+		{"", nil},
+		{"   ", nil},
+		{"80/tcp", nil},
+		{"0.0.0.0:8080->80/tcp", []string{"http://localhost:8080"}},
+		{"0.0.0.0:8080->80/tcp, [::]:8080->80/tcp", []string{"http://localhost:8080"}},
+		{"127.0.0.1:3000->3000/tcp, 0.0.0.0:8080->80/tcp", []string{"http://localhost:3000", "http://localhost:8080"}},
+		{"0.0.0.0:443->443/tcp", []string{"https://localhost"}},
+		{"0.0.0.0:80->80/tcp", []string{"http://localhost"}},
+	}
+
+	for _, tt := range tests {
+		actual := ExtractPortURLs(tt.ports)
+		if len(actual) != len(tt.expected) {
+			t.Fatalf("ExtractPortURLs(%q) len = %d, expected %d: %v vs %v", tt.ports, len(actual), len(tt.expected), actual, tt.expected)
+		}
+		for i := range actual {
+			if actual[i] != tt.expected[i] {
+				t.Errorf("ExtractPortURLs(%q)[%d] = %q, expected %q", tt.ports, i, actual[i], tt.expected[i])
+			}
+		}
+	}
 }

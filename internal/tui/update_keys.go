@@ -2,9 +2,13 @@ package tui
 
 import (
 	"fmt"
+	"os/exec"
+	"runtime"
 	"strings"
 
+	"github.com/AndreyJVM/dockpulse/internal/clipboard"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/dockpulse/internal/tui/views"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -334,6 +338,78 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+
+	// Open container localhost port URL in browser / copy URL.
+	case "w", "W":
+		if m.activeTab == TabDocker && !m.isFiltering {
+			containers := m.getFilteredContainers()
+			if len(containers) > 0 && m.cursorIdx < len(containers) {
+				c := containers[m.cursorIdx]
+				urls := views.ExtractPortURLs(c.Ports)
+				if len(urls) == 0 {
+					m.showToast(fmt.Sprintf(m.i18n.ToastNoPorts, c.Name))
+					return m, nil
+				}
+				targetURL := urls[0]
+				_ = clipboard.Write(targetURL)
+				if openBrowser(targetURL) {
+					m.showToast(fmt.Sprintf(m.i18n.ToastOpenedURL, targetURL))
+				} else {
+					m.showToast(fmt.Sprintf(m.i18n.ToastCopiedURL, targetURL))
+				}
+				return m, nil
+			}
+		}
+
+	// Copy command or ID to clipboard via terminal OSC 52.
+	case "y", "Y":
+		if m.activeTab == TabDocker && !m.isFiltering {
+			containers := m.getFilteredContainers()
+			if len(containers) > 0 && m.cursorIdx < len(containers) {
+				c := containers[m.cursorIdx]
+				cmdText := fmt.Sprintf("docker exec -it %s sh", c.Name)
+				_ = clipboard.Write(cmdText)
+				m.showToast(fmt.Sprintf(m.i18n.ToastCopiedExec, cmdText))
+				return m, nil
+			}
+		} else if m.activeTab == TabImages && !m.isFiltering {
+			images := m.getFilteredImages()
+			if len(images) > 0 && m.imageCursorIdx < len(images) {
+				img := images[m.imageCursorIdx]
+				name := img.Repository
+				if img.Tag != "" && img.Tag != "<none>" {
+					name = fmt.Sprintf("%s:%s", img.Repository, img.Tag)
+				}
+				_ = clipboard.Write(name)
+				m.showToast(fmt.Sprintf(m.i18n.ToastCopiedExec, name))
+				return m, nil
+			}
+		} else if m.activeTab == TabCompose && !m.isFiltering {
+			if len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
+				proj := m.compose[m.composeCursorIdx]
+				_ = clipboard.Write(proj.Name)
+				m.showToast(fmt.Sprintf(m.i18n.ToastCopiedExec, proj.Name))
+				return m, nil
+			}
+		}
 	}
 	return m, nil
+}
+
+// openBrowser attempts to open the given URL in the default browser.
+func openBrowser(url string) bool {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", url)
+	default:
+		cmd = exec.Command("xdg-open", url)
+	}
+	if err := cmd.Start(); err == nil {
+		go func() { _ = cmd.Wait() }()
+		return true
+	}
+	return false
 }

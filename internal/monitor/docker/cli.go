@@ -104,6 +104,14 @@ func enrichContainersWithCLIInspect(containers []ContainerItem) {
 			}
 		}
 	}
+	for idx := range containers {
+		failed, _ := IsContainerFailed(containers[idx].State, containers[idx].Status)
+		if failed || containers[idx].Health == HealthStatusUnhealthy {
+			if logs, err := GetContainerLogs(containers[idx].ID, 3); err == nil && logs != "" {
+				containers[idx].ErrorSnippet = CleanLogSnippet(logs, 3)
+			}
+		}
+	}
 }
 
 func fetchDockerSummaryViaCLI(summary *DockerSummary) {

@@ -86,6 +86,19 @@ type Dictionary struct {
 	DetailIPLabel            string
 	DetailUptimeLabel        string
 	DetailRestartPolicyLabel string
+	DetailURLLabel           string
+	DetailLastErrorLabel     string
+	DetailEnvLabel           string
+	HelpKeyOpenURL           string
+	HelpKeyCopy              string
+	FooterOpenURL            string
+	FooterCopy               string
+	LogsFilterPrompt         string
+	LogsFilterMatches        string
+	ToastCopiedExec          string
+	ToastCopiedURL           string
+	ToastOpenedURL           string
+	ToastNoPorts             string
 	SortBadge                string
 	SortModeDefault          string
 	SortModeCPU              string
@@ -395,6 +408,19 @@ var English = Dictionary{
 	DetailIPLabel:            "IP / Network:",
 	DetailUptimeLabel:        "Uptime / Started:",
 	DetailRestartPolicyLabel: "Restart Policy:",
+	DetailURLLabel:           "URL:",
+	DetailLastErrorLabel:     "Last Error:",
+	DetailEnvLabel:           "Environment:",
+	HelpKeyOpenURL:           "Open port URL in browser / copy",
+	HelpKeyCopy:              "Copy docker exec cmd / ID to clipboard",
+	FooterOpenURL:            "URL",
+	FooterCopy:               "Copy",
+	LogsFilterPrompt:         "Search: ",
+	LogsFilterMatches:        "Filter: %q (%d lines)",
+	ToastCopiedExec:          "Copied to clipboard: %s",
+	ToastCopiedURL:           "Copied URL: %s",
+	ToastOpenedURL:           "Opened %s (copied to clipboard)",
+	ToastNoPorts:             "No mapped ports for %s",
 	SortBadge:                "Sort: %s",
 	SortModeDefault:          "Default",
 	SortModeCPU:              "CPU ↓",

@@ -70,3 +70,25 @@ func DemuxDockerLogs(r io.Reader) string {
 	}
 	return string(all)
 }
+
+// CleanLogSnippet trims whitespace and extracts the last maxLines non-empty lines from log content.
+func CleanLogSnippet(raw string, maxLines int) string {
+	if maxLines <= 0 {
+		maxLines = 3
+	}
+	rawLines := strings.Split(strings.TrimSpace(raw), "\n")
+	var lines []string
+	for _, l := range rawLines {
+		t := strings.TrimSpace(l)
+		if t != "" {
+			lines = append(lines, t)
+		}
+	}
+	if len(lines) == 0 {
+		return ""
+	}
+	if len(lines) > maxLines {
+		lines = lines[len(lines)-maxLines:]
+	}
+	return strings.Join(lines, "\n")
+}

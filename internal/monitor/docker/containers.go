@@ -224,6 +224,17 @@ func enrichContainersWithSocketMetrics(client *http.Client, containers []Contain
 				containers[idx].NetTxBytes = stats.NetTxBytes
 				containers[idx].BlockReadBytes = stats.BlockReadBytes
 				containers[idx].BlockWriteBytes = stats.BlockWriteBytes
+			} else {
+				if failed, _ := IsContainerFailed(state, containers[idx].Status); failed {
+					if rawLogs, err := GetContainerLogs(cID, 3); err == nil && rawLogs != "" {
+						containers[idx].ErrorSnippet = CleanLogSnippet(rawLogs, 3)
+					}
+				}
+			}
+			if containers[idx].Health == HealthStatusUnhealthy && containers[idx].ErrorSnippet == "" {
+				if rawLogs, err := GetContainerLogs(cID, 3); err == nil && rawLogs != "" {
+					containers[idx].ErrorSnippet = CleanLogSnippet(rawLogs, 3)
+				}
 			}
 			rp, started := fetchContainerInspect(client, cID)
 			if rp != "" {

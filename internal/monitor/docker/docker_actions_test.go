@@ -221,3 +221,26 @@ func TestGetContainerExecCommandWithTerminal(t *testing.T) {
 		t.Fatalf("unexpected command args: %#v", cmd.Args)
 	}
 }
+
+func TestCleanLogSnippet(t *testing.T) {
+	// Empty input
+	if got := CleanLogSnippet("", 3); got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
+	if got := CleanLogSnippet("  \n\n  ", 3); got != "" {
+		t.Errorf("expected empty string for whitespace, got %q", got)
+	}
+
+	// Fewer lines than max
+	input := "line 1\nline 2"
+	if got := CleanLogSnippet(input, 3); got != "line 1\nline 2" {
+		t.Errorf("unexpected snippet: %q", got)
+	}
+
+	// More lines than max
+	inputLong := "line 1\nline 2\nline 3\nline 4\nline 5\n"
+	expected := "line 3\nline 4\nline 5"
+	if got := CleanLogSnippet(inputLong, 3); got != expected {
+		t.Errorf("CleanLogSnippet = %q, want %q", got, expected)
+	}
+}

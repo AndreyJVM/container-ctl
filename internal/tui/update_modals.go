@@ -115,8 +115,49 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.activeModal == ModalLogs && m.logsFiltering {
+		switch msg.Type {
+		case tea.KeyEsc:
+			m.logsFiltering = false
+			m.logsFilterQuery = ""
+			m.logsScroll = 0
+			return m, nil
+		case tea.KeyEnter:
+			m.logsFiltering = false
+			m.logsScroll = 0
+			return m, nil
+		case tea.KeyBackspace:
+			if len(m.logsFilterQuery) > 0 {
+				runes := []rune(m.logsFilterQuery)
+				m.logsFilterQuery = string(runes[:len(runes)-1])
+				m.logsScroll = 0
+			}
+			return m, nil
+		case tea.KeyRunes, tea.KeySpace:
+			m.logsFilterQuery += msg.String()
+			m.logsScroll = 0
+			return m, nil
+		}
+		return m, nil
+	}
+
 	switch msg.String() {
-	case "q", "esc":
+	case "/":
+		if m.activeModal == ModalLogs {
+			m.logsFiltering = true
+			return m, nil
+		}
+
+	case "esc":
+		if m.activeModal == ModalLogs && m.logsFilterQuery != "" {
+			m.logsFilterQuery = ""
+			m.logsScroll = 0
+			return m, nil
+		}
+		m.closeModal()
+		return m, nil
+
+	case "q":
 		m.closeModal()
 		return m, nil
 
@@ -127,8 +168,11 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "down", "j":
-		if m.activeModal == ModalLogs && m.logsScroll < len(m.logsLines)-10 {
-			m.logsScroll++
+		if m.activeModal == ModalLogs {
+			total := m.countFilteredLogs()
+			if m.logsScroll < total-10 {
+				m.logsScroll++
+			}
 		}
 		return m, nil
 
@@ -140,11 +184,26 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "pgdown":
 		if m.activeModal == ModalLogs {
-			m.logsScroll = min(max(0, len(m.logsLines)-10), m.logsScroll+10)
+			total := m.countFilteredLogs()
+			m.logsScroll = min(max(0, total-10), m.logsScroll+10)
 		}
 		return m, nil
 	}
 	return m, nil
+}
+
+func (m Model) countFilteredLogs() int {
+	if m.logsFilterQuery == "" {
+		return len(m.logsLines)
+	}
+	q := strings.ToLower(m.logsFilterQuery)
+	cnt := 0
+	for _, l := range m.logsLines {
+		if strings.Contains(strings.ToLower(l), q) {
+			cnt++
+		}
+	}
+	return cnt
 }
 
 func (m Model) handleHelpInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {

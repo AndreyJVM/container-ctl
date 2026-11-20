@@ -70,5 +70,41 @@ func RenderInspect(d monitor.ContainerDetail, dict *i18n.Dictionary) string {
 		}
 	}
 
+	if len(d.Env) > 0 {
+		envTitle := dict.DetailEnvLabel
+		if envTitle == "" {
+			envTitle = "Environment:"
+		}
+		s.WriteString("\n  " + theme.BoldStyle.Render(envTitle) + "\n")
+		maxEnv := 12
+		for idx, e := range d.Env {
+			if idx >= maxEnv {
+				s.WriteString(fmt.Sprintf("   %s\n", theme.DimStyle.Render(fmt.Sprintf("... (+%d more)", len(d.Env)-maxEnv))))
+				break
+			}
+			s.WriteString(fmt.Sprintf("   • %s\n", components.Truncate(MaskEnvVar(e), 76)))
+		}
+	}
+
 	return theme.BoxStyle.Render(s.String())
+}
+
+// MaskEnvVar obscures values of sensitive environment variables containing passwords, secrets, keys, or tokens.
+func MaskEnvVar(entry string) string {
+	idx := strings.IndexByte(entry, '=')
+	if idx == -1 {
+		return entry
+	}
+	key := entry[:idx]
+	val := entry[idx+1:]
+	upperKey := strings.ToUpper(key)
+	if strings.Contains(upperKey, "PASS") ||
+		strings.Contains(upperKey, "SECRET") ||
+		strings.Contains(upperKey, "TOKEN") ||
+		strings.Contains(upperKey, "KEY") ||
+		strings.Contains(upperKey, "AUTH") ||
+		strings.Contains(upperKey, "CREDENTIAL") {
+		return key + "=******"
+	}
+	return key + "=" + val
 }

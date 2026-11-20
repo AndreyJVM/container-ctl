@@ -209,7 +209,11 @@ func (m Model) renderSwarmTab() string {
 }
 
 func (m Model) renderLogsModal() string {
-	return modals.RenderLogs(m.logsLines, m.logsScroll, m.logsTargetName, m.logsTargetID, m.width, &m.i18n)
+	filterActive := "false"
+	if m.logsFiltering {
+		filterActive = "true"
+	}
+	return modals.RenderLogs(m.logsLines, m.logsScroll, m.logsTargetName, m.logsTargetID, m.width, &m.i18n, m.logsFilterQuery, filterActive)
 }
 
 func (m Model) renderInspectModal() string {

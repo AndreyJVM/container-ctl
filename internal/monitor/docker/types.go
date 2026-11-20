@@ -54,6 +54,7 @@ type ContainerItem struct {
 	NetTxBytes      uint64
 	BlockReadBytes  uint64
 	BlockWriteBytes uint64
+	ErrorSnippet    string
 }
 
 // ContainerDetail represents detailed inspection data for a single container.
