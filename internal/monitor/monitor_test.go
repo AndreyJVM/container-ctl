@@ -15,7 +15,6 @@ func TestFacadeExports(t *testing.T) {
 		_ monitor.DockerDiskUsage
 		_ monitor.ComposeProject
 		_ monitor.SwarmSummary
-		_ monitor.SystemInfo
 	)
 
 	// Verify constants
@@ -60,14 +59,6 @@ func TestFacadeExports(t *testing.T) {
 	if formatted := monitor.FormatUintBytes(2 * 1024 * 1024); formatted != "2.0 MB" {
 		t.Errorf("expected '2.0 MB', got %s", formatted)
 	}
-
-	// Verify system info calls safely
-	sysInfo := monitor.GetSystemInfo()
-	if sysInfo.Hostname == "" {
-		t.Errorf("expected non-empty hostname from facade GetSystemInfo")
-	}
-	_ = monitor.GetCPUInfo()
-	_ = monitor.GetMemoryInfo()
 
 	// Verify socket & CLI checker
 	_ = monitor.FindDockerSocket()

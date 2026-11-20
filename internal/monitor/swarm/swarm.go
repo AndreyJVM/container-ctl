@@ -176,27 +176,3 @@ func GetSwarmSummary() SwarmSummary {
 	fetchSwarmSummaryViaCLI(&summary)
 	return summary
 }
-
-func fetchSwarmTasks(client *http.Client) (map[string]int, map[string]int) {
-	body, err := fetchSocketAPI(client, "/tasks", swarmTimeout)
-	if err != nil {
-		return make(map[string]int), make(map[string]int)
-	}
-	return parseSwarmTasks(body)
-}
-
-func fetchSwarmNodes(client *http.Client, nodeTasks map[string]int) []SwarmNode {
-	body, err := fetchSocketAPI(client, "/nodes", swarmTimeout)
-	if err != nil {
-		return nil
-	}
-	return parseSwarmNodes(body, nodeTasks)
-}
-
-func fetchSwarmServices(client *http.Client, runningTasks map[string]int) []SwarmService {
-	body, err := fetchSocketAPI(client, "/services", swarmTimeout)
-	if err != nil {
-		return nil
-	}
-	return parseSwarmServices(body, runningTasks)
-}

@@ -1,5 +1,5 @@
 // Package monitor is a thin facade that re-exports all public symbols from the
-// docker, compose, swarm, system, and prune sub-packages so that callers in
+// docker, compose, swarm, and prune sub-packages so that callers in
 // internal/tui/ can keep importing this package unchanged.
 package monitor
 
@@ -10,7 +10,6 @@ import (
 	"github.com/AndreyJVM/dockpulse/internal/monitor/docker"
 	"github.com/AndreyJVM/dockpulse/internal/monitor/prune"
 	"github.com/AndreyJVM/dockpulse/internal/monitor/swarm"
-	"github.com/AndreyJVM/dockpulse/internal/monitor/system"
 )
 
 // ---------------------------------------------------------------------------
@@ -43,14 +42,6 @@ type ComposeProject = compose.ComposeProject
 type SwarmNode = swarm.SwarmNode
 type SwarmService = swarm.SwarmService
 type SwarmSummary = swarm.SwarmSummary
-
-// ---------------------------------------------------------------------------
-// system types (type aliases)
-// ---------------------------------------------------------------------------
-
-type SystemInfo = system.SystemInfo
-type CPUInfo = system.CPUInfo
-type MemoryInfo = system.MemoryInfo
 
 // ---------------------------------------------------------------------------
 // docker constants re-exported as vars (constants cannot be aliased across pkgs)
@@ -156,14 +147,6 @@ func GetSwarmSummary() SwarmSummary { return swarm.GetSwarmSummary() }
 func GetSwarmServiceLogs(serviceID string, tailLines int) (string, error) {
 	return swarm.GetSwarmServiceLogs(serviceID, tailLines)
 }
-
-// ---------------------------------------------------------------------------
-// system functions
-// ---------------------------------------------------------------------------
-
-func GetSystemInfo() SystemInfo { return system.GetSystemInfo() }
-func GetCPUInfo() CPUInfo       { return system.GetCPUInfo() }
-func GetMemoryInfo() MemoryInfo { return system.GetMemoryInfo() }
 
 // ---------------------------------------------------------------------------
 // prune functions
