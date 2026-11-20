@@ -18,6 +18,7 @@ const (
 )
 
 var (
+	customSocketPath    string
 	ExecLookPath        = exec.LookPath
 	DockerSocketFinder  = FindDockerSocket
 	SocketClientFactory = getSocketHTTPClient
@@ -29,8 +30,20 @@ var (
 	}
 )
 
+// SetCustomSocketPath sets a custom Docker socket path override.
+func SetCustomSocketPath(path string) {
+	customSocketPath = strings.TrimSpace(path)
+}
+
 // FindDockerSocket finds an available Docker or Podman Unix socket.
 func FindDockerSocket() string {
+	if customSocketPath != "" {
+		p := filepath.Clean(strings.TrimPrefix(customSocketPath, "unix://"))
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+
 	if dockerHost := os.Getenv("DOCKER_HOST"); strings.HasPrefix(dockerHost, "unix://") {
 		p := filepath.Clean(strings.TrimPrefix(dockerHost, "unix://"))
 		if filepath.IsAbs(p) {

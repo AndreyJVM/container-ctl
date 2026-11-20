@@ -9,6 +9,7 @@ require (
 	github.com/charmbracelet/x/vt v0.1.0
 	github.com/charmbracelet/x/xpty v0.1.4
 	github.com/shirou/gopsutil/v3 v3.24.5
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

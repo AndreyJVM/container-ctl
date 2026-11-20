@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -414,5 +415,97 @@ func TestRun_ProgramExecution(t *testing.T) {
 	err = run([]string{}, &stdout, &stderr)
 	if !errors.Is(err, expectedErr) {
 		t.Errorf("expected error %v, got %v", expectedErr, err)
+	}
+}
+
+func TestRun_PrintConfig(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	err := run([]string{"--print-config"}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	out := stdout.String()
+	if !strings.Contains(out, "interval:") || !strings.Contains(out, "initial_tab:") {
+		t.Errorf("expected config output in stdout, got: %s", out)
+	}
+}
+
+func TestRun_InitConfig(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "dockpulse-main-init-*")
+	if err != nil {
+		t.Fatalf("temp dir error: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	target := filepath.Join(tempDir, "config.yaml")
+
+	var stdout, stderr bytes.Buffer
+	err = run([]string{"--config", target, "--init-config"}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("unexpected error initializing config: %v", err)
+	}
+
+	if !strings.Contains(stdout.String(), "Configuration file initialized at:") {
+		t.Errorf("expected success message, got: %s", stdout.String())
+	}
+
+	if _, err := os.Stat(target); err != nil {
+		t.Errorf("expected config file to exist at %s, got error: %v", target, err)
+	}
+}
+
+func TestParseFlags_ConfigFileAndOverrides(t *testing.T) {
+	yamlContent := `
+interval: 4s
+initial_tab: compose
+show_swarm: false
+docker:
+  socket_path: /from-file.sock
+ui:
+  only_unused_images: true
+  default_sort: mem
+`
+	tmpFile, err := os.CreateTemp("", "dockpulse-main-*.yaml")
+	if err != nil {
+		t.Fatalf("temp file error: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.WriteString(yamlContent)
+	tmpFile.Close()
+
+	var stdout, stderr bytes.Buffer
+	// Test config file values loaded
+	cfg, err := parseFlags([]string{"-c", tmpFile.Name()}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	if cfg.interval != 4*time.Second {
+		t.Errorf("expected interval 4s from file, got %v", cfg.interval)
+	}
+	if cfg.initialTab != 3 {
+		t.Errorf("expected tab 3 from file, got %d", cfg.initialTab)
+	}
+	if cfg.appConfig.Docker.SocketPath != "/from-file.sock" {
+		t.Errorf("expected socket path /from-file.sock, got %s", cfg.appConfig.Docker.SocketPath)
+	}
+	if !cfg.appConfig.UI.OnlyUnusedImages {
+		t.Errorf("expected only_unused_images true from file")
+	}
+	if cfg.appConfig.UI.DefaultSort != "mem" {
+		t.Errorf("expected default_sort mem from file, got %s", cfg.appConfig.UI.DefaultSort)
+	}
+
+	// Test CLI flags override config file
+	cfgOverridden, err := parseFlags([]string{"-c", tmpFile.Name(), "-i", "1s", "-t", "volumes"}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	if cfgOverridden.interval != 1*time.Second {
+		t.Errorf("expected overridden interval 1s, got %v", cfgOverridden.interval)
+	}
+	if cfgOverridden.initialTab != 5 {
+		t.Errorf("expected overridden tab 5, got %d", cfgOverridden.initialTab)
 	}
 }

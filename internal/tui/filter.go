@@ -110,3 +110,11 @@ func (m *Model) SetOnlyUnusedImages(val bool) {
 	m.onlyUnusedImages = val
 	m.clampCursor()
 }
+
+// SetContainerSortMode sets the active container sort mode.
+func (m *Model) SetContainerSortMode(mode int) {
+	if mode >= SortDefault && mode < sortModeCount {
+		m.containerSortMode = mode
+		m.clampCursor()
+	}
+}

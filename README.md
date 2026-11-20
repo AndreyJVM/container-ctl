@@ -114,12 +114,60 @@ Usage:
   dockpulse [options]
 
 Options:
+  -c, --config <path>        Path to YAML config file (default: ~/.config/dockpulse/config.yaml)
   -i, --interval <duration>  Auto-refresh interval (default: 2s, env: DOCKPULSE_INTERVAL)
   -t, --tab <1-6|name>       Initial active tab (1: Docker, 2: Images, 3: Compose, 4: Networks, 5: Volumes, 6: Swarm) (default: 1, env: DOCKPULSE_TAB)
       --show-swarm           Always display Swarm tab even if inactive (env: DOCKPULSE_SHOW_SWARM)
+      --init-config          Generate a sample config file in ~/.config/dockpulse/config.yaml
+      --print-config         Print active configuration and exit
   -v, --version              Show version information
   -h, --help                 Show help message
 ```
+
+### Configuration File (`config.yaml`)
+
+Dockpulse automatically detects and loads a configuration file from standard locations:
+- `$XDG_CONFIG_HOME/dockpulse/config.yaml` or `~/.config/dockpulse/config.yaml`
+- `~/.dockpulse.yaml`
+- `./dockpulse.yaml` (local workspace override)
+- Or explicitly via `--config <path>`
+
+Generate a starter configuration file:
+```bash
+dockpulse --init-config
+```
+
+Inspect the currently active configuration:
+```bash
+dockpulse --print-config
+```
+
+Example `config.yaml`:
+```yaml
+# Metrics auto-refresh interval (for example: 1s, 2s, 500ms)
+interval: 2s
+
+# Initial active tab: 1|docker, 2|images, 3|compose, 4|networks, 5|volumes, 6|swarm
+initial_tab: docker
+
+# Always display the Swarm tab even if cluster is inactive
+show_swarm: false
+
+# Docker connection settings
+docker:
+  # Optional custom Unix socket path override (leave empty for auto-detection)
+  # socket_path: /var/run/docker.sock
+  socket_path: ""
+
+# User interface preferences
+ui:
+  # Filter images tab to only unreferenced/dangling images by default
+  only_unused_images: false
+
+  # Default container sort mode: default, cpu, mem, name, status
+  default_sort: default
+```
+
 
 ### Hotkeys
 
