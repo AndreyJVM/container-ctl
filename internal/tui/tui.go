@@ -158,6 +158,9 @@ type Model struct {
 
 	// showSwarm forces the Swarm tab to remain visible even when inactive.
 	showSwarm bool
+
+	// onlyUnusedImages filters the image list to only unreferenced/reclaimable images.
+	onlyUnusedImages bool
 }
 
 // NewModel creates a TUI model with a refresh interval and initial tab.
@@ -299,21 +302,38 @@ func (m Model) getFilteredContainers() []monitor.ContainerItem {
 
 func (m Model) getFilteredImages() []monitor.DockerImage {
 	trimmedQuery := strings.TrimSpace(strings.ToLower(m.filterQuery))
-	if trimmedQuery == "" {
-		list := make([]monitor.DockerImage, len(m.images))
-		copy(list, m.images)
-		return list
-	}
 	var filtered []monitor.DockerImage
 	for _, img := range m.images {
-		if strings.Contains(strings.ToLower(img.ID), trimmedQuery) ||
-			strings.Contains(strings.ToLower(img.Repository), trimmedQuery) ||
-			strings.Contains(strings.ToLower(img.Tag), trimmedQuery) ||
-			strings.Contains(strings.ToLower(img.Digest), trimmedQuery) {
-			filtered = append(filtered, img)
+		if m.onlyUnusedImages && img.InUse {
+			continue
 		}
+		if trimmedQuery != "" {
+			matchesQuery := strings.Contains(strings.ToLower(img.ID), trimmedQuery) ||
+				strings.Contains(strings.ToLower(img.Repository), trimmedQuery) ||
+				strings.Contains(strings.ToLower(img.Tag), trimmedQuery) ||
+				strings.Contains(strings.ToLower(img.Digest), trimmedQuery) ||
+				(trimmedQuery == "unused" && !img.InUse) ||
+				(trimmedQuery == "inuse" && img.InUse) ||
+				(trimmedQuery == "in use" && img.InUse) ||
+				(trimmedQuery == "dangling" && img.Dangling)
+			if !matchesQuery {
+				continue
+			}
+		}
+		filtered = append(filtered, img)
 	}
 	return filtered
+}
+
+// IsOnlyUnusedImages returns true if the image list is filtered to only unused images.
+func (m Model) IsOnlyUnusedImages() bool {
+	return m.onlyUnusedImages
+}
+
+// SetOnlyUnusedImages enables or disables unused-only filtering on the Images tab.
+func (m *Model) SetOnlyUnusedImages(val bool) {
+	m.onlyUnusedImages = val
+	m.clampCursor()
 }
 
 func (m *Model) clampCursor() {

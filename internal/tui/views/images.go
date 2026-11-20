@@ -22,11 +22,13 @@ const (
 // ImagesContext contains data needed to render the Docker Images tab.
 type ImagesContext struct {
 	Images           []monitor.DockerImage
+	AllImages        []monitor.DockerImage
 	TotalImagesCount int
 	CursorIdx        int
 	Error            string
 	IsFiltering      bool
 	FilterQuery      string
+	OnlyUnused       bool
 	Width            int
 	I18n             *i18n.Dictionary
 }
@@ -40,11 +42,44 @@ func RenderImages(ctx ImagesContext) string {
 	if ctx.TotalImagesCount > 0 {
 		count = ctx.TotalImagesCount
 	}
-	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf(d.ImagesTabTitle, count)) + "\n\n")
+
+	sourceImages := ctx.AllImages
+	if len(sourceImages) == 0 {
+		sourceImages = ctx.Images
+	}
+
+	var inUseCount, inUseSize int64
+	var unusedCount, unusedSize int64
+	for _, img := range sourceImages {
+		if img.InUse {
+			inUseCount++
+			if img.Size > 0 {
+				inUseSize += img.Size
+			}
+		} else {
+			unusedCount++
+			if img.Size > 0 {
+				unusedSize += img.Size
+			}
+		}
+	}
+
+	headerLine := theme.TitleStyle.Render(fmt.Sprintf(d.ImagesTabTitle, count))
+	if len(sourceImages) > 0 {
+		headerLine += fmt.Sprintf("  %s    %s",
+			theme.GreenStyle.Render("● "+fmt.Sprintf(d.ImageSummaryInUse, inUseCount, monitor.FormatBytes(inUseSize))),
+			theme.YellowStyle.Render("○ "+fmt.Sprintf(d.ImageSummaryReclaimable, unusedCount, monitor.FormatBytes(unusedSize))),
+		)
+	}
+	s.WriteString(headerLine + "\n\n")
 
 	if ctx.Error != "" {
 		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf(d.ImagesUnavailable, ctx.Error)) + "\n")
 		return s.String()
+	}
+
+	if ctx.OnlyUnused {
+		s.WriteString("  " + theme.ActiveTabStyle.Render(d.FilterUnusedBadge) + "\n\n")
 	}
 
 	if ctx.IsFiltering {
@@ -56,7 +91,9 @@ func RenderImages(ctx ImagesContext) string {
 	}
 
 	if len(ctx.Images) == 0 {
-		if ctx.FilterQuery != "" {
+		if ctx.OnlyUnused {
+			s.WriteString("  " + theme.GreenStyle.Render("No unused images detected. All images are currently in use!") + "\n")
+		} else if ctx.FilterQuery != "" {
 			s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf(d.NoContainersFound, ctx.FilterQuery)) + "\n")
 			s.WriteString("  " + theme.DimStyle.Render(d.PressEscToClear) + "\n")
 		} else {
@@ -83,11 +120,17 @@ func RenderImages(ctx ImagesContext) string {
 			sizeStr = monitor.FormatBytes(img.Size)
 		}
 
-		statusBadge := d.ImageUnusedBadge
+		var statusBadge string
+		var plainStatus string
 		if img.InUse {
-			statusBadge = d.ImageInUseBadge
+			plainStatus = "● " + d.ImageInUseBadge
+			statusBadge = theme.GreenStyle.Render(plainStatus)
 		} else if img.Dangling {
-			statusBadge = d.ImageDanglingBadge
+			plainStatus = "▲ " + d.ImageDanglingBadge
+			statusBadge = theme.RedStyle.Render(plainStatus)
+		} else {
+			plainStatus = "○ " + d.ImageUnusedBadge
+			statusBadge = theme.YellowStyle.Render(plainStatus)
 		}
 
 		idPadded := components.Truncate(img.ID, colWidthImageID)
@@ -98,19 +141,15 @@ func RenderImages(ctx ImagesContext) string {
 
 		if index == ctx.CursorIdx {
 			plainRow := fmt.Sprintf("%-12s  %-*s  %-*s  %-10s  %-16s  %s",
-				idPadded, repoWidth, repoPadded, tagWidth, tagPadded, sizePadded, datePadded, statusBadge)
+				idPadded, repoWidth, repoPadded, tagWidth, tagPadded, sizePadded, datePadded, plainStatus)
 			s.WriteString(theme.GreenStyle.Render("► ") + theme.SelectedRowStyle.Render(plainRow) + "\n")
 		} else {
-			var coloredStatus string
-			if img.InUse {
-				coloredStatus = theme.GreenStyle.Render(statusBadge)
-			} else if img.Dangling {
-				coloredStatus = theme.YellowStyle.Render(statusBadge)
-			} else {
-				coloredStatus = theme.DimStyle.Render(statusBadge)
+			displaySize := sizePadded
+			if !img.InUse {
+				displaySize = theme.YellowStyle.Render(sizePadded)
 			}
 			coloredRow := fmt.Sprintf("%-12s  %-*s  %-*s  %-10s  %-16s  %s",
-				idPadded, repoWidth, repoPadded, tagWidth, tagPadded, sizePadded, datePadded, coloredStatus)
+				idPadded, repoWidth, repoPadded, tagWidth, tagPadded, displaySize, datePadded, statusBadge)
 			s.WriteString("  " + coloredRow + "\n")
 		}
 	}
@@ -141,10 +180,18 @@ func RenderImages(ctx ImagesContext) string {
 			if img.Containers > 0 {
 				containersStr = fmt.Sprintf("%d %s", img.Containers, theme.GreenStyle.Render(d.ImageInUseBadge))
 			} else {
-				containersStr = fmt.Sprintf("%d %s", img.Containers, theme.DimStyle.Render(d.ImageUnusedBadge))
+				containersStr = fmt.Sprintf("%d %s", img.Containers, theme.YellowStyle.Render(d.ImageUnusedBadge))
 			}
 		}
 		s.WriteString(renderDetailRow(d.ImageContainersLabel, containersStr))
+
+		var actionStr string
+		if img.InUse {
+			actionStr = theme.GreenStyle.Render("● ") + fmt.Sprintf(d.ImageActionInUse, img.Containers)
+		} else {
+			actionStr = theme.YellowStyle.Render("○ ") + d.ImageActionUnused
+		}
+		s.WriteString(renderDetailRow(d.ImageStatusActionLabel, actionStr))
 
 		s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")
 	}

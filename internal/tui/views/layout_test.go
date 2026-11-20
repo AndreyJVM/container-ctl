@@ -51,8 +51,8 @@ func TestRenderFooter(t *testing.T) {
 
 	// Tab 2 (Images) footer
 	f2 := RenderFooter(FooterContext{ActiveTab: 2, I18n: &dict, Width: 80})
-	if !strings.Contains(f2, dict.FooterSearch) || !strings.Contains(f2, dict.FooterRemove) {
-		t.Errorf("expected Search and Remove hints in footer 2, got: %s", f2)
+	if !strings.Contains(f2, dict.FooterSearch) || !strings.Contains(f2, dict.FooterRemove) || !strings.Contains(f2, dict.FooterFilterUnused) {
+		t.Errorf("expected Search, Remove, and FilterUnused hints in footer 2, got: %s", f2)
 	}
 
 	// Modal footers

@@ -140,7 +140,7 @@ Options:
 | `P` | Restart container or Compose stack |
 | `K` | Force kill (`SIGKILL`) container |
 | `x`, `d` | Remove container or image (with confirmation) |
-| `U` | Start Compose stack |
+| `u`, `U` | Toggle unused images filter (on Images tab), or Start Compose stack (on Compose tab) |
 | `D` | Compose down (`docker compose down`) with confirmation |
 | `C` | Docker system prune (cleanup unused resources) |
 | `?` | Toggle help / hotkey shortcuts modal |

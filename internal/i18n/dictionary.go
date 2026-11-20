@@ -114,6 +114,12 @@ type Dictionary struct {
 	ImageInUseBadge         string
 	ImageUnusedBadge        string
 	ImageDanglingBadge      string
+	ImageSummaryInUse       string
+	ImageSummaryReclaimable string
+	FilterUnusedBadge       string
+	ImageActionUnused       string
+	ImageActionInUse        string
+	ImageStatusActionLabel  string
 	RemoveImageTitle        string
 	RemoveImageNotice       string
 	RemoveImageConfirm      string
@@ -236,34 +242,40 @@ type Dictionary struct {
 	RemoveContainerConfirm string
 
 	// Help modal.
-	HelpTitle         string
-	HelpSecNav        string
-	HelpSecContainers string
-	HelpSecCompose    string
-	HelpSecGeneral    string
-	HelpKeyTabs       string
-	HelpKeyPrev       string
-	HelpKeyNav        string
-	HelpKeySearch     string
-	HelpKeyLogs       string
-	HelpKeyInfo       string
-	HelpKeyShell      string
-	HelpKeySS         string
-	HelpKeyStart      string
-	HelpKeyRest       string
-	HelpKeyKill       string
-	HelpKeyRemove     string
-	HelpKeyDown       string
-	HelpKeyPrune      string
-	HelpKeySort       string
-	HelpKeyRef        string
-	HelpKeyHelp       string
-	HelpKeyQuit       string
-	HelpAutoInt       string
+	HelpTitle           string
+	HelpSecNav          string
+	HelpSecContainers   string
+	HelpSecImages       string
+	HelpSecCompose      string
+	HelpSecGeneral      string
+	HelpKeyTabs         string
+	HelpKeyPrev         string
+	HelpKeyNav          string
+	HelpKeySearch       string
+	HelpKeyLogs         string
+	HelpKeyInfo         string
+	HelpKeyShell        string
+	HelpKeySS           string
+	HelpKeyStart        string
+	HelpKeyRest         string
+	HelpKeyKill         string
+	HelpKeyRemove       string
+	HelpKeyFilterUnused string
+	HelpKeyRemoveImage  string
+	HelpKeyDown         string
+	HelpKeyPrune        string
+	HelpKeySort         string
+	HelpKeyRef          string
+	HelpKeyHelp         string
+	HelpKeyQuit         string
+	HelpAutoInt         string
+	FooterFilterUnused  string
 
 	// Toast notifications.
 	ToastDataRefreshed       string
 	ToastRefreshing          string
+	ToastFilterUnusedOnly    string
+	ToastFilterAllImages     string
 	ToastStoppingContainer   string
 	ToastContainerStopped    string
 	ToastStartingContainer   string
@@ -409,6 +421,12 @@ var English = Dictionary{
 	ImageInUseBadge:         "[In Use]",
 	ImageUnusedBadge:        "[Unused]",
 	ImageDanglingBadge:      "[Dangling]",
+	ImageSummaryInUse:       "In Use: %d (%s)",
+	ImageSummaryReclaimable: "Reclaimable: %d (%s)",
+	FilterUnusedBadge:       "[Filter: Unused Images Only — press 'u' or 'Esc' to show all]",
+	ImageActionUnused:       "Unused (reclaimable) — Press 'x' to delete, 'C' to prune",
+	ImageActionInUse:        "In Use by %d container(s) — Cannot be removed while containers exist",
+	ImageStatusActionLabel:  "Status / Action:",
 	RemoveImageTitle:        "CONFIRM IMAGE REMOVAL",
 	RemoveImageNotice:       "The Docker image will be deleted (docker rmi).",
 	RemoveImageConfirm:      "Are you sure you want to remove image %s?",
@@ -521,33 +539,39 @@ var English = Dictionary{
 	RemoveContainerNotice:  "The container and its ephemeral data will be permanently removed (docker rm -f).",
 	RemoveContainerConfirm: "Are you sure you want to force remove container %s?",
 
-	HelpTitle:         "HOTKEYS:",
-	HelpSecNav:        "NAVIGATION",
-	HelpSecContainers: "CONTAINERS",
-	HelpSecCompose:    "COMPOSE & SWARM",
-	HelpSecGeneral:    "SYSTEM & GENERAL",
-	HelpKeyTabs:       "Switch tabs (1: Containers, 2: Images, 3: Compose, 4: Networks, 5: Volumes, 6: Swarm)",
-	HelpKeyPrev:       "Next / previous tab",
-	HelpKeyNav:        "Move cursor (containers, Compose stacks, Swarm services)",
-	HelpKeySearch:     "Search and filter containers by name, image, or ID",
-	HelpKeyLogs:       "View logs for container, Compose stack, or Swarm service",
-	HelpKeyInfo:       "Detailed container inspection (IP, mounts, network)",
-	HelpKeyShell:      "Interactive shell inside container (bash / sh)",
-	HelpKeySS:         "Start / stop container, stop Compose project",
-	HelpKeyStart:      "Start stopped Compose project (Start)",
-	HelpKeyRest:       "Restart container or Compose project",
-	HelpKeyKill:       "Force kill container (SIGKILL)",
-	HelpKeyRemove:     "Force remove container (Remove)",
-	HelpKeyDown:       "Down and remove Compose project (Down)",
-	HelpKeyPrune:      "Prune unused Docker resources (Prune)",
-	HelpKeySort:       "Cycle container sorting (CPU / Memory / Name / Status)",
-	HelpKeyRef:        "Force refresh all metrics",
-	HelpKeyHelp:       "Show / hide this help box",
-	HelpKeyQuit:       "Quit application",
-	HelpAutoInt:       "Auto-refresh interval: %s",
+	HelpTitle:           "HOTKEYS:",
+	HelpSecNav:          "NAVIGATION",
+	HelpSecContainers:   "CONTAINERS",
+	HelpSecImages:       "IMAGES",
+	HelpSecCompose:      "COMPOSE & SWARM",
+	HelpSecGeneral:      "SYSTEM & GENERAL",
+	HelpKeyTabs:         "Switch tabs (1: Containers, 2: Images, 3: Compose, 4: Networks, 5: Volumes, 6: Swarm)",
+	HelpKeyPrev:         "Next / previous tab",
+	HelpKeyNav:          "Move cursor (containers, Compose stacks, Swarm services)",
+	HelpKeySearch:       "Search and filter containers by name, image, or ID",
+	HelpKeyLogs:         "View logs for container, Compose stack, or Swarm service",
+	HelpKeyInfo:         "Detailed container inspection (IP, mounts, network)",
+	HelpKeyShell:        "Interactive shell inside container (bash / sh)",
+	HelpKeySS:           "Start / stop container, stop Compose project",
+	HelpKeyStart:        "Start stopped Compose project (Start)",
+	HelpKeyRest:         "Restart container or Compose project",
+	HelpKeyKill:         "Force kill container (SIGKILL)",
+	HelpKeyRemove:       "Force remove container (Remove)",
+	HelpKeyFilterUnused: "Filter unused images only (press 'u')",
+	HelpKeyRemoveImage:  "Remove selected image (press 'x')",
+	HelpKeyDown:         "Down and remove Compose project (Down)",
+	HelpKeyPrune:        "Prune unused Docker resources (Prune)",
+	HelpKeySort:         "Cycle container sorting (CPU / Memory / Name / Status)",
+	HelpKeyRef:          "Force refresh all metrics",
+	HelpKeyHelp:         "Show / hide this help box",
+	HelpKeyQuit:         "Quit application",
+	HelpAutoInt:         "Auto-refresh interval: %s",
+	FooterFilterUnused:  "Filter unused",
 
 	ToastDataRefreshed:       "Data updated successfully",
 	ToastRefreshing:          "Refreshing data...",
+	ToastFilterUnusedOnly:    "Showing unused images only",
+	ToastFilterAllImages:     "Showing all images",
 	ToastStoppingContainer:   "Stopping container %s...",
 	ToastContainerStopped:    "Container %s stopped",
 	ToastStartingContainer:   "Starting container %s...",

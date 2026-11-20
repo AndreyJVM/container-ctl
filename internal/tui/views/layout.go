@@ -153,6 +153,7 @@ func RenderFooter(ctx FooterContext) string {
 		} else {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
 				theme.BoldStyle.Render("[/]") + " " + d.FooterSearch + "  |  " +
+				theme.BoldStyle.Render("[u]") + " " + d.FooterFilterUnused + "  |  " +
 				theme.BoldStyle.Render("[x]") + " " + d.FooterRemove + "  |  " +
 				theme.BoldStyle.Render("[C]") + " " + d.FooterPrune + "  |  " +
 				theme.BoldStyle.Render("[R]") + " " + d.FooterRefresh + "  |  " +

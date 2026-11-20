@@ -101,6 +101,12 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.clampCursor()
 			return m, nil
 		}
+		if m.activeTab == TabImages && m.onlyUnusedImages {
+			m.onlyUnusedImages = false
+			m.clampCursor()
+			m.showToast(m.i18n.ToastFilterAllImages)
+			return m, nil
+		}
 
 	// List navigation for Docker, Compose, and Swarm.
 	case "up", "k":
@@ -184,9 +190,18 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, stopComposeCmd(proj.Name, m.dockerInfo.Containers, m.i18n)
 		}
 
-	// Start a Compose project.
+	// Toggle unused images filter on Images tab, or Start a Compose project.
 	case "u", "U":
-		if m.activeTab == TabCompose && len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
+		if m.activeTab == TabImages && !m.isFiltering {
+			m.onlyUnusedImages = !m.onlyUnusedImages
+			m.clampCursor()
+			if m.onlyUnusedImages {
+				m.showToast(m.i18n.ToastFilterUnusedOnly)
+			} else {
+				m.showToast(m.i18n.ToastFilterAllImages)
+			}
+			return m, nil
+		} else if m.activeTab == TabCompose && len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
 			proj := m.compose[m.composeCursorIdx]
 			m.showToast(fmt.Sprintf(m.i18n.ToastStartingCompose, proj.Name))
 			return m, startComposeCmd(proj.Name, m.dockerInfo.Containers, m.i18n)

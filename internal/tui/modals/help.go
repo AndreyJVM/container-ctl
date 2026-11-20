@@ -57,6 +57,13 @@ func RenderHelp(refreshInterval time.Duration, dict *i18n.Dictionary, swarmVisib
 			},
 		},
 		{
+			title: d.HelpSecImages,
+			items: []helpItem{
+				{key: "[u]", desc: d.HelpKeyFilterUnused},
+				{key: "[x]", desc: d.HelpKeyRemoveImage},
+			},
+		},
+		{
 			title: d.HelpSecCompose,
 			items: []helpItem{
 				{key: "[U]", desc: d.HelpKeyStart},

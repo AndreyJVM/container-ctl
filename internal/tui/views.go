@@ -156,11 +156,13 @@ func (m Model) renderImagesTab() string {
 	images := m.getFilteredImages()
 	return views.RenderImages(views.ImagesContext{
 		Images:           images,
+		AllImages:        m.images,
 		TotalImagesCount: len(m.images),
 		CursorIdx:        m.imageCursorIdx,
 		Error:            m.imageErr,
 		IsFiltering:      m.isFiltering,
 		FilterQuery:      m.filterQuery,
+		OnlyUnused:       m.onlyUnusedImages,
 		Width:            m.width,
 		I18n:             &m.i18n,
 	})

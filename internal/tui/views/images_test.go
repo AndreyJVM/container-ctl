@@ -41,6 +41,32 @@ func TestRenderImagesView(t *testing.T) {
 		t.Errorf("expected image details card in images view, got: %s", view)
 	}
 
+	// In Use and Reclaimable summary in header
+	if !strings.Contains(view, "In Use:") || !strings.Contains(view, "Reclaimable:") {
+		t.Errorf("expected In Use and Reclaimable summary in images view, got: %s", view)
+	}
+
+	// Action row in details card
+	if !strings.Contains(view, dict.ImageStatusActionLabel) {
+		t.Errorf("expected status/action row in images view, got: %s", view)
+	}
+
+	// OnlyUnused filter mode
+	unusedOnlyView := RenderImages(ImagesContext{
+		Images: []monitor.DockerImage{
+			testutil.AnImage(testutil.WithImageID("a857ab57fe2d", ""), testutil.WithImageStatus(false, false, 0)),
+		},
+		OnlyUnused: true,
+		Width:      100,
+		I18n:       &dict,
+	})
+	if !strings.Contains(unusedOnlyView, dict.FilterUnusedBadge) {
+		t.Errorf("expected unused badge in unused only view, got: %s", unusedOnlyView)
+	}
+	if !strings.Contains(unusedOnlyView, dict.ImageActionUnused) {
+		t.Errorf("expected reclaimable action hint for unused image, got: %s", unusedOnlyView)
+	}
+
 	// Error view
 	errorView := RenderImages(ImagesContext{Error: "daemon unavailable", I18n: &dict})
 	if !strings.Contains(errorView, "daemon unavailable") {

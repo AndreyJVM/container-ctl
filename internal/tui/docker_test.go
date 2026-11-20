@@ -258,6 +258,58 @@ func TestFilterModeKeys_ImagesTab(t *testing.T) {
 	}
 }
 
+func TestFilterUnusedImages_ToggleAndSearch(t *testing.T) {
+	m := NewModel(2*time.Second, int(TabImages), "v0.13.0")
+	m.images = []monitor.DockerImage{
+		testutil.AnImage(testutil.WithImageID("img1", "sha256:111"), testutil.WithRepoTag("alpine", "latest"), testutil.WithImageStatus(true, false, 1)),
+		testutil.AnImage(testutil.WithImageID("img2", "sha256:222"), testutil.WithRepoTag("ubuntu", "22.04"), testutil.WithImageStatus(false, false, 0)),
+		testutil.AnImage(testutil.WithImageID("img3", "sha256:333"), testutil.WithRepoTag("<none>", "<none>"), testutil.WithImageStatus(false, true, 0)),
+	}
+
+	// 1. Initial state: all 3 images returned
+	if got := len(m.getFilteredImages()); got != 3 {
+		t.Fatalf("expected 3 images initially, got %d", got)
+	}
+
+	// 2. Press 'u' to toggle only unused images
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}})
+	m = res.(Model)
+	if !m.IsOnlyUnusedImages() {
+		t.Fatalf("expected IsOnlyUnusedImages=true after pressing 'u'")
+	}
+	filtered := m.getFilteredImages()
+	if len(filtered) != 2 {
+		t.Fatalf("expected 2 unused images, got %d", len(filtered))
+	}
+	for _, img := range filtered {
+		if img.InUse {
+			t.Fatalf("expected unused image, got in-use image %s", img.Repository)
+		}
+	}
+
+	// 3. Press 'esc' to reset unused-only filter
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.IsOnlyUnusedImages() {
+		t.Fatalf("expected IsOnlyUnusedImages=false after pressing 'esc'")
+	}
+	if got := len(m.getFilteredImages()); got != 3 {
+		t.Fatalf("expected 3 images after resetting filter, got %d", got)
+	}
+
+	// 4. Search query "unused" matches unused images
+	m.filterQuery = "unused"
+	if got := len(m.getFilteredImages()); got != 2 {
+		t.Fatalf("expected 2 images matching /unused, got %d", got)
+	}
+
+	// 5. Search query "inuse" matches in-use images
+	m.filterQuery = "inuse"
+	if got := len(m.getFilteredImages()); got != 1 {
+		t.Fatalf("expected 1 image matching /inuse, got %d", got)
+	}
+}
+
 func TestRenderDockerTabFilteringView(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.4.1")
 	m.activeTab = 1
