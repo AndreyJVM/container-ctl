@@ -79,13 +79,13 @@ Pre-built packages for **amd64** and **arm64** are available on the [Releases](h
 
 ```bash
 # Debian / Ubuntu / Linux Mint (.deb)
-sudo dpkg -i dockpulse_0.15.0_amd64.deb
+sudo dpkg -i dockpulse_0.16.0_amd64.deb
 
 # RHEL / Fedora / Rocky Linux (.rpm)
-sudo rpm -i dockpulse_0.15.0_amd64.rpm
+sudo rpm -i dockpulse_0.16.0_amd64.rpm
 
 # Alpine Linux (.apk)
-apk add --allow-untrusted dockpulse_0.15.0_amd64.apk
+apk add --allow-untrusted dockpulse_0.16.0_amd64.apk
 ```
 
 #### Pre-built Binaries (Linux, macOS, FreeBSD)
@@ -94,7 +94,7 @@ Download the archive for your operating system and architecture from [Releases](
 
 ```bash
 # Example: Linux AMD64
-tar -xzf dockpulse_0.15.0_linux_amd64.tar.gz
+tar -xzf dockpulse_0.16.0_linux_amd64.tar.gz
 ./dockpulse
 ```
 
@@ -176,10 +176,12 @@ ui:
 | `1`..`5` (or `6`) / `Tab` / `←`/`→` | Switch tabs (Docker, Images, Compose, Networks, Volumes, Swarm) |
 | `r`, `R` | Force immediate refresh |
 | `↑` / `↓` (or `k` / `j`) | Navigate rows / select items |
-| `/` | Search & filter (`Esc` to clear) |
-| `s`, `S`, `o`, `O` | Sort containers (CPU, Memory, Name, Status) |
-| `L` | View logs (scroll with `↑`/`↓`/`PgUp`/`PgDn`) |
-| `Enter` / `I` | Inspect container (details, mounts, network, ports, health) |
+| `/` | Search & filter in list or in log viewer modal (`Esc` to clear) |
+| `o`, `O` | Cycle container sort mode (CPU, Memory, Name, Status) |
+| `w`, `W` | Open container localhost URL in browser / copy to clipboard |
+| `y`, `Y` | Copy `docker exec -it <name> sh` or ID to clipboard via terminal OSC 52 |
+| `L` | View logs (search with `/`, scroll with `↑`/`↓`/`PgUp`/`PgDn`) |
+| `Enter` / `I` | Inspect container (details, mounts, network, ports, health, masked env vars) |
 | `E` | Open or focus the embedded container terminal (`/bin/bash` or `/bin/sh`) |
 | `Ctrl+]` | Return focus from the embedded terminal to Dockpulse |
 | `Ctrl+D` | Exit the current shell session while the terminal is focused |
