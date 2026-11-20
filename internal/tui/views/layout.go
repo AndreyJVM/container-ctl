@@ -125,6 +125,16 @@ func RenderFooter(ctx FooterContext) string {
 				theme.BoldStyle.Render("[P]") + " " + d.FooterRestart + "  |  " +
 				theme.BoldStyle.Render("[K]") + " " + d.FooterKill + "  |  " +
 				theme.BoldStyle.Render("[x]") + " " + d.FooterRemove
+		} else if ctx.Width > 0 && ctx.Width < 120 {
+			content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
+				theme.BoldStyle.Render("[L]") + " " + d.FooterLogs + "  |  " +
+				theme.BoldStyle.Render("[Enter/I]") + " " + d.FooterInfo + "  |  " +
+				theme.BoldStyle.Render("[E]") + " " + d.FooterShell + "  |  " +
+				theme.BoldStyle.Render("[S]") + " " + d.FooterStartStop + "  |  " +
+				theme.BoldStyle.Render("[K]") + " " + d.FooterKill + "  |  " +
+				theme.BoldStyle.Render("[x]") + " " + d.FooterRemove + "  |  " +
+				theme.BoldStyle.Render("[C]") + " " + d.FooterPrune + "  |  " +
+				theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
 		} else {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
 				theme.BoldStyle.Render("[/]") + " " + d.FooterSearch + "  |  " +

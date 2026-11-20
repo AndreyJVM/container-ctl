@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -24,8 +25,8 @@ func GetContainerLogs(containerID string, tailLines int) (string, error) {
 	sockPath := DockerSocketFinder()
 	if sockPath != "" {
 		client := SocketClientFactory(sockPath)
-		url := fmt.Sprintf("http://localhost/containers/%s/logs?stdout=1&stderr=1&tail=%d", containerID, tailLines)
-		resp, err := client.Get(url)
+		endpoint := fmt.Sprintf("http://localhost/containers/%s/logs?stdout=1&stderr=1&tail=%d", url.PathEscape(containerID), tailLines)
+		resp, err := client.Get(endpoint)
 		if err == nil {
 			defer resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {

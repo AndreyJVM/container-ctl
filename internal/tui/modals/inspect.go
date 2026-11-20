@@ -10,15 +10,16 @@ import (
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
 )
 
-// RenderInspect renders the detailed container inspection modal.
-func RenderInspect(d monitor.ContainerDetail, dict *i18n.Dictionary) string {
-	var s strings.Builder
+// Constants for inspect modal constraints.
+const DefaultMaxVisibleInspect = 18
 
-	title := fmt.Sprintf(dict.InspectTitle, theme.BoldStyle.Render(d.Name))
-	s.WriteString(theme.TitleStyle.Render(title) + "\n\n")
+// BuildInspectLines converts container inspection data into formatted display lines.
+func BuildInspectLines(d monitor.ContainerDetail, dict *i18n.Dictionary) []string {
+	dict = getModalDictionary(dict)
+	var lines []string
 
-	s.WriteString(fmt.Sprintf("  %s %s\n", theme.DimStyle.Render("ID:"), d.ID))
-	s.WriteString(fmt.Sprintf("  %s %s\n", theme.DimStyle.Render(dict.ImageLabel), theme.BoldStyle.Render(d.Image)))
+	lines = append(lines, fmt.Sprintf("%s %s", theme.DimStyle.Render("ID:"), d.ID))
+	lines = append(lines, fmt.Sprintf("%s %s", theme.DimStyle.Render(dict.ImageLabel), theme.BoldStyle.Render(d.Image)))
 
 	healthBadge := theme.DimStyle.Render("-")
 	switch d.Health {
@@ -30,19 +31,20 @@ func RenderInspect(d monitor.ContainerDetail, dict *i18n.Dictionary) string {
 		healthBadge = theme.YellowStyle.Render("[starting]")
 	}
 
-	s.WriteString(fmt.Sprintf("  %s %s    %s %s\n",
+	lines = append(lines, fmt.Sprintf("%s %s    %s %s",
 		theme.DimStyle.Render(dict.StatusLabel), theme.GreenStyle.Render(d.Status),
 		theme.DimStyle.Render(dict.HealthLabel), healthBadge,
 	))
+
 	if d.State == "running" {
 		if d.CPUPerc > 0 || d.MemUsageMB > 0 {
-			s.WriteString(fmt.Sprintf("  %s %.1f%%    %s %.1f MB (%.1f%%)\n",
+			lines = append(lines, fmt.Sprintf("%s %.1f%%    %s %.1f MB (%.1f%%)",
 				theme.DimStyle.Render("CPU:"), d.CPUPerc,
 				theme.DimStyle.Render(dict.MemLabel), d.MemUsageMB, d.MemPerc,
 			))
 		}
 		if d.NetRxBytes > 0 || d.NetTxBytes > 0 || d.BlockReadBytes > 0 || d.BlockWriteBytes > 0 {
-			s.WriteString(fmt.Sprintf("  %s %s / %s    %s %s / %s\n",
+			lines = append(lines, fmt.Sprintf("%s %s / %s    %s %s / %s",
 				theme.DimStyle.Render("Net I/O:"),
 				monitor.FormatUintBytes(d.NetRxBytes),
 				monitor.FormatUintBytes(d.NetTxBytes),
@@ -52,21 +54,26 @@ func RenderInspect(d monitor.ContainerDetail, dict *i18n.Dictionary) string {
 			))
 		}
 	}
+
 	restartVal := d.RestartPolicy
 	if restartVal == "" {
 		restartVal = dict.DetailNone
 	}
-	s.WriteString(fmt.Sprintf("  %s %s    %s %s\n",
+	lines = append(lines, fmt.Sprintf("%s %s    %s %s",
 		theme.DimStyle.Render(dict.CreatedLabel), d.Created,
 		theme.DimStyle.Render(dict.DetailRestartPolicyLabel), theme.CyanStyle.Render(restartVal),
 	))
-	s.WriteString(fmt.Sprintf("  %s %s    %s %s\n", theme.DimStyle.Render(dict.IPAddrLabel), theme.BoldStyle.Render(d.IP), theme.DimStyle.Render(dict.GatewayLabel), d.Gateway))
-	s.WriteString(fmt.Sprintf("  %s %s\n", theme.DimStyle.Render(dict.CommandLabel), components.Truncate(d.Command, 60)))
+	lines = append(lines, fmt.Sprintf("%s %s    %s %s",
+		theme.DimStyle.Render(dict.IPAddrLabel), theme.BoldStyle.Render(d.IP),
+		theme.DimStyle.Render(dict.GatewayLabel), d.Gateway,
+	))
+	lines = append(lines, fmt.Sprintf("%s %s", theme.DimStyle.Render(dict.CommandLabel), components.Truncate(d.Command, 60)))
 
 	if len(d.Mounts) > 0 {
-		s.WriteString("\n  " + theme.BoldStyle.Render(dict.MountsTitle) + "\n")
+		lines = append(lines, "")
+		lines = append(lines, theme.BoldStyle.Render(dict.MountsTitle))
 		for _, mnt := range d.Mounts {
-			s.WriteString(fmt.Sprintf("   • %s\n", mnt))
+			lines = append(lines, fmt.Sprintf(" • %s", mnt))
 		}
 	}
 
@@ -75,15 +82,40 @@ func RenderInspect(d monitor.ContainerDetail, dict *i18n.Dictionary) string {
 		if envTitle == "" {
 			envTitle = "Environment:"
 		}
-		s.WriteString("\n  " + theme.BoldStyle.Render(envTitle) + "\n")
-		maxEnv := 12
-		for idx, e := range d.Env {
-			if idx >= maxEnv {
-				s.WriteString(fmt.Sprintf("   %s\n", theme.DimStyle.Render(fmt.Sprintf("... (+%d more)", len(d.Env)-maxEnv))))
-				break
-			}
-			s.WriteString(fmt.Sprintf("   • %s\n", components.Truncate(MaskEnvVar(e), 76)))
+		lines = append(lines, "")
+		lines = append(lines, theme.BoldStyle.Render(envTitle))
+		for _, e := range d.Env {
+			lines = append(lines, fmt.Sprintf(" • %s", components.Truncate(MaskEnvVar(e), 76)))
 		}
+	}
+
+	return lines
+}
+
+// RenderInspect renders the detailed container inspection modal with optional scrolling.
+func RenderInspect(d monitor.ContainerDetail, dict *i18n.Dictionary, scrollOpts ...int) string {
+	var s strings.Builder
+	dict = getModalDictionary(dict)
+
+	title := fmt.Sprintf(dict.InspectTitle, theme.BoldStyle.Render(d.Name))
+	s.WriteString(theme.TitleStyle.Render(title) + "\n\n")
+
+	lines := BuildInspectLines(d, dict)
+	scroll := 0
+	if len(scrollOpts) > 0 {
+		scroll = scrollOpts[0]
+	}
+
+	if len(lines) <= DefaultMaxVisibleInspect {
+		for _, l := range lines {
+			s.WriteString("  " + l + "\n")
+		}
+	} else {
+		start, end := calculateLogRange(len(lines), scroll, DefaultMaxVisibleInspect)
+		for i := start; i < end; i++ {
+			s.WriteString("  " + lines[i] + "\n")
+		}
+		s.WriteString(fmt.Sprintf("\n  %s\n", theme.DimStyle.Render(fmt.Sprintf("[Lines %d-%d of %d] (scroll ↑/↓/PgUp/PgDn, [y] Copy ID)", start+1, end, len(lines)))))
 	}
 
 	return theme.BoxStyle.Render(s.String())

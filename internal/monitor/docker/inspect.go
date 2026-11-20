@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -52,8 +53,8 @@ func getContainerDetailViaSocket(sockPath, containerID string) (ContainerDetail,
 	detail.ID = containerID
 
 	client := SocketClientFactory(sockPath)
-	url := fmt.Sprintf("http://localhost/containers/%s/json", containerID)
-	resp, err := client.Get(url)
+	endpoint := fmt.Sprintf("http://localhost/containers/%s/json", url.PathEscape(containerID))
+	resp, err := client.Get(endpoint)
 	if err != nil {
 		return detail, err
 	}

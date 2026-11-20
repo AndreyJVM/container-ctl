@@ -789,3 +789,78 @@ func TestModalLogsSearch(t *testing.T) {
 		t.Errorf("expected modal closed after second Esc, got %s", m.activeModal)
 	}
 }
+
+func TestModalInspectScrollingAndCopy(t *testing.T) {
+	m := NewModel(2*time.Second, 1, "v0.4.1")
+
+	// Set inspect target with enough env vars to allow scrolling
+	m.inspectTarget = monitor.ContainerDetail{
+		ID:     "c123456789abcdef",
+		Name:   "worker-pool",
+		Image:  "worker:latest",
+		State:  "running",
+		Status: "Up 5 hours",
+		Env: []string{
+			"E1=1", "E2=2", "E3=3", "E4=4", "E5=5",
+			"E6=6", "E7=7", "E8=8", "E9=9", "E10=10",
+			"E11=11", "E12=12", "E13=13", "E14=14", "E15=15",
+		},
+	}
+	m.activeModal = ModalInspect
+	m.inspectScroll = 0
+
+	// Test scroll down with KeyDown
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = res.(Model)
+	if m.inspectScroll != 1 {
+		t.Errorf("expected inspectScroll=1 after down, got %d", m.inspectScroll)
+	}
+
+	// Test scroll down with 'j'
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j")})
+	m = res.(Model)
+	if m.inspectScroll != 2 {
+		t.Errorf("expected inspectScroll=2 after 'j', got %d", m.inspectScroll)
+	}
+
+	// Test scroll up with KeyUp
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	m = res.(Model)
+	if m.inspectScroll != 1 {
+		t.Errorf("expected inspectScroll=1 after up, got %d", m.inspectScroll)
+	}
+
+	// Test scroll up with 'k'
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("k")})
+	m = res.(Model)
+	if m.inspectScroll != 0 {
+		t.Errorf("expected inspectScroll=0 after 'k', got %d", m.inspectScroll)
+	}
+
+	// Test page down
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	m = res.(Model)
+	if m.inspectScroll != 10 {
+		t.Errorf("expected inspectScroll=10 after pgdown, got %d", m.inspectScroll)
+	}
+
+	// Test page up
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgUp})
+	m = res.(Model)
+	if m.inspectScroll != 0 {
+		t.Errorf("expected inspectScroll=0 after pgup, got %d", m.inspectScroll)
+	}
+
+	// Test 'y' copy ID
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
+	m = res.(Model)
+	if !strings.Contains(m.actionMessage, "c123456789abcdef") {
+		t.Errorf("expected toast with container ID on 'y', got: %q", m.actionMessage)
+	}
+
+	// Verify view rendering includes pagination info
+	v := m.View()
+	if !strings.Contains(v, "worker-pool") || !strings.Contains(v, "[Lines") {
+		t.Errorf("expected inspect modal view with pagination, got: %s", v)
+	}
+}

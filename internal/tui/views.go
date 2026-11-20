@@ -217,7 +217,7 @@ func (m Model) renderLogsModal() string {
 }
 
 func (m Model) renderInspectModal() string {
-	return modals.RenderInspect(m.inspectTarget, &m.i18n)
+	return modals.RenderInspect(m.inspectTarget, &m.i18n, m.inspectScroll)
 }
 
 func (m Model) renderPruneModal() string {

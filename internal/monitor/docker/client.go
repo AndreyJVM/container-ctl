@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -19,6 +20,8 @@ const (
 
 var (
 	customSocketPath    string
+	socketClientsMu     sync.Mutex
+	socketClients       = make(map[string]*http.Client)
 	ExecLookPath        = exec.LookPath
 	DockerSocketFinder  = FindDockerSocket
 	SocketClientFactory = getSocketHTTPClient
@@ -33,6 +36,7 @@ var (
 // SetCustomSocketPath sets a custom Docker socket path override.
 func SetCustomSocketPath(path string) {
 	customSocketPath = strings.TrimSpace(path)
+	ResetSocketClientsPool()
 }
 
 // FindDockerSocket finds an available Docker or Podman Unix socket.
@@ -82,16 +86,40 @@ func FindDockerSocket() string {
 }
 
 func getSocketHTTPClient(sockPath string) *http.Client {
-	return &http.Client{
+	socketClientsMu.Lock()
+	defer socketClientsMu.Unlock()
+
+	if client, ok := socketClients[sockPath]; ok {
+		return client
+	}
+
+	client := &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 				var d net.Dialer
 				d.Timeout = SocketDialTimeout
 				return d.DialContext(ctx, "unix", sockPath)
 			},
+			MaxIdleConns:        30,
+			MaxIdleConnsPerHost: 30,
+			IdleConnTimeout:     90 * time.Second,
 		},
 		Timeout: SocketClientTimeout,
 	}
+	socketClients[sockPath] = client
+	return client
+}
+
+// ResetSocketClientsPool closes idle connections and clears the client cache.
+func ResetSocketClientsPool() {
+	socketClientsMu.Lock()
+	defer socketClientsMu.Unlock()
+	for _, client := range socketClients {
+		if tr, ok := client.Transport.(*http.Transport); ok {
+			tr.CloseIdleConnections()
+		}
+	}
+	socketClients = make(map[string]*http.Client)
 }
 
 var dockerCLIAvailableChecker = func() bool {

@@ -370,3 +370,55 @@ func TestRenderExecOffersEmbeddedAndExternalShells(t *testing.T) {
 		t.Fatalf("expected an external shell fallback, got: %s", view)
 	}
 }
+
+func TestRenderInspect_Scrolling(t *testing.T) {
+	dict := i18n.Get()
+
+	detail := monitor.ContainerDetail{
+		ID:     "c1234567890abcdef",
+		Name:   "huge-app",
+		Image:  "my-app:v1",
+		State:  "running",
+		Status: "Up 10 hours",
+		Health: "unhealthy",
+		Mounts: []string{"/m1", "/m2", "/m3"},
+		Env: []string{
+			"VAR1=val1", "VAR2=val2", "VAR3=val3", "VAR4=val4",
+			"VAR5=val5", "VAR6=val6", "VAR7=val7", "VAR8=val8",
+			"VAR9=val9", "VAR10=val10", "VAR11=val11", "VAR12=val12",
+		},
+	}
+
+	lines := BuildInspectLines(detail, &dict)
+	if len(lines) <= DefaultMaxVisibleInspect {
+		t.Fatalf("expected more than %d lines, got %d", DefaultMaxVisibleInspect, len(lines))
+	}
+
+	// Render page 1 (scroll = 0)
+	v0 := RenderInspect(detail, &dict, 0)
+	if !strings.Contains(v0, "[Lines 1-18 of") || !strings.Contains(v0, "[y] Copy ID") {
+		t.Errorf("expected pagination footer in v0, got: %s", v0)
+	}
+
+	// Render scrolled
+	vScroll := RenderInspect(detail, &dict, 5)
+	if !strings.Contains(vScroll, "[Lines 6-") {
+		t.Errorf("expected scrolled lines indicator, got: %s", vScroll)
+	}
+}
+
+func TestBuildInspectLines_Variants(t *testing.T) {
+	dict := i18n.Get()
+
+	// Test starting status
+	startingDetail := monitor.ContainerDetail{
+		ID:     "starting-c",
+		Name:   "starter",
+		Health: "starting",
+	}
+	lines := BuildInspectLines(startingDetail, &dict)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "[starting]") {
+		t.Errorf("expected [starting] health badge, got: %s", joined)
+	}
+}

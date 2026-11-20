@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -116,8 +117,8 @@ func RemoveDockerImage(imageID string, force bool) error {
 	sockPath := DockerSocketFinder()
 	if sockPath != "" {
 		client := SocketClientFactory(sockPath)
-		url := fmt.Sprintf("http://localhost/images/%s?force=%t", imageID, force)
-		req, err := http.NewRequest(http.MethodDelete, url, nil)
+		endpoint := fmt.Sprintf("http://localhost/images/%s?force=%t", url.PathEscape(imageID), force)
+		req, err := http.NewRequest(http.MethodDelete, endpoint, nil)
 		if err == nil {
 			resp, err := client.Do(req)
 			if err == nil {

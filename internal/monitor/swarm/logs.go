@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -26,11 +27,11 @@ func GetSwarmServiceLogs(serviceID string, tailLines int) (string, error) {
 	sockPath := docker.DockerSocketFinder()
 	if sockPath != "" {
 		client := docker.SocketClientFactory(sockPath)
-		url := fmt.Sprintf("/services/%s/logs?stdout=1&stderr=1&tail=%d", cleanID, tailLines)
+		urlPath := fmt.Sprintf("/services/%s/logs?stdout=1&stderr=1&tail=%d", url.PathEscape(cleanID), tailLines)
 		ctx, cancel := context.WithTimeout(context.Background(), swarmLogsTimeout)
 		defer cancel()
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost"+url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost"+urlPath, nil)
 		if err == nil {
 			resp, doErr := client.Do(req)
 			if doErr == nil {

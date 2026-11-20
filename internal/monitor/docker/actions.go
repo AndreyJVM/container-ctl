@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -18,8 +19,8 @@ func containerAction(containerID, action string, validCodes ...int) error {
 	sockPath := DockerSocketFinder()
 	if sockPath != "" {
 		client := SocketClientFactory(sockPath)
-		url := fmt.Sprintf("http://localhost/containers/%s/%s", containerID, action)
-		resp, err := client.Post(url, "application/json", nil)
+		endpoint := fmt.Sprintf("http://localhost/containers/%s/%s", url.PathEscape(containerID), url.PathEscape(action))
+		resp, err := client.Post(endpoint, "application/json", nil)
 		if err == nil {
 			defer resp.Body.Close()
 			for _, code := range validCodes {
@@ -70,8 +71,8 @@ func RemoveContainer(containerID string) error {
 	sockPath := DockerSocketFinder()
 	if sockPath != "" {
 		client := SocketClientFactory(sockPath)
-		url := fmt.Sprintf("http://localhost/containers/%s?v=1&force=true", containerID)
-		req, err := http.NewRequest(http.MethodDelete, url, nil)
+		endpoint := fmt.Sprintf("http://localhost/containers/%s?v=1&force=true", url.PathEscape(containerID))
+		req, err := http.NewRequest(http.MethodDelete, endpoint, nil)
 		if err == nil {
 			resp, err := client.Do(req)
 			if err == nil {

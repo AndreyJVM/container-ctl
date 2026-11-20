@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/AndreyJVM/dockpulse/internal/clipboard"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/dockpulse/internal/tui/modals"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -164,6 +166,8 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "up", "k":
 		if m.activeModal == ModalLogs && m.logsScroll > 0 {
 			m.logsScroll--
+		} else if m.activeModal == ModalInspect && m.inspectScroll > 0 {
+			m.inspectScroll--
 		}
 		return m, nil
 
@@ -173,12 +177,19 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.logsScroll < total-10 {
 				m.logsScroll++
 			}
+		} else if m.activeModal == ModalInspect {
+			total := m.countInspectLines()
+			if m.inspectScroll < total-10 {
+				m.inspectScroll++
+			}
 		}
 		return m, nil
 
 	case "pgup":
 		if m.activeModal == ModalLogs {
 			m.logsScroll = max(0, m.logsScroll-10)
+		} else if m.activeModal == ModalInspect {
+			m.inspectScroll = max(0, m.inspectScroll-10)
 		}
 		return m, nil
 
@@ -186,10 +197,24 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.activeModal == ModalLogs {
 			total := m.countFilteredLogs()
 			m.logsScroll = min(max(0, total-10), m.logsScroll+10)
+		} else if m.activeModal == ModalInspect {
+			total := m.countInspectLines()
+			m.inspectScroll = min(max(0, total-10), m.inspectScroll+10)
 		}
 		return m, nil
+
+	case "y", "Y":
+		if m.activeModal == ModalInspect {
+			_ = clipboard.Write(m.inspectTarget.ID)
+			m.showToast(fmt.Sprintf(m.i18n.ToastCopiedExec, m.inspectTarget.ID))
+			return m, nil
+		}
 	}
 	return m, nil
+}
+
+func (m Model) countInspectLines() int {
+	return len(modals.BuildInspectLines(m.inspectTarget, &m.i18n))
 }
 
 func (m Model) countFilteredLogs() int {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -124,8 +125,8 @@ func fetchContainerStats(client *http.Client, containerID string) ContainerStats
 	ctx, cancel := context.WithTimeout(context.Background(), containerStatsTimeout)
 	defer cancel()
 
-	url := fmt.Sprintf("http://localhost/containers/%s/stats?stream=false&one-shot=true", containerID)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	endpoint := fmt.Sprintf("http://localhost/containers/%s/stats?stream=false&one-shot=true", url.PathEscape(containerID))
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return ContainerStats{}
 	}
@@ -148,7 +149,8 @@ func fetchContainerInspect(client *http.Client, containerID string) (restartPoli
 	ctx, cancel := context.WithTimeout(context.Background(), containerStatsTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://localhost/containers/%s/json", containerID), nil)
+	endpoint := fmt.Sprintf("http://localhost/containers/%s/json", url.PathEscape(containerID))
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return "", ""
 	}
