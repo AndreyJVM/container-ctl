@@ -316,6 +316,9 @@ func TestExtractPortURLs(t *testing.T) {
 		{"127.0.0.1:3000->3000/tcp, 0.0.0.0:8080->80/tcp", []string{"http://localhost:3000", "http://localhost:8080"}},
 		{"0.0.0.0:443->443/tcp", []string{"https://localhost"}},
 		{"0.0.0.0:80->80/tcp", []string{"http://localhost"}},
+		{"0.0.0.0:53->53/udp", nil},
+		{"0.0.0.0:8080->8080/tcp, 0.0.0.0:53->53/udp", []string{"http://localhost:8080"}},
+		{"0.0.0.0:99999->99999/tcp", nil},
 	}
 
 	for _, tt := range tests {

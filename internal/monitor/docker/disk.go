@@ -142,13 +142,15 @@ func GetDockerDiskUsage() (DockerDiskUsage, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost/system/df", nil)
 		if err == nil {
 			resp, doErr := client.Do(req)
-			if doErr == nil && resp.StatusCode == http.StatusOK {
+			if doErr == nil {
 				defer resp.Body.Close()
-				body, readErr := io.ReadAll(resp.Body)
-				if readErr == nil {
-					var raw systemDFRaw
-					if unmarshalErr := json.Unmarshal(body, &raw); unmarshalErr == nil {
-						return ParseSystemDFRaw(raw), nil
+				if resp.StatusCode == http.StatusOK {
+					body, readErr := io.ReadAll(resp.Body)
+					if readErr == nil {
+						var raw systemDFRaw
+						if unmarshalErr := json.Unmarshal(body, &raw); unmarshalErr == nil {
+							return ParseSystemDFRaw(raw), nil
+						}
 					}
 				}
 			}

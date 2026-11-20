@@ -131,10 +131,13 @@ func fetchContainerStats(client *http.Client, containerID string) ContainerStats
 		return ContainerStats{}
 	}
 	resp, err := client.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
+	if err != nil {
 		return ContainerStats{}
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return ContainerStats{}
+	}
 
 	var s ContainerStatsRaw
 	if err := json.NewDecoder(resp.Body).Decode(&s); err != nil {

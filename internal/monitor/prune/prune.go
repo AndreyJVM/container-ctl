@@ -34,10 +34,12 @@ func executePruneResource(cfg pruneResourceConfig) (string, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/"+cfg.socketPath, nil)
 		if err == nil {
 			resp, doErr := client.Do(req)
-			if doErr == nil && resp.StatusCode == http.StatusOK {
+			if doErr == nil {
 				defer resp.Body.Close()
-				if count, reclaimed, ok := cfg.parseSocketRes(resp.Body); ok {
-					return fmt.Sprintf("Deleted %s: %d, reclaimed: %s", cfg.label, count, docker.FormatBytes(reclaimed)), nil
+				if resp.StatusCode == http.StatusOK {
+					if count, reclaimed, ok := cfg.parseSocketRes(resp.Body); ok {
+						return fmt.Sprintf("Deleted %s: %d, reclaimed: %s", cfg.label, count, docker.FormatBytes(reclaimed)), nil
+					}
 				}
 			}
 		}
@@ -120,10 +122,13 @@ func pruneBuildCacheSocket(sockPath string) string {
 		return ""
 	}
 	resp, doErr := client.Do(req)
-	if doErr != nil || resp.StatusCode != http.StatusOK {
+	if doErr != nil {
 		return ""
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
 
 	var res struct {
 		CachesDeleted  []string `json:"CachesDeleted"`

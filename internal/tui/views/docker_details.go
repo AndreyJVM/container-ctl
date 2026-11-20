@@ -40,11 +40,18 @@ func ExtractPortURLs(portsStr string) []string {
 			continue
 		}
 		var hostPart string
+		var targetPart string
 		if idx := strings.Index(tr, "->"); idx != -1 {
 			hostPart = tr[:idx]
+			targetPart = tr[idx+2:]
 		} else if idx := strings.Index(tr, " → "); idx != -1 {
 			hostPart = tr[:idx]
+			targetPart = tr[idx+5:]
 		} else {
+			continue
+		}
+
+		if strings.HasSuffix(strings.ToLower(strings.TrimSpace(targetPart)), "/udp") {
 			continue
 		}
 
@@ -55,7 +62,7 @@ func ExtractPortURLs(portsStr string) []string {
 		}
 
 		portNum, err := strconv.Atoi(portStr)
-		if err != nil || portNum <= 0 {
+		if err != nil || portNum <= 0 || portNum > 65535 {
 			continue
 		}
 

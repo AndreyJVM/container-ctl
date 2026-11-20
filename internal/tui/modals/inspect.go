@@ -2,6 +2,7 @@ package modals
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
@@ -124,12 +125,35 @@ func MaskEnvVar(entry string) string {
 	val := entry[idx+1:]
 	upperKey := strings.ToUpper(key)
 	if strings.Contains(upperKey, "PASS") ||
+		strings.Contains(upperKey, "PWD") ||
 		strings.Contains(upperKey, "SECRET") ||
 		strings.Contains(upperKey, "TOKEN") ||
 		strings.Contains(upperKey, "KEY") ||
 		strings.Contains(upperKey, "AUTH") ||
-		strings.Contains(upperKey, "CREDENTIAL") {
+		strings.Contains(upperKey, "CREDENTIAL") ||
+		strings.Contains(upperKey, "SALT") ||
+		strings.Contains(upperKey, "SIGNATURE") ||
+		strings.Contains(upperKey, "CERT") ||
+		strings.Contains(upperKey, "PRIVATE") ||
+		strings.Contains(upperKey, "WEBHOOK") ||
+		strings.Contains(upperKey, "DSN") ||
+		strings.Contains(upperKey, "BEARER") ||
+		strings.Contains(upperKey, "PIN") {
 		return key + "=******"
 	}
+
+	// Redact embedded credentials in URLs (e.g. postgres://user:password@host/db)
+	if strings.Contains(val, "://") && strings.Contains(val, "@") {
+		if u, err := url.Parse(val); err == nil && u.User != nil {
+			return key + "=" + u.Redacted()
+		}
+	}
+
+	// Check for embedded password fields in connection strings
+	upperVal := strings.ToUpper(val)
+	if strings.Contains(upperVal, "PASSWORD=") || strings.Contains(upperVal, "PWD=") {
+		return key + "=******"
+	}
+
 	return key + "=" + val
 }

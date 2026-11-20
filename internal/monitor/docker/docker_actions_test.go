@@ -220,6 +220,19 @@ func TestGetContainerExecCommandWithTerminal(t *testing.T) {
 	if strings.Join(cmd.Args, "\x00") != strings.Join(want, "\x00") {
 		t.Fatalf("unexpected command args: %#v", cmd.Args)
 	}
+
+	// Verify Mode: "root" preserves -e TERM while setting -u 0
+	cmdRoot := GetContainerExecCommandWithOptions(containerID, ExecOptions{
+		Mode:     "root",
+		Terminal: "xterm-256color",
+	})
+	wantRoot := []string{
+		"docker", "exec", "-it", "-u", "0", "-e", "TERM=xterm-256color", containerID,
+		"sh", "-c", "if command -v bash >/dev/null 2>&1; then exec bash; else exec sh; fi",
+	}
+	if strings.Join(cmdRoot.Args, "\x00") != strings.Join(wantRoot, "\x00") {
+		t.Fatalf("unexpected root command args: %#v", cmdRoot.Args)
+	}
 }
 
 func TestCleanLogSnippet(t *testing.T) {

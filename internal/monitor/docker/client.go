@@ -161,8 +161,12 @@ func GetContainerExecCommandWithOptions(containerID string, opts ExecOptions) *e
 	}
 
 	args := []string{"exec", "-it"}
-	if opts.User != "" {
-		args = append(args, "-u", opts.User)
+	user := opts.User
+	if opts.Mode == "root" && user == "" {
+		user = "0"
+	}
+	if user != "" {
+		args = append(args, "-u", user)
 	}
 	if terminal := strings.TrimSpace(opts.Terminal); terminal != "" {
 		args = append(args, "-e", "TERM="+terminal)
@@ -174,19 +178,13 @@ func GetContainerExecCommandWithOptions(containerID string, opts ExecOptions) *e
 		args = append(args, "sh")
 	case "zsh":
 		args = append(args, "zsh")
-	case "root":
-		if opts.User == "" {
-			args = []string{"exec", "-it", "-u", "0", cleanID, "sh", "-c", "if command -v bash >/dev/null 2>&1; then exec bash; else exec sh; fi"}
-		} else {
-			args = append(args, "sh", "-c", "if command -v bash >/dev/null 2>&1; then exec bash; else exec sh; fi")
-		}
 	case "custom":
 		cmdStr := strings.TrimSpace(opts.CustomCmd)
 		if cmdStr == "" {
 			cmdStr = "sh"
 		}
 		args = append(args, "sh", "-c", cmdStr)
-	case "auto":
+	case "root", "auto":
 		fallthrough
 	default:
 		args = append(args, "sh", "-c", "if command -v bash >/dev/null 2>&1; then exec bash; else exec sh; fi")

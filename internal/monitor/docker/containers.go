@@ -253,9 +253,12 @@ func fetchDockerSummaryViaSocket(sockPath string, summary *DockerSummary) bool {
 
 	// 1. Query /info endpoint
 	resp, err := client.Get("http://localhost/info")
-	if err == nil && resp.StatusCode == http.StatusOK {
+	if err == nil {
 		func() {
 			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				return
+			}
 			body, readErr := io.ReadAll(resp.Body)
 			if readErr != nil {
 				return
@@ -281,10 +284,13 @@ func fetchDockerSummaryViaSocket(sockPath string, summary *DockerSummary) bool {
 
 	// 2. Query /containers/json?all=1 endpoint
 	respC, errC := client.Get("http://localhost/containers/json?all=1")
-	if errC != nil || respC.StatusCode != http.StatusOK {
+	if errC != nil {
 		return false
 	}
 	defer respC.Body.Close()
+	if respC.StatusCode != http.StatusOK {
+		return false
+	}
 
 	bodyC, readErr := io.ReadAll(respC.Body)
 	if readErr != nil {
