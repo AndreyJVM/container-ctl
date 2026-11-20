@@ -2,7 +2,7 @@
 # update-changelog.sh - Update the changelog automatically.
 
 VERSION=$(cat VERSION)
-PACKAGE="dockpulse"
+PACKAGE="container-ctl"
 DATE=$(date -R)
 NAME=$(git config user.name 2>/dev/null || echo "Andrey Vorobev")
 EMAIL=$(git config user.email 2>/dev/null || echo "andrey.vorobev.aqa@gmail.com")

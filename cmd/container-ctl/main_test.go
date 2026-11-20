@@ -329,7 +329,7 @@ func TestRun_Help(t *testing.T) {
 			t.Fatalf("expected nil error for %s, got: %v", flag, err)
 		}
 		output := stdout.String()
-		if !strings.Contains(output, "Dockpulse") || !strings.Contains(output, "Usage:") {
+		if !strings.Contains(output, "container-ctl") || !strings.Contains(output, "Usage:") {
 			t.Errorf("expected usage info in stdout for %s, got: %s", flag, output)
 		}
 	}

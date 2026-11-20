@@ -41,7 +41,7 @@ nfpms:
   - id: packages
     package_name: container-ctl
     file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}"
-    vendor: "Dockpulse"
+    vendor: "container-ctl"
     homepage: "https://github.com/AndreyJVM/container-ctl"
     maintainer: "Andrey Vorobev <andrey.vorobev.aqa@gmail.com>"
     description: "Fast terminal TUI for Docker containers, Compose, and Swarm"

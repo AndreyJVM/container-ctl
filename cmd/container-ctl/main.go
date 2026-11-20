@@ -56,7 +56,7 @@ func main() {
 }
 
 func printUsage(w io.Writer) {
-	fmt.Fprintf(w, "Dockpulse %s\n\n", version)
+	fmt.Fprintf(w, "container-ctl %s\n\n", version)
 	fmt.Fprintf(w, "Usage:\n")
 	fmt.Fprintf(w, "  container-ctl [options]\n\n")
 	fmt.Fprintf(w, "Options:\n")
