@@ -101,15 +101,19 @@ func GetDockerNetworks() ([]DockerNetwork, error)   { return docker.GetDockerNet
 func GetDockerVolumes() ([]DockerVolume, error)     { return docker.GetDockerVolumes() }
 func GetDockerDiskUsage() (DockerDiskUsage, error)  { return docker.GetDockerDiskUsage() }
 func ParseHealthStatus(val string) string           { return docker.ParseHealthStatus(val) }
-func FormatBytes(b int64) string                    { return docker.FormatBytes(b) }
-func FormatUintBytes(b uint64) string               { return docker.FormatUintBytes(b) }
-func FindDockerSocket() string                      { return docker.FindDockerSocket() }
-func IsDockerCLIAvailable() bool                    { return docker.IsDockerCLIAvailable() }
-func StartContainer(id string) error                { return docker.StartContainer(id) }
-func StopContainer(id string) error                 { return docker.StopContainer(id) }
-func RestartContainer(id string) error              { return docker.RestartContainer(id) }
-func KillContainer(id string) error                 { return docker.KillContainer(id) }
-func RemoveContainer(id string) error               { return docker.RemoveContainer(id) }
+func ParseExitCode(status string) (bool, int)       { return docker.ParseExitCode(status) }
+func IsContainerFailed(state, status string) (bool, int) {
+	return docker.IsContainerFailed(state, status)
+}
+func FormatBytes(b int64) string       { return docker.FormatBytes(b) }
+func FormatUintBytes(b uint64) string  { return docker.FormatUintBytes(b) }
+func FindDockerSocket() string         { return docker.FindDockerSocket() }
+func IsDockerCLIAvailable() bool       { return docker.IsDockerCLIAvailable() }
+func StartContainer(id string) error   { return docker.StartContainer(id) }
+func StopContainer(id string) error    { return docker.StopContainer(id) }
+func RestartContainer(id string) error { return docker.RestartContainer(id) }
+func KillContainer(id string) error    { return docker.KillContainer(id) }
+func RemoveContainer(id string) error  { return docker.RemoveContainer(id) }
 
 func GetContainerExecCommand(id string) *exec.Cmd {
 	return docker.GetContainerExecCommand(id)

@@ -94,14 +94,26 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 	if uptimeDisplay == "" {
 		uptimeDisplay = sel.State
 	}
+
+	var statusStyled string
+	if failed, _ := monitor.IsContainerFailed(sel.State, sel.Status); failed {
+		statusStyled = theme.RedStyle.Render(uptimeDisplay)
+	} else if sel.State == "running" {
+		statusStyled = theme.GreenStyle.Render(uptimeDisplay)
+	} else if sel.State == "paused" || sel.State == "restarting" {
+		statusStyled = theme.YellowStyle.Render(uptimeDisplay)
+	} else {
+		statusStyled = theme.DimStyle.Render(uptimeDisplay)
+	}
+
 	if sel.Created != "" {
 		uptimeDisplay = fmt.Sprintf("%s  %s %s",
-			theme.GreenStyle.Render(uptimeDisplay),
+			statusStyled,
 			theme.DimStyle.Render("• "+dict.CreatedLabel),
 			theme.DimStyle.Render(sel.Created),
 		)
 	} else {
-		uptimeDisplay = theme.GreenStyle.Render(uptimeDisplay)
+		uptimeDisplay = statusStyled
 	}
 	s.WriteString(renderDetailRow(dict.DetailUptimeLabel, uptimeDisplay))
 
@@ -181,7 +193,12 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 	s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")
 }
 
-func formatContainerStatus(state, health string) (string, lipgloss.Style) {
+func formatContainerStatus(state, health string, rawStatus ...string) (string, lipgloss.Style) {
+	status := ""
+	if len(rawStatus) > 0 {
+		status = rawStatus[0]
+	}
+
 	if state == "running" {
 		switch health {
 		case "healthy":
@@ -197,7 +214,21 @@ func formatContainerStatus(state, health string) (string, lipgloss.Style) {
 		return "⏸ paused", theme.YellowStyle
 	} else if state == "restarting" {
 		return "↻ restarting", theme.YellowStyle
+	} else if state == "dead" {
+		return "✖ dead", theme.RedStyle
 	}
+
+	if failed, code := monitor.IsContainerFailed(state, status); failed {
+		if code != -1 {
+			return fmt.Sprintf("✖ failed (%d)", code), theme.RedStyle
+		}
+		return "✖ failed", theme.RedStyle
+	}
+
+	if hasCode, code := monitor.ParseExitCode(status); hasCode && code == 0 {
+		return "○ exited (0)", theme.DimStyle
+	}
+
 	if state == "" {
 		state = "stopped"
 	}

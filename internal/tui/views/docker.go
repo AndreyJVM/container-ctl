@@ -149,7 +149,7 @@ func renderContainerRow(c monitor.ContainerItem, isSelected bool, termWidth int)
 	cName := components.PadRight(components.Truncate(c.Name, colWidthName), colWidthName)
 	cImg := components.PadRight(components.Truncate(c.Image, colWidthImage), colWidthImage)
 
-	statusText, statusStyle := formatContainerStatus(c.State, c.Health)
+	statusText, statusStyle := formatContainerStatus(c.State, c.Health, c.Status)
 	statusPadded := components.PadRight(components.Truncate(statusText, colWidthStatus), colWidthStatus)
 
 	cpuRaw, memRaw := formatContainerMetrics(c)

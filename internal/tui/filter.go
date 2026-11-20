@@ -8,6 +8,9 @@ import (
 )
 
 func containerStatusScore(c monitor.ContainerItem) int {
+	if failed, _ := monitor.IsContainerFailed(c.State, c.Status); failed {
+		return 1
+	}
 	switch {
 	case c.State == "running" && c.Health == "unhealthy":
 		return 1

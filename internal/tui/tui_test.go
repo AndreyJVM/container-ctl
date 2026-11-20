@@ -352,25 +352,31 @@ func TestContainerStatusScore(t *testing.T) {
 	tests := []struct {
 		state  string
 		health string
+		status string
 		score  int
 	}{
-		{"running", "unhealthy", 1},
-		{"running", "starting", 2},
-		{"running", "healthy", 3},
-		{"running", "", 3},
-		{"restarting", "", 4},
-		{"paused", "", 5},
-		{"exited", "", 6},
-		{"unknown", "", 6},
+		{"dead", "", "Dead", 1},
+		{"exited", "", "Exited (1) 2m ago", 1},
+		{"exited", "", "Exited (137) 10s ago", 1},
+		{"running", "unhealthy", "Up 2h (unhealthy)", 1},
+		{"running", "starting", "Up 1m (health: starting)", 2},
+		{"running", "healthy", "Up 2h (healthy)", 3},
+		{"running", "", "Up 5h", 3},
+		{"restarting", "", "Restarting", 4},
+		{"paused", "", "Paused", 5},
+		{"exited", "", "Exited (0) 5m ago", 6},
+		{"exited", "", "", 6},
+		{"unknown", "", "", 6},
 	}
 
 	for _, tt := range tests {
 		s := containerStatusScore(monitor.ContainerItem{
 			State:  tt.state,
 			Health: tt.health,
+			Status: tt.status,
 		})
 		if s != tt.score {
-			t.Errorf("for state=%q health=%q expected score %d, got %d", tt.state, tt.health, tt.score, s)
+			t.Errorf("for state=%q health=%q status=%q expected score %d, got %d", tt.state, tt.health, tt.status, tt.score, s)
 		}
 	}
 }

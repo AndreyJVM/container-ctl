@@ -60,24 +60,34 @@ func TestRenderDockerView(t *testing.T) {
 
 func TestFormatContainerStatus(t *testing.T) {
 	tests := []struct {
-		state    string
-		health   string
-		expected string
+		state     string
+		health    string
+		rawStatus string
+		expected  string
 	}{
-		{"running", "healthy", "● [healthy]"},
-		{"running", "unhealthy", "▲ [unhealthy]"},
-		{"running", "starting", "⏳ [starting]"},
-		{"running", "", "● running"},
-		{"paused", "", "⏸ paused"},
-		{"restarting", "", "↻ restarting"},
-		{"exited", "", "○ exited"},
-		{"", "", "○ stopped"},
+		{"running", "healthy", "Up 2 hours (healthy)", "● [healthy]"},
+		{"running", "unhealthy", "Up 2 hours (unhealthy)", "▲ [unhealthy]"},
+		{"running", "starting", "Up 2 minutes (health: starting)", "⏳ [starting]"},
+		{"running", "", "Up 5 hours", "● running"},
+		{"paused", "", "Paused", "⏸ paused"},
+		{"restarting", "", "Restarting (1) 2s ago", "↻ restarting"},
+		{"dead", "", "Dead", "✖ dead"},
+		{"exited", "", "Exited (1) 5 seconds ago", "✖ failed (1)"},
+		{"exited", "", "Exited (137) 10 seconds ago", "✖ failed (137)"},
+		{"exited", "", "Exited (0) 10 minutes ago", "○ exited (0)"},
+		{"exited", "", "", "○ exited"},
+		{"", "", "", "○ stopped"},
 	}
 
 	for _, tc := range tests {
-		text, _ := formatContainerStatus(tc.state, tc.health)
+		var text string
+		if tc.rawStatus != "" {
+			text, _ = formatContainerStatus(tc.state, tc.health, tc.rawStatus)
+		} else {
+			text, _ = formatContainerStatus(tc.state, tc.health)
+		}
 		if text != tc.expected {
-			t.Errorf("formatContainerStatus(%q, %q) = %q, expected %q", tc.state, tc.health, text, tc.expected)
+			t.Errorf("formatContainerStatus(%q, %q, %q) = %q, expected %q", tc.state, tc.health, tc.rawStatus, text, tc.expected)
 		}
 	}
 }
