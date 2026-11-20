@@ -38,6 +38,8 @@ func RenderHelp(refreshInterval time.Duration, swarmVisible ...bool) string {
 				{key: tabKeys, desc: "Switch directly to Tab (1-6)"},
 				{key: "[Tab] / [Shift+Tab] / [←] / [→]", desc: "Switch to next / previous tab"},
 				{key: "[↑] / [↓] / [k] / [j]", desc: "Navigate items in list"},
+				{key: "[Home] / [g] / [End] / [G]", desc: "Jump to start / end of list"},
+				{key: "[PgUp] / [PgDown]", desc: "Scroll page up / down"},
 			},
 		},
 		{
@@ -60,14 +62,29 @@ func RenderHelp(refreshInterval time.Duration, swarmVisible ...bool) string {
 			title: "IMAGE ACTIONS (Images Tab)",
 			items: []helpItem{
 				{key: "[u]", desc: "Toggle filter for unused / reclaimable images"},
+				{key: "[y]", desc: "Copy image repository:tag to clipboard"},
 				{key: "[x]", desc: "Remove image (docker rmi)"},
 			},
 		},
 		{
 			title: "COMPOSE ACTIONS (Compose Tab)",
 			items: []helpItem{
+				{key: "[/]", desc: "Search and filter Compose projects"},
 				{key: "[U]", desc: "Start selected Compose project (up)"},
+				{key: "[S]", desc: "Stop selected Compose project"},
+				{key: "[P]", desc: "Restart selected Compose project"},
 				{key: "[D]", desc: "Stop and remove Compose project (down)"},
+				{key: "[L]", desc: "View Compose stack aggregated logs"},
+				{key: "[y]", desc: "Copy Compose project name to clipboard"},
+			},
+		},
+		{
+			title: "NETWORKS & VOLUMES (Tabs 4 & 5)",
+			items: []helpItem{
+				{key: "[Enter] / [i]", desc: "Inspect network or volume JSON details"},
+				{key: "[/]", desc: "Search and filter networks or volumes"},
+				{key: "[y]", desc: "Copy network or volume name to clipboard"},
+				{key: "[C]", desc: "Prune unused networks or volumes"},
 			},
 		},
 		{
@@ -76,7 +93,7 @@ func RenderHelp(refreshInterval time.Duration, swarmVisible ...bool) string {
 				{key: "[C]", desc: "Prune unused Docker resources (interactive menu)"},
 				{key: "[R]", desc: "Force refresh all Docker metrics immediately"},
 				{key: "[?]", desc: "Toggle this help window"},
-				{key: "[Q] / [Esc]", desc: "Exit Dockpulse"},
+				{key: "[Q] / [Ctrl+C]", desc: "Exit Dockpulse"},
 			},
 		},
 	}

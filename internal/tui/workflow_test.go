@@ -237,3 +237,299 @@ func TestExecModalWorkflow(t *testing.T) {
 		t.Errorf("expected non-nil tea.Cmd for launching attach")
 	}
 }
+
+func TestNetworksAndVolumesHotkeys(t *testing.T) {
+	m := Model{
+		version:         "v0.18.1",
+		activeTab:       TabNetworks,
+		refreshInterval: 2 * time.Second,
+		networks: []monitor.DockerNetwork{
+			testutil.ANetwork(func(n *monitor.DockerNetwork) {
+				n.Name = "production-net"
+			}),
+		},
+		volumes: []monitor.DockerVolume{
+			testutil.AVolume(func(v *monitor.DockerVolume) {
+				v.Name = "database-data"
+			}),
+		},
+	}
+
+	// 1. Copy network name with "y"
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+	m = res.(Model)
+	if !strings.Contains(m.actionMessage, "Copied to clipboard: production-net") {
+		t.Errorf("expected copied network name in toast, got: %s", m.actionMessage)
+	}
+
+	// 2. Open prune modal from Networks tab with "c"
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	m = res.(Model)
+	if m.activeModal != "prune" {
+		t.Errorf("expected prune modal opened from Networks tab, got %s", m.activeModal)
+	}
+	m.closeModal()
+
+	// 3. Switch to Volumes tab and copy volume name with "Y"
+	m.setTab(TabVolumes)
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Y'}})
+	m = res.(Model)
+	if !strings.Contains(m.actionMessage, "Copied to clipboard: database-data") {
+		t.Errorf("expected copied volume name in toast, got: %s", m.actionMessage)
+	}
+
+	// 4. Open prune modal from Volumes tab with "C"
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'C'}})
+	m = res.(Model)
+	if m.activeModal != "prune" {
+		t.Errorf("expected prune modal opened from Volumes tab, got %s", m.activeModal)
+	}
+}
+
+func TestListNavigationHomeEndPgUpPgDown(t *testing.T) {
+	m := Model{
+		version:         "v0.18.1",
+		activeTab:       TabDocker,
+		refreshInterval: 2 * time.Second,
+		dockerInfo: monitor.DockerSummary{
+			Containers: []monitor.ContainerItem{
+				testutil.AContainer(testutil.WithName("c0")),
+				testutil.AContainer(testutil.WithName("c1")),
+				testutil.AContainer(testutil.WithName("c2")),
+				testutil.AContainer(testutil.WithName("c3")),
+				testutil.AContainer(testutil.WithName("c4")),
+				testutil.AContainer(testutil.WithName("c5")),
+				testutil.AContainer(testutil.WithName("c6")),
+				testutil.AContainer(testutil.WithName("c7")),
+			},
+		},
+	}
+
+	// 1. Move to End with "end"
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnd})
+	m = res.(Model)
+	if m.cursorIdx != 7 {
+		t.Errorf("expected cursor at 7 after 'end', got %d", m.cursorIdx)
+	}
+
+	// 2. Move to Home with "home"
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyHome})
+	m = res.(Model)
+	if m.cursorIdx != 0 {
+		t.Errorf("expected cursor at 0 after 'home', got %d", m.cursorIdx)
+	}
+
+	// 3. Jump to End with "G"
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'G'}})
+	m = res.(Model)
+	if m.cursorIdx != 7 {
+		t.Errorf("expected cursor at 7 after 'G', got %d", m.cursorIdx)
+	}
+
+	// 4. Jump to Start with "g"
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
+	m = res.(Model)
+	if m.cursorIdx != 0 {
+		t.Errorf("expected cursor at 0 after 'g', got %d", m.cursorIdx)
+	}
+
+	// 5. PageDown moves 5 items down
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	m = res.(Model)
+	if m.cursorIdx != 5 {
+		t.Errorf("expected cursor at 5 after 'pgdown', got %d", m.cursorIdx)
+	}
+
+	// 6. PageUp moves 5 items up
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgUp})
+	m = res.(Model)
+	if m.cursorIdx != 0 {
+		t.Errorf("expected cursor at 0 after 'pgup', got %d", m.cursorIdx)
+	}
+}
+
+func TestComposeNetworksVolumesSearchFilter(t *testing.T) {
+	m := Model{
+		version:         "v0.18.1",
+		activeTab:       TabCompose,
+		refreshInterval: 2 * time.Second,
+		compose: []monitor.ComposeProject{
+			{Name: "web-stack", Status: "running", Services: []monitor.ComposeService{{Name: "web-srv", Image: "nginx"}}},
+			{Name: "db-stack", Status: "running", Services: []monitor.ComposeService{{Name: "db-srv", Image: "postgres"}}},
+		},
+		networks: []monitor.DockerNetwork{
+			{ID: "n1", Name: "bridge-net", Driver: "bridge", Subnet: "172.18.0.0/16"},
+			{ID: "n2", Name: "custom-net", Driver: "overlay", Subnet: "10.0.0.0/24"},
+		},
+		volumes: []monitor.DockerVolume{
+			{Name: "db-data", Driver: "local"},
+			{Name: "cache-data", Driver: "local"},
+		},
+	}
+
+	// 1. Open search on TabCompose with "/"
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = res.(Model)
+	if !m.isFiltering {
+		t.Fatalf("expected isFiltering true on Compose tab")
+	}
+
+	// Type "db"
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	m = res.(Model)
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'b'}})
+	m = res.(Model)
+
+	filteredCompose := m.getFilteredCompose()
+	if len(filteredCompose) != 1 || filteredCompose[0].Name != "db-stack" {
+		t.Errorf("expected db-stack matching 'db', got %+v", filteredCompose)
+	}
+
+	// Apply filter with Enter
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = res.(Model)
+	if m.isFiltering {
+		t.Errorf("expected isFiltering false after Enter")
+	}
+
+	// View rendering contains filter badge
+	v := m.View()
+	if !strings.Contains(v, "Filter: db") {
+		t.Errorf("expected filter badge in compose view, got: %s", v)
+	}
+
+	// Reset with Esc
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.filterQuery != "" {
+		t.Errorf("expected filterQuery empty after Esc, got %q", m.filterQuery)
+	}
+	if len(m.getFilteredCompose()) != 2 {
+		t.Errorf("expected all compose projects restored")
+	}
+
+	// 2. Search on TabNetworks
+	m.activeTab = TabNetworks
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = res.(Model)
+	if !m.isFiltering {
+		t.Fatalf("expected isFiltering true on Networks tab")
+	}
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o', 'v', 'e', 'r', 'l', 'a', 'y'}})
+	m = res.(Model)
+	filteredNets := m.getFilteredNetworks()
+	if len(filteredNets) != 1 || filteredNets[0].Name != "custom-net" {
+		t.Errorf("expected custom-net matching overlay driver, got %+v", filteredNets)
+	}
+
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.filterQuery != "" {
+		t.Errorf("expected filterQuery reset after Esc")
+	}
+
+	// 3. Search on TabVolumes
+	m.activeTab = TabVolumes
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = res.(Model)
+	if !m.isFiltering {
+		t.Fatalf("expected isFiltering true on Volumes tab")
+	}
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c', 'a', 'c', 'h', 'e'}})
+	m = res.(Model)
+	filteredVols := m.getFilteredVolumes()
+	if len(filteredVols) != 1 || filteredVols[0].Name != "cache-data" {
+		t.Errorf("expected cache-data matching 'cache', got %+v", filteredVols)
+	}
+
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.filterQuery != "" {
+		t.Errorf("expected filterQuery reset after Esc")
+	}
+}
+
+func TestNetworksAndVolumesInspectModal(t *testing.T) {
+	m := Model{
+		version:         "v0.18.1",
+		activeTab:       TabNetworks,
+		refreshInterval: 2 * time.Second,
+		networks: []monitor.DockerNetwork{
+			{ID: "net-xyz-123", Name: "app-net", Driver: "bridge", Subnet: "172.20.0.0/16"},
+		},
+		volumes: []monitor.DockerVolume{
+			{Name: "data-volume", Driver: "local", Scope: "local"},
+		},
+	}
+
+	// 1. Inspect on Networks tab with Enter
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = res.(Model)
+	if m.activeModal != ModalInspect {
+		t.Fatalf("expected ModalInspect opened for network, got %q", m.activeModal)
+	}
+	if !strings.Contains(m.inspectCustomTitle, "NETWORK INSPECTION: app-net") {
+		t.Errorf("expected network title, got %q", m.inspectCustomTitle)
+	}
+	if len(m.inspectCustomLines) == 0 {
+		t.Errorf("expected inspect lines populated")
+	}
+	if m.inspectCopyID != "net-xyz-123" {
+		t.Errorf("expected copy ID net-xyz-123, got %q", m.inspectCopyID)
+	}
+
+	// View renders the network inspection modal
+	view := m.View()
+	if !strings.Contains(view, "NETWORK INSPECTION: app-net") {
+		t.Errorf("expected network inspection header in view, got: %s", view)
+	}
+
+	// Test copy hotkey in modal
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+	m = res.(Model)
+	if !strings.Contains(m.actionMessage, "Copied to clipboard") && !strings.Contains(m.actionMessage, "Clipboard error") {
+		t.Errorf("expected clipboard feedback toast, got: %s", m.actionMessage)
+	}
+
+	// Close modal with Esc
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.activeModal != ModalNone {
+		t.Fatalf("expected modal closed, got %q", m.activeModal)
+	}
+
+	// 2. Inspect on Volumes tab with 'i'
+	m.activeTab = TabVolumes
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'i'}})
+	m = res.(Model)
+	if m.activeModal != ModalInspect {
+		t.Fatalf("expected ModalInspect opened for volume, got %q", m.activeModal)
+	}
+	if !strings.Contains(m.inspectCustomTitle, "VOLUME INSPECTION: data-volume") {
+		t.Errorf("expected volume title, got %q", m.inspectCustomTitle)
+	}
+	if len(m.inspectCustomLines) == 0 {
+		t.Errorf("expected inspect lines populated")
+	}
+	if m.inspectCopyID != "data-volume" {
+		t.Errorf("expected copy ID data-volume, got %q", m.inspectCopyID)
+	}
+
+	volView := m.View()
+	if !strings.Contains(volView, "VOLUME INSPECTION: data-volume") {
+		t.Errorf("expected volume inspection header in view, got: %s", volView)
+	}
+
+	// Scroll down and up
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = res.(Model)
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	m = res.(Model)
+
+	// Close modal with Esc
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.activeModal != ModalNone {
+		t.Fatalf("expected modal closed, got %q", m.activeModal)
+	}
+}

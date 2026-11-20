@@ -12,23 +12,46 @@ import (
 
 // VolumesContext contains data needed to render the Docker Volumes tab.
 type VolumesContext struct {
-	Volumes   []monitor.DockerVolume
-	CursorIdx int
-	Error     string
-	Width     int
+	Volumes           []monitor.DockerVolume
+	TotalVolumesCount int
+	CursorIdx         int
+	Error             string
+	IsFiltering       bool
+	FilterQuery       string
+	Width             int
 }
 
 // RenderVolumes renders Docker volumes and details for the selected volume.
 func RenderVolumes(ctx VolumesContext) string {
 	var s strings.Builder
-	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf("DOCKER VOLUMES (%d)", len(ctx.Volumes))) + "\n\n")
+
+	count := len(ctx.Volumes)
+	if ctx.TotalVolumesCount > 0 {
+		count = ctx.TotalVolumesCount
+	}
+
+	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf("DOCKER VOLUMES (%d)", count)) + "\n\n")
 
 	if ctx.Error != "" {
 		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("Docker volumes are unavailable: %s", ctx.Error)) + "\n")
 		return s.String()
 	}
+
+	if ctx.IsFiltering {
+		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("[Search: %s█]", ctx.FilterQuery)) + "  " + theme.DimStyle.Render("(Enter: apply, Esc: cancel)") + "\n\n")
+	} else if ctx.FilterQuery != "" {
+		badge := theme.ActiveTabStyle.Render(fmt.Sprintf("Filter: %s", ctx.FilterQuery)) + "  " +
+			theme.DimStyle.Render(fmt.Sprintf("(Found: %d of %d, Esc: reset)", len(ctx.Volumes), ctx.TotalVolumesCount))
+		s.WriteString("  " + badge + "\n\n")
+	}
+
 	if len(ctx.Volumes) == 0 {
-		s.WriteString("  " + theme.DimStyle.Render("No Docker volumes found.") + "\n")
+		if ctx.FilterQuery != "" {
+			s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("No Docker volumes found matching %q.", ctx.FilterQuery)) + "\n")
+			s.WriteString("  " + theme.DimStyle.Render("Press Esc to clear search filter.") + "\n")
+		} else {
+			s.WriteString("  " + theme.DimStyle.Render("No Docker volumes found.") + "\n")
+		}
 		return s.String()
 	}
 

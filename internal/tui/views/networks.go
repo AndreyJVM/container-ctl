@@ -12,23 +12,46 @@ import (
 
 // NetworksContext contains data needed to render the Docker Networks tab.
 type NetworksContext struct {
-	Networks  []monitor.DockerNetwork
-	CursorIdx int
-	Error     string
-	Width     int
+	Networks           []monitor.DockerNetwork
+	TotalNetworksCount int
+	CursorIdx          int
+	Error              string
+	IsFiltering        bool
+	FilterQuery        string
+	Width              int
 }
 
 // RenderNetworks renders Docker networks and details for the selected network.
 func RenderNetworks(ctx NetworksContext) string {
 	var s strings.Builder
-	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf("DOCKER NETWORKS (%d)", len(ctx.Networks))) + "\n\n")
+
+	count := len(ctx.Networks)
+	if ctx.TotalNetworksCount > 0 {
+		count = ctx.TotalNetworksCount
+	}
+
+	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf("DOCKER NETWORKS (%d)", count)) + "\n\n")
 
 	if ctx.Error != "" {
 		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("Docker networks are unavailable: %s", ctx.Error)) + "\n")
 		return s.String()
 	}
+
+	if ctx.IsFiltering {
+		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("[Search: %s█]", ctx.FilterQuery)) + "  " + theme.DimStyle.Render("(Enter: apply, Esc: cancel)") + "\n\n")
+	} else if ctx.FilterQuery != "" {
+		badge := theme.ActiveTabStyle.Render(fmt.Sprintf("Filter: %s", ctx.FilterQuery)) + "  " +
+			theme.DimStyle.Render(fmt.Sprintf("(Found: %d of %d, Esc: reset)", len(ctx.Networks), ctx.TotalNetworksCount))
+		s.WriteString("  " + badge + "\n\n")
+	}
+
 	if len(ctx.Networks) == 0 {
-		s.WriteString("  " + theme.DimStyle.Render("No Docker networks found.") + "\n")
+		if ctx.FilterQuery != "" {
+			s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("No Docker networks found matching %q.", ctx.FilterQuery)) + "\n")
+			s.WriteString("  " + theme.DimStyle.Render("Press Esc to clear search filter.") + "\n")
+		} else {
+			s.WriteString("  " + theme.DimStyle.Render("No Docker networks found.") + "\n")
+		}
 		return s.String()
 	}
 

@@ -87,14 +87,12 @@ func BuildInspectLines(d monitor.ContainerDetail) []string {
 	return lines
 }
 
-// RenderInspect renders the detailed container inspection modal with optional scrolling.
-func RenderInspect(d monitor.ContainerDetail, scrollOpts ...int) string {
+// RenderInspectLines renders an inspection modal with custom title and lines.
+func RenderInspectLines(title string, lines []string, scrollOpts ...int) string {
 	var s strings.Builder
 
-	title := fmt.Sprintf("CONTAINER INSPECTION: %s", theme.BoldStyle.Render(d.Name))
 	s.WriteString(theme.TitleStyle.Render(title) + "\n\n")
 
-	lines := BuildInspectLines(d)
 	scroll := 0
 	if len(scrollOpts) > 0 {
 		scroll = scrollOpts[0]
@@ -113,6 +111,13 @@ func RenderInspect(d monitor.ContainerDetail, scrollOpts ...int) string {
 	}
 
 	return theme.BoxStyle.Render(s.String())
+}
+
+// RenderInspect renders the detailed container inspection modal with optional scrolling.
+func RenderInspect(d monitor.ContainerDetail, scrollOpts ...int) string {
+	title := fmt.Sprintf("CONTAINER INSPECTION: %s", theme.BoldStyle.Render(d.Name))
+	lines := BuildInspectLines(d)
+	return RenderInspectLines(title, lines, scrollOpts...)
 }
 
 // MaskEnvVar obscures values of sensitive environment variables containing passwords, secrets, keys, or tokens.

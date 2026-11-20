@@ -20,10 +20,11 @@ func (m *Model) clampCursor() {
 		m.imageCursorIdx = 0
 	}
 
-	if len(m.compose) == 0 {
+	compose := m.getFilteredCompose()
+	if len(compose) == 0 {
 		m.composeCursorIdx = 0
-	} else if m.composeCursorIdx >= len(m.compose) {
-		m.composeCursorIdx = len(m.compose) - 1
+	} else if m.composeCursorIdx >= len(compose) {
+		m.composeCursorIdx = len(compose) - 1
 	} else if m.composeCursorIdx < 0 {
 		m.composeCursorIdx = 0
 	}
@@ -36,18 +37,20 @@ func (m *Model) clampCursor() {
 		m.swarmCursorIdx = 0
 	}
 
-	if len(m.networks) == 0 {
+	networks := m.getFilteredNetworks()
+	if len(networks) == 0 {
 		m.networkCursorIdx = 0
-	} else if m.networkCursorIdx >= len(m.networks) {
-		m.networkCursorIdx = len(m.networks) - 1
+	} else if m.networkCursorIdx >= len(networks) {
+		m.networkCursorIdx = len(networks) - 1
 	} else if m.networkCursorIdx < 0 {
 		m.networkCursorIdx = 0
 	}
 
-	if len(m.volumes) == 0 {
+	volumes := m.getFilteredVolumes()
+	if len(volumes) == 0 {
 		m.volumeCursorIdx = 0
-	} else if m.volumeCursorIdx >= len(m.volumes) {
-		m.volumeCursorIdx = len(m.volumes) - 1
+	} else if m.volumeCursorIdx >= len(volumes) {
+		m.volumeCursorIdx = len(volumes) - 1
 	} else if m.volumeCursorIdx < 0 {
 		m.volumeCursorIdx = 0
 	}
@@ -113,24 +116,27 @@ func (m *Model) moveCursor(delta int) {
 			}
 		}
 	case TabCompose:
-		if len(m.compose) > 0 {
-			m.composeCursorIdx = (m.composeCursorIdx + delta) % len(m.compose)
+		compose := m.getFilteredCompose()
+		if len(compose) > 0 {
+			m.composeCursorIdx = (m.composeCursorIdx + delta) % len(compose)
 			if m.composeCursorIdx < 0 {
-				m.composeCursorIdx += len(m.compose)
+				m.composeCursorIdx += len(compose)
 			}
 		}
 	case TabNetworks:
-		if len(m.networks) > 0 {
-			m.networkCursorIdx = (m.networkCursorIdx + delta) % len(m.networks)
+		networks := m.getFilteredNetworks()
+		if len(networks) > 0 {
+			m.networkCursorIdx = (m.networkCursorIdx + delta) % len(networks)
 			if m.networkCursorIdx < 0 {
-				m.networkCursorIdx += len(m.networks)
+				m.networkCursorIdx += len(networks)
 			}
 		}
 	case TabVolumes:
-		if len(m.volumes) > 0 {
-			m.volumeCursorIdx = (m.volumeCursorIdx + delta) % len(m.volumes)
+		volumes := m.getFilteredVolumes()
+		if len(volumes) > 0 {
+			m.volumeCursorIdx = (m.volumeCursorIdx + delta) % len(volumes)
 			if m.volumeCursorIdx < 0 {
-				m.volumeCursorIdx += len(m.volumes)
+				m.volumeCursorIdx += len(volumes)
 			}
 		}
 	case TabSwarm:
@@ -139,6 +145,54 @@ func (m *Model) moveCursor(delta int) {
 			if m.swarmCursorIdx < 0 {
 				m.swarmCursorIdx += len(m.swarm.Services)
 			}
+		}
+	}
+}
+
+// cursorToStart sets the cursor index of the active tab to 0.
+func (m *Model) cursorToStart() {
+	switch m.activeTab {
+	case TabDocker:
+		m.cursorIdx = 0
+	case TabImages:
+		m.imageCursorIdx = 0
+	case TabCompose:
+		m.composeCursorIdx = 0
+	case TabNetworks:
+		m.networkCursorIdx = 0
+	case TabVolumes:
+		m.volumeCursorIdx = 0
+	case TabSwarm:
+		m.swarmCursorIdx = 0
+	}
+}
+
+// cursorToEnd sets the cursor index of the active tab to the last item.
+func (m *Model) cursorToEnd() {
+	switch m.activeTab {
+	case TabDocker:
+		if n := len(m.getFilteredContainers()); n > 0 {
+			m.cursorIdx = n - 1
+		}
+	case TabImages:
+		if n := len(m.getFilteredImages()); n > 0 {
+			m.imageCursorIdx = n - 1
+		}
+	case TabCompose:
+		if n := len(m.getFilteredCompose()); n > 0 {
+			m.composeCursorIdx = n - 1
+		}
+	case TabNetworks:
+		if n := len(m.getFilteredNetworks()); n > 0 {
+			m.networkCursorIdx = n - 1
+		}
+	case TabVolumes:
+		if n := len(m.getFilteredVolumes()); n > 0 {
+			m.volumeCursorIdx = n - 1
+		}
+	case TabSwarm:
+		if n := len(m.swarm.Services); n > 0 {
+			m.swarmCursorIdx = n - 1
 		}
 	}
 }

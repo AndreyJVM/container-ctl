@@ -164,29 +164,41 @@ func (m Model) renderImagesTab() string {
 }
 
 func (m Model) renderComposeTab() string {
+	compose := m.getFilteredCompose()
 	return views.RenderCompose(views.ComposeContext{
-		Projects:     m.compose,
-		CursorIdx:    m.composeCursorIdx,
-		FormatStatus: m.formatComposeStatus,
-		Width:        m.width,
+		Projects:           compose,
+		TotalProjectsCount: len(m.compose),
+		CursorIdx:          m.composeCursorIdx,
+		FormatStatus:       m.formatComposeStatus,
+		IsFiltering:        m.isFiltering,
+		FilterQuery:        m.filterQuery,
+		Width:              m.width,
 	})
 }
 
 func (m Model) renderNetworksTab() string {
+	networks := m.getFilteredNetworks()
 	return views.RenderNetworks(views.NetworksContext{
-		Networks:  m.networks,
-		CursorIdx: m.networkCursorIdx,
-		Error:     m.networkErr,
-		Width:     m.width,
+		Networks:           networks,
+		TotalNetworksCount: len(m.networks),
+		CursorIdx:          m.networkCursorIdx,
+		Error:              m.networkErr,
+		IsFiltering:        m.isFiltering,
+		FilterQuery:        m.filterQuery,
+		Width:              m.width,
 	})
 }
 
 func (m Model) renderVolumesTab() string {
+	volumes := m.getFilteredVolumes()
 	return views.RenderVolumes(views.VolumesContext{
-		Volumes:   m.volumes,
-		CursorIdx: m.volumeCursorIdx,
-		Error:     m.volumeErr,
-		Width:     m.width,
+		Volumes:           volumes,
+		TotalVolumesCount: len(m.volumes),
+		CursorIdx:         m.volumeCursorIdx,
+		Error:             m.volumeErr,
+		IsFiltering:       m.isFiltering,
+		FilterQuery:       m.filterQuery,
+		Width:             m.width,
 	})
 }
 
@@ -208,6 +220,9 @@ func (m Model) renderLogsModal() string {
 }
 
 func (m Model) renderInspectModal() string {
+	if len(m.inspectCustomLines) > 0 {
+		return modals.RenderInspectLines(m.inspectCustomTitle, m.inspectCustomLines, m.inspectScroll)
+	}
 	return modals.RenderInspect(m.inspectTarget, m.inspectScroll)
 }
 

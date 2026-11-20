@@ -204,9 +204,16 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "y", "Y":
-		if m.activeModal == ModalInspect {
-			_ = clipboard.Write(m.inspectTarget.ID)
-			m.showToast(fmt.Sprintf("Copied to clipboard: %s", m.inspectTarget.ID))
+		targetToCopy := m.inspectCopyID
+		if targetToCopy == "" && m.inspectTarget.ID != "" {
+			targetToCopy = m.inspectTarget.ID
+		}
+		if m.activeModal == ModalInspect && targetToCopy != "" {
+			if err := clipboard.Write(targetToCopy); err != nil {
+				m.showToast(fmt.Sprintf("Clipboard error: %v", err))
+			} else {
+				m.showToast(fmt.Sprintf("Copied to clipboard: %s", targetToCopy))
+			}
 			return m, nil
 		}
 	}
@@ -214,6 +221,9 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) countInspectLines() int {
+	if len(m.inspectCustomLines) > 0 {
+		return len(m.inspectCustomLines)
+	}
 	return len(modals.BuildInspectLines(m.inspectTarget))
 }
 

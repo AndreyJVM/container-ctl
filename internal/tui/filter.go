@@ -103,6 +103,80 @@ func (m Model) getFilteredImages() []monitor.DockerImage {
 	return filtered
 }
 
+func (m Model) getFilteredCompose() []monitor.ComposeProject {
+	trimmedQuery := strings.TrimSpace(strings.ToLower(m.filterQuery))
+	if trimmedQuery == "" {
+		return m.compose
+	}
+
+	var filtered []monitor.ComposeProject
+	for _, p := range m.compose {
+		matches := strings.Contains(strings.ToLower(p.Name), trimmedQuery) ||
+			strings.Contains(strings.ToLower(p.Status), trimmedQuery) ||
+			strings.Contains(strings.ToLower(p.StatusDisplay), trimmedQuery)
+
+		if !matches {
+			for _, s := range p.Services {
+				if strings.Contains(strings.ToLower(s.Name), trimmedQuery) ||
+					strings.Contains(strings.ToLower(s.Image), trimmedQuery) ||
+					strings.Contains(strings.ToLower(s.State), trimmedQuery) {
+					matches = true
+					break
+				}
+			}
+		}
+
+		if matches {
+			filtered = append(filtered, p)
+		}
+	}
+	return filtered
+}
+
+func (m Model) getFilteredNetworks() []monitor.DockerNetwork {
+	trimmedQuery := strings.TrimSpace(strings.ToLower(m.filterQuery))
+	if trimmedQuery == "" {
+		return m.networks
+	}
+
+	var filtered []monitor.DockerNetwork
+	for _, n := range m.networks {
+		matches := strings.Contains(strings.ToLower(n.Name), trimmedQuery) ||
+			strings.Contains(strings.ToLower(n.ID), trimmedQuery) ||
+			strings.Contains(strings.ToLower(n.Driver), trimmedQuery) ||
+			strings.Contains(strings.ToLower(n.Scope), trimmedQuery) ||
+			strings.Contains(strings.ToLower(n.Subnet), trimmedQuery) ||
+			strings.Contains(strings.ToLower(n.Gateway), trimmedQuery) ||
+			strings.Contains(strings.ToLower(n.ComposeProject), trimmedQuery)
+
+		if matches {
+			filtered = append(filtered, n)
+		}
+	}
+	return filtered
+}
+
+func (m Model) getFilteredVolumes() []monitor.DockerVolume {
+	trimmedQuery := strings.TrimSpace(strings.ToLower(m.filterQuery))
+	if trimmedQuery == "" {
+		return m.volumes
+	}
+
+	var filtered []monitor.DockerVolume
+	for _, v := range m.volumes {
+		matches := strings.Contains(strings.ToLower(v.Name), trimmedQuery) ||
+			strings.Contains(strings.ToLower(v.Driver), trimmedQuery) ||
+			strings.Contains(strings.ToLower(v.Scope), trimmedQuery) ||
+			strings.Contains(strings.ToLower(v.Mountpoint), trimmedQuery) ||
+			strings.Contains(strings.ToLower(v.ComposeProject), trimmedQuery)
+
+		if matches {
+			filtered = append(filtered, v)
+		}
+	}
+	return filtered
+}
+
 // IsOnlyUnusedImages returns true if the image list is filtered to only unused images.
 func (m Model) IsOnlyUnusedImages() bool {
 	return m.onlyUnusedImages

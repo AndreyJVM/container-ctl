@@ -147,15 +147,17 @@ func SortModeName(mode int) string {
 // If explicitPath is provided, it is returned if it exists.
 func FindConfigFile(explicitPath string) string {
 	if explicitPath != "" {
-		if _, err := os.Stat(explicitPath); err == nil {
-			return explicitPath
+		cleaned := filepath.Clean(explicitPath)
+		if _, err := os.Stat(cleaned); err == nil {
+			return cleaned
 		}
-		return explicitPath
+		return cleaned
 	}
 
 	if envPath := os.Getenv("DOCKPULSE_CONFIG"); envPath != "" {
-		if _, err := os.Stat(envPath); err == nil {
-			return envPath
+		cleaned := filepath.Clean(envPath)
+		if _, err := os.Stat(cleaned); err == nil { // #nosec G703 - path is cleaned and checking configuration file existence
+			return cleaned
 		}
 	}
 
@@ -175,8 +177,9 @@ func FindConfigFile(explicitPath string) string {
 	candidates = append(candidates, filepath.Join(".", "dockpulse.yaml"))
 
 	for _, path := range candidates {
-		if info, err := os.Stat(path); err == nil && !info.IsDir() {
-			return path
+		cleaned := filepath.Clean(path)
+		if info, err := os.Stat(cleaned); err == nil && !info.IsDir() { // #nosec G703 - path is cleaned and checked for regular file
+			return cleaned
 		}
 	}
 
@@ -197,7 +200,7 @@ func LoadConfig(explicitPath string) (*Config, error) {
 
 	targetFile := FindConfigFile(explicitPath)
 	if targetFile != "" {
-		data, err := os.ReadFile(targetFile)
+		data, err := os.ReadFile(filepath.Clean(targetFile)) // #nosec G304 - validated config file path
 		if err != nil {
 			if explicitPath != "" {
 				return nil, fmt.Errorf("failed to read config file %s: %w", targetFile, err)
@@ -369,12 +372,12 @@ func InitConfigFile(destPath string, overwrite bool) (string, error) {
 	}
 
 	dir := filepath.Dir(destPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create config directory %s: %w", dir, err)
 	}
 
 	content := GenerateDefaultConfig()
-	if err := os.WriteFile(destPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(destPath, []byte(content), 0600); err != nil {
 		return "", fmt.Errorf("failed to write config file %s: %w", destPath, err)
 	}
 

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"runtime"
@@ -92,9 +93,9 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-	// Search & filter on Docker and Images tabs.
+	// Search & filter on Docker, Images, Compose, Networks, and Volumes tabs.
 	case "/":
-		if m.activeTab == TabDocker || m.activeTab == TabImages {
+		if m.activeTab == TabDocker || m.activeTab == TabImages || m.activeTab == TabCompose || m.activeTab == TabNetworks || m.activeTab == TabVolumes {
 			m.isFiltering = true
 			return m, nil
 		}
@@ -112,11 +113,23 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-	// List navigation for Docker, Compose, and Swarm.
+	// List navigation across all tabs.
 	case "up", "k":
 		m.moveCursor(-1)
 	case "down", "j":
 		m.moveCursor(1)
+	case "pgup":
+		m.moveCursor(-5)
+	case "pgdown":
+		m.moveCursor(5)
+	case "home", "g":
+		if !m.isFiltering {
+			m.cursorToStart()
+		}
+	case "end", "G":
+		if !m.isFiltering {
+			m.cursorToEnd()
+		}
 
 	// Container, Compose project, or Swarm service logs.
 	case "l", "L":
@@ -135,17 +148,20 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					m.openModal(ModalLogs)
 				}
 			}
-		} else if m.activeTab == TabCompose && len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
-			proj := m.compose[m.composeCursorIdx]
-			m.logsTargetName = "Compose: " + proj.Name
-			m.logsTargetID = proj.Name
-			logs, err := monitor.GetComposeProjectLogs(proj.Name, m.dockerInfo.Containers, 150)
-			if err != nil {
-				m.showToast("Logs error: " + err.Error())
-			} else {
-				m.logsLines = strings.Split(strings.TrimSpace(logs), "\n")
-				m.logsScroll = max(0, len(m.logsLines)-18)
-				m.openModal(ModalLogs)
+		} else if m.activeTab == TabCompose {
+			compose := m.getFilteredCompose()
+			if len(compose) > 0 && m.composeCursorIdx < len(compose) {
+				proj := compose[m.composeCursorIdx]
+				m.logsTargetName = "Compose: " + proj.Name
+				m.logsTargetID = proj.Name
+				logs, err := monitor.GetComposeProjectLogs(proj.Name, m.dockerInfo.Containers, 150)
+				if err != nil {
+					m.showToast("Logs error: " + err.Error())
+				} else {
+					m.logsLines = strings.Split(strings.TrimSpace(logs), "\n")
+					m.logsScroll = max(0, len(m.logsLines)-18)
+					m.openModal(ModalLogs)
+				}
 			}
 		} else if m.activeTab == TabSwarm && len(m.swarm.Services) > 0 && m.swarmCursorIdx < len(m.swarm.Services) {
 			svc := m.swarm.Services[m.swarmCursorIdx]
@@ -161,17 +177,68 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	// Container inspection.
+	// Inspection: Containers, Networks, Volumes.
 	case "enter", "i", "I":
-		containers := m.getFilteredContainers()
-		if m.activeTab == TabDocker && len(containers) > 0 && m.cursorIdx < len(containers) {
-			c := containers[m.cursorIdx]
-			detail, err := monitor.GetContainerDetail(c.ID)
-			if err != nil {
-				m.showToast("Inspect error: " + err.Error())
-			} else {
-				m.inspectTarget = detail
-				m.openModal(ModalInspect)
+		if m.activeTab == TabDocker {
+			containers := m.getFilteredContainers()
+			if len(containers) > 0 && m.cursorIdx < len(containers) {
+				c := containers[m.cursorIdx]
+				detail, err := monitor.GetContainerDetail(c.ID)
+				if err != nil {
+					m.showToast("Inspect error: " + err.Error())
+				} else {
+					m.inspectTarget = detail
+					m.inspectCustomTitle = ""
+					m.inspectCustomLines = nil
+					m.inspectCopyID = c.ID
+					m.inspectScroll = 0
+					m.openModal(ModalInspect)
+				}
+			}
+		} else if m.activeTab == TabNetworks {
+			networks := m.getFilteredNetworks()
+			if len(networks) > 0 && m.networkCursorIdx < len(networks) {
+				net := networks[m.networkCursorIdx]
+				inspectStr, err := monitor.GetNetworkInspectJSON(net.ID)
+				if err != nil || strings.TrimSpace(inspectStr) == "" {
+					if b, mErr := json.MarshalIndent(net, "", "  "); mErr == nil {
+						inspectStr = string(b)
+					}
+				}
+				if strings.TrimSpace(inspectStr) == "" {
+					m.showToast("Inspect error: unable to inspect network " + net.Name)
+				} else {
+					m.inspectTarget = monitor.ContainerDetail{}
+					m.inspectCustomTitle = fmt.Sprintf("NETWORK INSPECTION: %s", net.Name)
+					m.inspectCustomLines = strings.Split(strings.TrimSpace(inspectStr), "\n")
+					m.inspectCopyID = net.ID
+					if m.inspectCopyID == "" {
+						m.inspectCopyID = net.Name
+					}
+					m.inspectScroll = 0
+					m.openModal(ModalInspect)
+				}
+			}
+		} else if m.activeTab == TabVolumes {
+			volumes := m.getFilteredVolumes()
+			if len(volumes) > 0 && m.volumeCursorIdx < len(volumes) {
+				vol := volumes[m.volumeCursorIdx]
+				inspectStr, err := monitor.GetVolumeInspectJSON(vol.Name)
+				if err != nil || strings.TrimSpace(inspectStr) == "" {
+					if b, mErr := json.MarshalIndent(vol, "", "  "); mErr == nil {
+						inspectStr = string(b)
+					}
+				}
+				if strings.TrimSpace(inspectStr) == "" {
+					m.showToast("Inspect error: unable to inspect volume " + vol.Name)
+				} else {
+					m.inspectTarget = monitor.ContainerDetail{}
+					m.inspectCustomTitle = fmt.Sprintf("VOLUME INSPECTION: %s", vol.Name)
+					m.inspectCustomLines = strings.Split(strings.TrimSpace(inspectStr), "\n")
+					m.inspectCopyID = vol.Name
+					m.inspectScroll = 0
+					m.openModal(ModalInspect)
+				}
 			}
 		}
 
@@ -188,10 +255,13 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.showToast(fmt.Sprintf("Starting container %s...", c.Name))
 				return m, startContainerCmd(c.ID, c.Name)
 			}
-		} else if m.activeTab == TabCompose && len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
-			proj := m.compose[m.composeCursorIdx]
-			m.showToast(fmt.Sprintf("Stopping Compose project %s...", proj.Name))
-			return m, stopComposeCmd(proj.Name, m.dockerInfo.Containers)
+		} else if m.activeTab == TabCompose {
+			compose := m.getFilteredCompose()
+			if len(compose) > 0 && m.composeCursorIdx < len(compose) {
+				proj := compose[m.composeCursorIdx]
+				m.showToast(fmt.Sprintf("Stopping Compose project %s...", proj.Name))
+				return m, stopComposeCmd(proj.Name, m.dockerInfo.Containers)
+			}
 		}
 
 	// Toggle unused images filter on Images tab, or Start a Compose project.
@@ -205,10 +275,13 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.showToast("Showing all images")
 			}
 			return m, nil
-		} else if m.activeTab == TabCompose && len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
-			proj := m.compose[m.composeCursorIdx]
-			m.showToast(fmt.Sprintf("Starting Compose project %s...", proj.Name))
-			return m, startComposeCmd(proj.Name, m.dockerInfo.Containers)
+		} else if m.activeTab == TabCompose && !m.isFiltering {
+			compose := m.getFilteredCompose()
+			if len(compose) > 0 && m.composeCursorIdx < len(compose) {
+				proj := compose[m.composeCursorIdx]
+				m.showToast(fmt.Sprintf("Starting Compose project %s...", proj.Name))
+				return m, startComposeCmd(proj.Name, m.dockerInfo.Containers)
+			}
 		}
 
 	// Down a Compose project, remove a container, or remove an image.
@@ -236,11 +309,14 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.openModal(ModalRemoveImage)
 				return m, nil
 			}
-		} else if m.activeTab == TabCompose && len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
-			proj := m.compose[m.composeCursorIdx]
-			m.composeDownTarget = proj.Name
-			m.openModal(ModalComposeDown)
-			return m, nil
+		} else if m.activeTab == TabCompose && !m.isFiltering {
+			compose := m.getFilteredCompose()
+			if len(compose) > 0 && m.composeCursorIdx < len(compose) {
+				proj := compose[m.composeCursorIdx]
+				m.composeDownTarget = proj.Name
+				m.openModal(ModalComposeDown)
+				return m, nil
+			}
 		}
 
 	// Open an interactive container shell.
@@ -318,15 +394,18 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.showToast(fmt.Sprintf("Restarting %s...", c.Name))
 				return m, restartContainerCmd(c.ID, c.Name)
 			}
-		} else if m.activeTab == TabCompose && len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
-			proj := m.compose[m.composeCursorIdx]
-			m.showToast(fmt.Sprintf("Restarting Compose project %s...", proj.Name))
-			return m, restartComposeCmd(proj.Name, m.dockerInfo.Containers)
+		} else if m.activeTab == TabCompose {
+			compose := m.getFilteredCompose()
+			if len(compose) > 0 && m.composeCursorIdx < len(compose) {
+				proj := compose[m.composeCursorIdx]
+				m.showToast(fmt.Sprintf("Restarting Compose project %s...", proj.Name))
+				return m, restartComposeCmd(proj.Name, m.dockerInfo.Containers)
+			}
 		}
 
 	// Prune unused Docker resources.
 	case "c", "C":
-		if (m.activeTab == TabDocker || m.activeTab == TabImages || m.activeTab == TabCompose) && !m.isFiltering {
+		if (m.activeTab == TabDocker || m.activeTab == TabImages || m.activeTab == TabCompose || m.activeTab == TabNetworks || m.activeTab == TabVolumes) && !m.isFiltering {
 			m.openModal(ModalPrune)
 			m.pruneConfirm = 0
 			usage, err := monitor.GetDockerDiskUsage()
@@ -351,8 +430,9 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				targetURL := urls[0]
-				_ = clipboard.Write(targetURL)
-				if openBrowser(targetURL) {
+				if err := clipboard.Write(targetURL); err != nil {
+					m.showToast(fmt.Sprintf("Clipboard error: %v", err))
+				} else if openBrowser(targetURL) {
 					m.showToast(fmt.Sprintf("Opened %s (copied to clipboard)", targetURL))
 				} else {
 					m.showToast(fmt.Sprintf("Copied URL: %s", targetURL))
@@ -368,8 +448,11 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if len(containers) > 0 && m.cursorIdx < len(containers) {
 				c := containers[m.cursorIdx]
 				cmdText := fmt.Sprintf("docker exec -it %s sh", c.Name)
-				_ = clipboard.Write(cmdText)
-				m.showToast(fmt.Sprintf("Copied to clipboard: %s", cmdText))
+				if err := clipboard.Write(cmdText); err != nil {
+					m.showToast(fmt.Sprintf("Clipboard error: %v", err))
+				} else {
+					m.showToast(fmt.Sprintf("Copied to clipboard: %s", cmdText))
+				}
 				return m, nil
 			}
 		} else if m.activeTab == TabImages && !m.isFiltering {
@@ -380,15 +463,54 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if img.Tag != "" && img.Tag != "<none>" {
 					name = fmt.Sprintf("%s:%s", img.Repository, img.Tag)
 				}
-				_ = clipboard.Write(name)
-				m.showToast(fmt.Sprintf("Copied to clipboard: %s", name))
+				if err := clipboard.Write(name); err != nil {
+					m.showToast(fmt.Sprintf("Clipboard error: %v", err))
+				} else {
+					m.showToast(fmt.Sprintf("Copied to clipboard: %s", name))
+				}
 				return m, nil
 			}
 		} else if m.activeTab == TabCompose && !m.isFiltering {
-			if len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
-				proj := m.compose[m.composeCursorIdx]
-				_ = clipboard.Write(proj.Name)
-				m.showToast(fmt.Sprintf("Copied to clipboard: %s", proj.Name))
+			compose := m.getFilteredCompose()
+			if len(compose) > 0 && m.composeCursorIdx < len(compose) {
+				proj := compose[m.composeCursorIdx]
+				if err := clipboard.Write(proj.Name); err != nil {
+					m.showToast(fmt.Sprintf("Clipboard error: %v", err))
+				} else {
+					m.showToast(fmt.Sprintf("Copied to clipboard: %s", proj.Name))
+				}
+				return m, nil
+			}
+		} else if m.activeTab == TabNetworks && !m.isFiltering {
+			networks := m.getFilteredNetworks()
+			if len(networks) > 0 && m.networkCursorIdx < len(networks) {
+				net := networks[m.networkCursorIdx]
+				if err := clipboard.Write(net.Name); err != nil {
+					m.showToast(fmt.Sprintf("Clipboard error: %v", err))
+				} else {
+					m.showToast(fmt.Sprintf("Copied to clipboard: %s", net.Name))
+				}
+				return m, nil
+			}
+		} else if m.activeTab == TabVolumes && !m.isFiltering {
+			volumes := m.getFilteredVolumes()
+			if len(volumes) > 0 && m.volumeCursorIdx < len(volumes) {
+				vol := volumes[m.volumeCursorIdx]
+				if err := clipboard.Write(vol.Name); err != nil {
+					m.showToast(fmt.Sprintf("Clipboard error: %v", err))
+				} else {
+					m.showToast(fmt.Sprintf("Copied to clipboard: %s", vol.Name))
+				}
+				return m, nil
+			}
+		} else if m.activeTab == TabSwarm && !m.isFiltering {
+			if len(m.swarm.Services) > 0 && m.swarmCursorIdx < len(m.swarm.Services) {
+				svc := m.swarm.Services[m.swarmCursorIdx]
+				if err := clipboard.Write(svc.Name); err != nil {
+					m.showToast(fmt.Sprintf("Clipboard error: %v", err))
+				} else {
+					m.showToast(fmt.Sprintf("Copied to clipboard: %s", svc.Name))
+				}
 				return m, nil
 			}
 		}

@@ -90,9 +90,15 @@ func GetDockerImages() ([]DockerImage, error)       { return docker.GetDockerIma
 func RemoveDockerImage(id string, force bool) error { return docker.RemoveDockerImage(id, force) }
 func GetDockerNetworks() ([]DockerNetwork, error)   { return docker.GetDockerNetworks() }
 func GetDockerVolumes() ([]DockerVolume, error)     { return docker.GetDockerVolumes() }
-func GetDockerDiskUsage() (DockerDiskUsage, error)  { return docker.GetDockerDiskUsage() }
-func ParseHealthStatus(val string) string           { return docker.ParseHealthStatus(val) }
-func ParseExitCode(status string) (bool, int)       { return docker.ParseExitCode(status) }
+func GetNetworkInspectJSON(idOrName string) (string, error) {
+	return docker.GetNetworkInspectJSON(idOrName)
+}
+func GetVolumeInspectJSON(name string) (string, error) {
+	return docker.GetVolumeInspectJSON(name)
+}
+func GetDockerDiskUsage() (DockerDiskUsage, error) { return docker.GetDockerDiskUsage() }
+func ParseHealthStatus(val string) string          { return docker.ParseHealthStatus(val) }
+func ParseExitCode(status string) (bool, int)      { return docker.ParseExitCode(status) }
 func IsContainerFailed(state, status string) (bool, int) {
 	return docker.IsContainerFailed(state, status)
 }

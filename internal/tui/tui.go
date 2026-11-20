@@ -115,6 +115,9 @@ type Model struct {
 	logsFilterQuery     string
 	logsFiltering       bool
 	inspectTarget       monitor.ContainerDetail
+	inspectCustomTitle  string
+	inspectCustomLines  []string
+	inspectCopyID       string
 	inspectScroll       int
 	actionMessage       string
 	actionMessageExpiry time.Time

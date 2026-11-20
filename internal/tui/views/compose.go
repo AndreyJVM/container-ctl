@@ -11,20 +11,41 @@ import (
 
 // ComposeContext contains data needed to render the Compose Stacks tab.
 type ComposeContext struct {
-	Projects     []monitor.ComposeProject
-	CursorIdx    int
-	FormatStatus func(status, display string) string
-	Width        int
+	Projects           []monitor.ComposeProject
+	TotalProjectsCount int
+	CursorIdx          int
+	FormatStatus       func(status, display string) string
+	IsFiltering        bool
+	FilterQuery        string
+	Width              int
 }
 
 // RenderCompose renders the Compose Stacks tab.
 func RenderCompose(ctx ComposeContext) string {
 	var s strings.Builder
 
-	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf("DOCKER COMPOSE PROJECTS (%d)", len(ctx.Projects))) + "\n\n")
+	count := len(ctx.Projects)
+	if ctx.TotalProjectsCount > 0 {
+		count = ctx.TotalProjectsCount
+	}
+
+	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf("DOCKER COMPOSE PROJECTS (%d)", count)) + "\n\n")
+
+	if ctx.IsFiltering {
+		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("[Search: %s█]", ctx.FilterQuery)) + "  " + theme.DimStyle.Render("(Enter: apply, Esc: cancel)") + "\n\n")
+	} else if ctx.FilterQuery != "" {
+		badge := theme.ActiveTabStyle.Render(fmt.Sprintf("Filter: %s", ctx.FilterQuery)) + "  " +
+			theme.DimStyle.Render(fmt.Sprintf("(Found: %d of %d, Esc: reset)", len(ctx.Projects), ctx.TotalProjectsCount))
+		s.WriteString("  " + badge + "\n\n")
+	}
 
 	if len(ctx.Projects) == 0 {
-		s.WriteString("  " + theme.DimStyle.Render("No Docker Compose projects detected (missing com.docker.compose.project labels).") + "\n")
+		if ctx.FilterQuery != "" {
+			s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("No Compose projects found matching %q.", ctx.FilterQuery)) + "\n")
+			s.WriteString("  " + theme.DimStyle.Render("Press Esc to clear search filter.") + "\n")
+		} else {
+			s.WriteString("  " + theme.DimStyle.Render("No Docker Compose projects detected (missing com.docker.compose.project labels).") + "\n")
+		}
 		return s.String()
 	}
 

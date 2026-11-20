@@ -55,8 +55,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleModalInput(msg)
 		}
 
-		// Search and filter mode on Docker and Images tabs.
-		if m.isFiltering && (m.activeTab == TabDocker || m.activeTab == TabImages) {
+		// Search and filter mode.
+		if m.isFiltering && (m.activeTab == TabDocker || m.activeTab == TabImages || m.activeTab == TabCompose || m.activeTab == TabNetworks || m.activeTab == TabVolumes) {
 			return m.handleFilterInput(msg)
 		}
 

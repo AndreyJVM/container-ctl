@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -239,4 +240,82 @@ func GetContainerDetail(containerID string) (ContainerDetail, error) {
 	}
 
 	return getContainerDetailViaCLI(containerID)
+}
+
+// GetNetworkInspectJSON returns formatted JSON inspection for a Docker network.
+func GetNetworkInspectJSON(idOrName string) (string, error) {
+	if strings.TrimSpace(idOrName) == "" {
+		return "", fmt.Errorf("network identifier cannot be empty")
+	}
+
+	if sockPath := DockerSocketFinder(); sockPath != "" {
+		client := SocketClientFactory(sockPath)
+		endpoint := fmt.Sprintf("http://localhost/networks/%s", url.PathEscape(idOrName))
+		resp, err := client.Get(endpoint)
+		if err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				body, err := io.ReadAll(resp.Body)
+				if err == nil && len(body) > 0 {
+					var pretty bytes.Buffer
+					if err := json.Indent(&pretty, body, "", "  "); err == nil {
+						return pretty.String(), nil
+					}
+					return string(body), nil
+				}
+			}
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	defer cancel()
+	out, err := DockerCLIRunner(ctx, "network", "inspect", idOrName)
+	if err == nil && len(out) > 0 {
+		var pretty bytes.Buffer
+		if err := json.Indent(&pretty, out, "", "  "); err == nil {
+			return pretty.String(), nil
+		}
+		return string(out), nil
+	}
+
+	return "", fmt.Errorf("network not found: %s", idOrName)
+}
+
+// GetVolumeInspectJSON returns formatted JSON inspection for a Docker volume.
+func GetVolumeInspectJSON(name string) (string, error) {
+	if strings.TrimSpace(name) == "" {
+		return "", fmt.Errorf("volume name cannot be empty")
+	}
+
+	if sockPath := DockerSocketFinder(); sockPath != "" {
+		client := SocketClientFactory(sockPath)
+		endpoint := fmt.Sprintf("http://localhost/volumes/%s", url.PathEscape(name))
+		resp, err := client.Get(endpoint)
+		if err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				body, err := io.ReadAll(resp.Body)
+				if err == nil && len(body) > 0 {
+					var pretty bytes.Buffer
+					if err := json.Indent(&pretty, body, "", "  "); err == nil {
+						return pretty.String(), nil
+					}
+					return string(body), nil
+				}
+			}
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	defer cancel()
+	out, err := DockerCLIRunner(ctx, "volume", "inspect", name)
+	if err == nil && len(out) > 0 {
+		var pretty bytes.Buffer
+		if err := json.Indent(&pretty, out, "", "  "); err == nil {
+			return pretty.String(), nil
+		}
+		return string(out), nil
+	}
+
+	return "", fmt.Errorf("volume not found: %s", name)
 }

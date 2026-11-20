@@ -51,7 +51,7 @@ func FindDockerSocket() string {
 	if dockerHost := os.Getenv("DOCKER_HOST"); strings.HasPrefix(dockerHost, "unix://") {
 		p := filepath.Clean(strings.TrimPrefix(dockerHost, "unix://"))
 		if filepath.IsAbs(p) {
-			if _, err := os.Stat(p); err == nil {
+			if _, err := os.Stat(p); err == nil { // #nosec G703 - docker socket path is cleaned and checked
 				return p
 			}
 		}
