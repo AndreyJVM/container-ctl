@@ -257,13 +257,13 @@ func TestGetDockerSummary_NoCLI_SocketFails(t *testing.T) {
 	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
 
 	cliInvoked := false
-	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+	DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 		cliInvoked = true
 		return nil, errors.New("cli should not be invoked")
 	}
 
 	SocketClientFactory = func(_ string) *http.Client {
-		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
+		return newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
 			return nil, errors.New("connection refused")
 		})
 	}
@@ -316,4 +316,3 @@ func TestParseRawSocketContainers_DeterministicNetworks(t *testing.T) {
 		}
 	}
 }
-
