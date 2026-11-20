@@ -155,10 +155,13 @@ type Model struct {
 	networkErr string
 	volumeErr  string
 	lastUpdate string
+
+	// showSwarm forces the Swarm tab to remain visible even when inactive.
+	showSwarm bool
 }
 
 // NewModel creates a TUI model with a refresh interval and initial tab.
-func NewModel(refreshInterval time.Duration, initialTab int, version string) Model {
+func NewModel(refreshInterval time.Duration, initialTab int, version string, showSwarm ...bool) Model {
 	tab := TabID(initialTab)
 	if tab < TabDocker || tab > TabCount {
 		tab = TabDocker
@@ -166,11 +169,16 @@ func NewModel(refreshInterval time.Duration, initialTab int, version string) Mod
 	if refreshInterval <= 0 {
 		refreshInterval = 2 * time.Second
 	}
+	forceSwarm := tab == TabSwarm
+	if len(showSwarm) > 0 && showSwarm[0] {
+		forceSwarm = true
+	}
 	m := Model{
 		version:         version,
 		activeTab:       tab,
 		refreshInterval: refreshInterval,
 		i18n:            i18n.Get(),
+		showSwarm:       forceSwarm,
 	}
 	m.fetchAllData()
 	return m
@@ -194,6 +202,11 @@ func (m *Model) applyFetchedData(d dataFetchedMsg) {
 	}
 	if m.swarmCursorIdx >= len(m.swarm.Services) {
 		m.swarmCursorIdx = max(0, len(m.swarm.Services)-1)
+	}
+
+	if !m.IsSwarmVisible() && m.activeTab == TabSwarm {
+		m.activeTab = TabDocker
+		m.showToast(m.i18n.SwarmInactive)
 	}
 }
 
@@ -364,19 +377,36 @@ func (m *Model) showToast(msg string) {
 	m.actionMessageExpiry = time.Now().Add(4 * time.Second)
 }
 
-// nextTab switches to the next tab cyclically.
+// IsSwarmVisible returns true if Swarm tab is explicitly enabled or active on the host.
+func (m *Model) IsSwarmVisible() bool {
+	return m.showSwarm || m.swarm.IsActive
+}
+
+// SetShowSwarm configures whether the Swarm tab is forcibly shown even when inactive.
+func (m *Model) SetShowSwarm(show bool) {
+	m.showSwarm = show
+}
+
+func (m *Model) maxTab() TabID {
+	if m.IsSwarmVisible() {
+		return TabSwarm
+	}
+	return TabVolumes
+}
+
+// nextTab switches to the next tab cyclically based on visible tabs.
 func (m *Model) nextTab() {
 	m.activeTab++
-	if m.activeTab > TabCount {
+	if m.activeTab > m.maxTab() {
 		m.activeTab = TabDocker
 	}
 }
 
-// prevTab switches to the previous tab cyclically.
+// prevTab switches to the previous tab cyclically based on visible tabs.
 func (m *Model) prevTab() {
 	m.activeTab--
 	if m.activeTab < TabDocker {
-		m.activeTab = TabCount
+		m.activeTab = m.maxTab()
 	}
 }
 

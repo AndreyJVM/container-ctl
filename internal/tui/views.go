@@ -30,7 +30,9 @@ func (m Model) View() string {
 		m.i18n.TabCompose,
 		m.i18n.TabNetworks,
 		m.i18n.TabVolumes,
-		m.i18n.TabSwarm,
+	}
+	if m.IsSwarmVisible() {
+		tabs = append(tabs, m.i18n.TabSwarm)
 	}
 	b.WriteString(views.RenderTabs(tabs, int(m.activeTab), m.width) + "\n")
 
@@ -91,6 +93,7 @@ func (m Model) View() string {
 		Width:        m.width,
 		ShellActive:  m.embeddedShell != nil,
 		ShellFocused: m.shellFocused,
+		SwarmVisible: m.IsSwarmVisible(),
 		I18n:         &m.i18n,
 	}))
 
@@ -239,5 +242,5 @@ func (m Model) renderExecModal() string {
 }
 
 func (m Model) renderHelpBox() string {
-	return modals.RenderHelp(m.refreshInterval, &m.i18n)
+	return modals.RenderHelp(m.refreshInterval, &m.i18n, m.IsSwarmVisible())
 }

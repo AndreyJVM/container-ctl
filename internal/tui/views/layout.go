@@ -67,6 +67,7 @@ type FooterContext struct {
 	Width        int
 	ShellActive  bool
 	ShellFocused bool
+	SwarmVisible bool
 	I18n         *i18n.Dictionary
 }
 
@@ -175,7 +176,11 @@ func RenderFooter(ctx FooterContext) string {
 			theme.BoldStyle.Render("[L]") + " " + d.FooterServiceLogs + "  |  " +
 			theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
 	} else {
-		content = theme.BoldStyle.Render("[1-6 / Tab / ← →]") + " " + d.FooterTabs + "  |  " +
+		tabRange := "1-5"
+		if ctx.SwarmVisible {
+			tabRange = "1-6"
+		}
+		content = theme.BoldStyle.Render("["+tabRange+" / Tab / ← →]") + " " + d.FooterTabs + "  |  " +
 			theme.BoldStyle.Render("[R]") + " " + d.FooterRefresh + "  |  " +
 			theme.BoldStyle.Render("[?]") + " " + d.FooterHelp + "  |  " +
 			theme.BoldStyle.Render("[Q]") + " " + d.FooterQuit

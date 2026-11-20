@@ -40,7 +40,7 @@
 - **Docker Compose**: Automatic project/service grouping, aggregated stack health, live stack logs (`L`), service control (`U` / `S` / `P`), and stack teardown (`D` / down) with confirmation.
 - **Docker Networks**: Network driver, scope, connected container count, subnet, gateway, and Compose ownership.
 - **Docker Volumes**: Volume driver, scope, reference count, disk usage, mountpoint, and Compose ownership.
-- **Docker Swarm**: Cluster node roles (Leader, Manager, Worker), service listings, replica counts with degradation highlights, and live service logs (`L`).
+- **Docker Swarm**: Cluster node roles (Leader, Manager, Worker), service listings, replica counts with degradation highlights, and live service logs (`L`). Dynamically shown when Swarm is active on the daemon (or forced with `--show-swarm`).
 - **English Interface**: Consistent English UI, CLI help, diagnostics, and documentation.
 - **Zero Dependencies**: Standalone binary (<12 MB) with zero external runtime dependencies. Runs on Linux, macOS, and FreeBSD.
 
@@ -95,8 +95,9 @@ Usage:
   dockpulse [options]
 
 Options:
-  -i, --interval <duration>  Auto-refresh interval (default: 2s, e.g., 1s, 500ms)
-  -t, --tab <1-6|name>       Initial active tab (1: Docker, 2: Images, 3: Compose, 4: Networks, 5: Volumes, 6: Swarm) (default: 1)
+  -i, --interval <duration>  Auto-refresh interval (default: 2s, env: DOCKPULSE_INTERVAL)
+  -t, --tab <1-6|name>       Initial active tab (1: Docker, 2: Images, 3: Compose, 4: Networks, 5: Volumes, 6: Swarm) (default: 1, env: DOCKPULSE_TAB)
+      --show-swarm           Always display Swarm tab even if inactive (env: DOCKPULSE_SHOW_SWARM)
   -v, --version              Show version information
   -h, --help                 Show help message
 ```
@@ -105,7 +106,7 @@ Options:
 
 | Key | Action |
 |---|---|
-| `1`..`6` / `Tab` / `←`/`→` | Switch tabs (Docker, Images, Compose, Networks, Volumes, Swarm) |
+| `1`..`5` (or `6`) / `Tab` / `←`/`→` | Switch tabs (Docker, Images, Compose, Networks, Volumes, Swarm) |
 | `r`, `R` | Force immediate refresh |
 | `↑` / `↓` (or `k` / `j`) | Navigate rows / select items |
 | `/` | Search & filter (`Esc` to clear) |
@@ -144,7 +145,7 @@ Options:
 | `3` | **Compose** | Service orchestration grouping, live project logs (`L`), and stack control (`U`/`S`/`D`) |
 | `4` | **Networks** | Network drivers, IPAM subnets, gateways, and attached container list |
 | `5` | **Volumes** | Volume drivers, disk usage, mount points, and container references |
-| `6` | **Swarm** | Cluster node inventory, roles, service replica distribution, and task logs |
+| `6` | **Swarm** *(adaptive)* | Cluster node inventory, roles, service replica distribution, and task logs |
 
 > Detailed screenshots and visual guides are available in [docs/screenshots/](docs/screenshots/).
 

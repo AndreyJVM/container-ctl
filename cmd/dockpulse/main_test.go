@@ -114,6 +114,10 @@ func TestParseFlags_EnvVariables(t *testing.T) {
 	if cfg.initialTab != 3 {
 		t.Errorf("expected tab from env 3 (compose), got %d", cfg.initialTab)
 	}
+	if cfg.showSwarm {
+		t.Errorf("expected showSwarm to be false by default")
+	}
+
 	// CLI flags must override env variables
 	cfgOverridden, err := parseFlags([]string{"-i", "500ms", "-t", "swarm"}, &stdout, &stderr)
 	if err != nil {
@@ -124,6 +128,22 @@ func TestParseFlags_EnvVariables(t *testing.T) {
 	}
 	if cfgOverridden.initialTab != 6 {
 		t.Errorf("expected overridden tab 6 (swarm), got %d", cfgOverridden.initialTab)
+	}
+	if !cfgOverridden.showSwarm {
+		t.Errorf("expected showSwarm to be true when initial tab is swarm")
+	}
+
+	// Test DOCKPULSE_SHOW_SWARM env
+	origShowSwarm := os.Getenv("DOCKPULSE_SHOW_SWARM")
+	defer os.Setenv("DOCKPULSE_SHOW_SWARM", origShowSwarm)
+	os.Setenv("DOCKPULSE_SHOW_SWARM", "true")
+
+	cfgSwarmEnv, err := parseFlags([]string{}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !cfgSwarmEnv.showSwarm {
+		t.Errorf("expected showSwarm=true from DOCKPULSE_SHOW_SWARM env")
 	}
 }
 

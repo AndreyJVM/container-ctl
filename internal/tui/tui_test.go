@@ -63,15 +63,26 @@ func TestViewIncludesNetworksAndVolumesTabs(t *testing.T) {
 	m.width = 120
 	view := m.View()
 
-	for _, label := range []string{"2: Images", "3: Compose", "4: Networks", "5: Volumes", "6: Swarm"} {
+	for _, label := range []string{"2: Images", "3: Compose", "4: Networks", "5: Volumes"} {
 		if !strings.Contains(view, label) {
 			t.Fatalf("expected tab %q in view, got: %s", label, view)
 		}
+	}
+	if strings.Contains(view, "6: Swarm") {
+		t.Fatalf("expected inactive Swarm tab to be hidden by default")
+	}
+
+	// Show Swarm when forced or active
+	m.SetShowSwarm(true)
+	viewWithSwarm := m.View()
+	if !strings.Contains(viewWithSwarm, "6: Swarm") {
+		t.Fatalf("expected tab 6: Swarm in view when showSwarm is enabled")
 	}
 }
 
 func TestModelNavigationAndUpdates(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.4.1")
+	m.SetShowSwarm(true)
 
 	// Resize
 	updatedModel, cmd := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
@@ -189,14 +200,25 @@ func TestRenderAllTabs(t *testing.T) {
 func TestNavigationMethods(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.7.4")
 
-	// nextTab wrapping
+	// Inactive Swarm tab wrapping: 1 -> 5
+	m.prevTab()
+	if m.activeTab != TabVolumes {
+		t.Errorf("expected wrap to TabVolumes when Swarm is inactive, got %v", m.activeTab)
+	}
+	m.nextTab()
+	if m.activeTab != TabDocker {
+		t.Errorf("expected wrap to TabDocker, got %v", m.activeTab)
+	}
+
+	// Active/Forced Swarm tab wrapping: 1 -> 6 -> 1
+	m.SetShowSwarm(true)
 	m.setTab(TabSwarm)
 	m.nextTab()
 	if m.activeTab != TabDocker {
 		t.Errorf("expected wrap to TabDocker, got %v", m.activeTab)
 	}
 
-	// prevTab wrapping
+	// prevTab wrapping to TabSwarm
 	m.prevTab()
 	if m.activeTab != TabSwarm {
 		t.Errorf("expected wrap to TabSwarm, got %v", m.activeTab)
@@ -352,3 +374,40 @@ func TestContainerStatusScore(t *testing.T) {
 		}
 	}
 }
+
+func TestDynamicSwarmTabLifecycle(t *testing.T) {
+	m := NewModel(2*time.Second, 1, "v1.0.0")
+	m.swarm.IsActive = false
+	m.showSwarm = false
+
+	// 1. Swarm tab hidden, pressing "6" shows toast and stays on TabDocker
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("6")})
+	m = res.(Model)
+	if m.activeTab != TabDocker {
+		t.Fatalf("expected activeTab to remain TabDocker when Swarm inactive, got %v", m.activeTab)
+	}
+	if !strings.Contains(m.actionMessage, m.i18n.SwarmInactive) {
+		t.Fatalf("expected toast %q, got %q", m.i18n.SwarmInactive, m.actionMessage)
+	}
+
+	// 2. Swarm becomes active: tab 6 is now navigable
+	m.swarm.IsActive = true
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("6")})
+	m = res.(Model)
+	if m.activeTab != TabSwarm {
+		t.Fatalf("expected activeTab to switch to TabSwarm when active, got %v", m.activeTab)
+	}
+
+	// 3. Swarm deactivated while on TabSwarm: applyFetchedData redirects to TabDocker
+	m.applyFetchedData(dataFetchedMsg{
+		swarm:     monitor.SwarmSummary{IsActive: false},
+		timestamp: "12:00:00",
+	})
+	if m.activeTab != TabDocker {
+		t.Fatalf("expected fallback to TabDocker after Swarm deactivation, got %v", m.activeTab)
+	}
+	if !strings.Contains(m.actionMessage, m.i18n.SwarmInactive) {
+		t.Fatalf("expected toast on deactivation fallback, got %q", m.actionMessage)
+	}
+}
+

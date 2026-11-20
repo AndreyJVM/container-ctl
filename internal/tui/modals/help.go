@@ -22,17 +22,22 @@ type helpSection struct {
 }
 
 // RenderHelp renders the categorized and aligned keyboard shortcuts help dialog box.
-func RenderHelp(refreshInterval time.Duration, dict *i18n.Dictionary) string {
+func RenderHelp(refreshInterval time.Duration, dict *i18n.Dictionary, swarmVisible ...bool) string {
 	d := getModalDictionary(dict)
 	var s strings.Builder
 
 	s.WriteString(theme.TitleStyle.Render(d.HelpTitle) + "\n\n")
 
+	tabKeys := "[1] - [6]"
+	if len(swarmVisible) > 0 && !swarmVisible[0] {
+		tabKeys = "[1] - [5]"
+	}
+
 	sections := []helpSection{
 		{
 			title: d.HelpSecNav,
 			items: []helpItem{
-				{key: "[1] - [6]", desc: d.HelpKeyTabs},
+				{key: tabKeys, desc: d.HelpKeyTabs},
 				{key: "[Tab] / [Shift+Tab] / [←] / [→]", desc: d.HelpKeyPrev},
 				{key: "[↑] / [↓] / [k] / [j]", desc: d.HelpKeyNav},
 			},

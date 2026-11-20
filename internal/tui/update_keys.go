@@ -60,7 +60,11 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "5":
 		m.setTab(TabVolumes)
 	case "6":
-		m.setTab(TabSwarm)
+		if m.IsSwarmVisible() {
+			m.setTab(TabSwarm)
+		} else {
+			m.showToast(m.i18n.SwarmInactive)
+		}
 
 	case "r", "R":
 		m.showToast(m.i18n.ToastRefreshing)

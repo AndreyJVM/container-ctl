@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,6 +29,7 @@ type config struct {
 	interval    time.Duration
 	initialTab  int
 	showVersion bool
+	showSwarm   bool
 }
 
 var (
@@ -55,10 +57,11 @@ func printUsage(w io.Writer) {
 	fmt.Fprintf(w, "Options:\n")
 	fmt.Fprintf(w, "  -i, --interval <duration>  Auto-refresh interval (default: %v, env: DOCKPULSE_INTERVAL)\n", defaultInterval)
 	fmt.Fprintf(w, "  -t, --tab <1-6|name>       Initial tab: 1|docker, 2|images, 3|compose, 4|networks, 5|volumes, 6|swarm (default: %d, env: DOCKPULSE_TAB)\n", defaultTab)
+	fmt.Fprintf(w, "      --show-swarm           Always display Swarm tab even if inactive (env: DOCKPULSE_SHOW_SWARM)\n")
 	fmt.Fprintf(w, "  -v, --version              Show version\n")
 	fmt.Fprintf(w, "  -h, --help                 Show this help\n\n")
 	fmt.Fprintf(w, "TUI controls:\n")
-	fmt.Fprintf(w, "  1..6, Tab, ←/→             Switch tabs\n")
+	fmt.Fprintf(w, "  1..5 (or 6), Tab, ←/→      Switch tabs\n")
 	fmt.Fprintf(w, "  r, R                       Refresh data immediately\n")
 	fmt.Fprintf(w, "  ?                          Show keyboard shortcuts\n")
 	fmt.Fprintf(w, "  q, Esc, Ctrl+C             Quit\n")
@@ -77,10 +80,18 @@ func parseFlags(args []string, stdout, stderr io.Writer) (*config, error) {
 		tabDefault = envTab
 	}
 
+	showSwarmDefault := false
+	if envShowSwarm := os.Getenv("DOCKPULSE_SHOW_SWARM"); envShowSwarm != "" {
+		if b, err := strconv.ParseBool(envShowSwarm); err == nil {
+			showSwarmDefault = b
+		}
+	}
+
 	var tabFlag string
 	cfg := &config{
 		interval:   intervalDefault,
 		initialTab: defaultTab,
+		showSwarm:  showSwarmDefault,
 	}
 
 	flags := flag.NewFlagSet("dockpulse", flag.ContinueOnError)
@@ -93,6 +104,7 @@ func parseFlags(args []string, stdout, stderr io.Writer) (*config, error) {
 	flags.DurationVar(&cfg.interval, "i", intervalDefault, "Metrics refresh interval (short flag)")
 	flags.StringVar(&tabFlag, "tab", tabDefault, "Initial tab: 1|docker, 2|images, 3|compose, 4|networks, 5|volumes, 6|swarm")
 	flags.StringVar(&tabFlag, "t", tabDefault, "Initial tab (short flag)")
+	flags.BoolVar(&cfg.showSwarm, "show-swarm", showSwarmDefault, "Always show Swarm tab even if cluster is inactive")
 	flags.BoolVar(&cfg.showVersion, "version", false, "Show version")
 	flags.BoolVar(&cfg.showVersion, "v", false, "Show version (short flag)")
 
@@ -109,6 +121,9 @@ func parseFlags(args []string, stdout, stderr io.Writer) (*config, error) {
 		return nil, err
 	}
 	cfg.initialTab = tab
+	if tab == 6 {
+		cfg.showSwarm = true
+	}
 
 	return cfg, nil
 }
@@ -164,6 +179,6 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return errors.New("dockpulse requires an interactive terminal (TTY)")
 	}
 
-	model := tui.NewModel(cfg.interval, cfg.initialTab, version)
+	model := tui.NewModel(cfg.interval, cfg.initialTab, version, cfg.showSwarm)
 	return runProgram(model)
 }
