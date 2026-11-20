@@ -106,39 +106,76 @@ func RenderFooter(ctx FooterContext) string {
 			content = theme.BoldStyle.Render("[Enter]") + " Apply Filter  |  " +
 				theme.BoldStyle.Render("[Esc]") + " Cancel"
 		} else if ctx.FilterQuery != "" {
-			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
-				theme.BoldStyle.Render("[Esc]") + " Reset Filter  |  " +
-				theme.BoldStyle.Render("[O]") + " Sort  |  " +
-				theme.BoldStyle.Render("[L]") + " Logs  |  " +
+			row1 := theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
+				theme.BoldStyle.Render("[Esc]") + " Clear Filter  |  " +
 				theme.BoldStyle.Render("[Enter/I]") + " Info  |  " +
+				theme.BoldStyle.Render("[L]") + " Logs  |  " +
 				theme.BoldStyle.Render("[E]") + " Shell  |  " +
 				theme.BoldStyle.Render("[S]") + " Start/Stop  |  " +
 				theme.BoldStyle.Render("[P]") + " Restart  |  " +
 				theme.BoldStyle.Render("[K]") + " Kill  |  " +
 				theme.BoldStyle.Render("[x]") + " Remove"
-		} else if ctx.Width > 0 && ctx.Width < 120 {
-			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
-				theme.BoldStyle.Render("[L]") + " Logs  |  " +
+			row2 := theme.BoldStyle.Render("[O]") + " Sort  |  " +
+				theme.BoldStyle.Render("[w]") + " Web  |  " +
+				theme.BoldStyle.Render("[y]") + " Copy  |  " +
+				theme.BoldStyle.Render("[C]") + " Prune  |  " +
+				theme.BoldStyle.Render("[R]") + " Refresh  |  " +
+				theme.BoldStyle.Render("[?]") + " Help  |  " +
+				theme.BoldStyle.Render("[Q]") + " Quit"
+			content = row1 + "\n" + row2
+		} else if ctx.Width > 0 && ctx.Width < 95 {
+			row1 := theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[Enter/I]") + " Info  |  " +
+				theme.BoldStyle.Render("[L]") + " Logs  |  " +
 				theme.BoldStyle.Render("[E]") + " Shell  |  " +
 				theme.BoldStyle.Render("[S]") + " Start/Stop  |  " +
 				theme.BoldStyle.Render("[K]") + " Kill  |  " +
-				theme.BoldStyle.Render("[x]") + " Remove  |  " +
+				theme.BoldStyle.Render("[x]") + " Remove"
+			row2 := theme.BoldStyle.Render("[/]") + " Search  |  " +
+				theme.BoldStyle.Render("[O]") + " Sort  |  " +
+				theme.BoldStyle.Render("[P]") + " Restart  |  " +
+				theme.BoldStyle.Render("[w]") + " Web  |  " +
+				theme.BoldStyle.Render("[y]") + " Copy  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
-				theme.BoldStyle.Render("[?]") + " Help"
-		} else {
+				theme.BoldStyle.Render("[R]") + " Refresh  |  " +
+				theme.BoldStyle.Render("[?]") + " Help  |  " +
+				theme.BoldStyle.Render("[Q]") + " Quit"
+			content = row1 + "\n" + row2
+		} else if ctx.Width >= 160 {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[/]") + " Search  |  " +
 				theme.BoldStyle.Render("[O]") + " Sort  |  " +
-				theme.BoldStyle.Render("[L]") + " Logs  |  " +
 				theme.BoldStyle.Render("[Enter/I]") + " Info  |  " +
+				theme.BoldStyle.Render("[L]") + " Logs  |  " +
+				theme.BoldStyle.Render("[E]") + " Shell  |  " +
+				theme.BoldStyle.Render("[S]") + " Start/Stop  |  " +
+				theme.BoldStyle.Render("[P]") + " Restart  |  " +
+				theme.BoldStyle.Render("[w]") + " Web  |  " +
+				theme.BoldStyle.Render("[y]") + " Copy  |  " +
+				theme.BoldStyle.Render("[K]") + " Kill  |  " +
+				theme.BoldStyle.Render("[x]") + " Remove  |  " +
+				theme.BoldStyle.Render("[C]") + " Prune  |  " +
+				theme.BoldStyle.Render("[R]") + " Refresh  |  " +
+				theme.BoldStyle.Render("[?]") + " Help  |  " +
+				theme.BoldStyle.Render("[Q]") + " Quit"
+		} else {
+			row1 := theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
+				theme.BoldStyle.Render("[Enter/I]") + " Info  |  " +
+				theme.BoldStyle.Render("[L]") + " Logs  |  " +
 				theme.BoldStyle.Render("[E]") + " Shell  |  " +
 				theme.BoldStyle.Render("[S]") + " Start/Stop  |  " +
 				theme.BoldStyle.Render("[P]") + " Restart  |  " +
 				theme.BoldStyle.Render("[K]") + " Kill  |  " +
-				theme.BoldStyle.Render("[x]") + " Remove  |  " +
+				theme.BoldStyle.Render("[x]") + " Remove"
+			row2 := theme.BoldStyle.Render("[/]") + " Search  |  " +
+				theme.BoldStyle.Render("[O]") + " Sort  |  " +
+				theme.BoldStyle.Render("[w]") + " Web  |  " +
+				theme.BoldStyle.Render("[y]") + " Copy  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
-				theme.BoldStyle.Render("[?]") + " Help"
+				theme.BoldStyle.Render("[R]") + " Refresh  |  " +
+				theme.BoldStyle.Render("[?]") + " Help  |  " +
+				theme.BoldStyle.Render("[Q]") + " Quit"
+			content = row1 + "\n" + row2
 		}
 	} else if ctx.ActiveTab == 2 {
 		if ctx.IsFiltering {
@@ -147,18 +184,22 @@ func RenderFooter(ctx FooterContext) string {
 		} else if ctx.FilterQuery != "" {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[Esc]") + " Reset Filter  |  " +
+				theme.BoldStyle.Render("[y]") + " Copy  |  " +
 				theme.BoldStyle.Render("[x]") + " Remove  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
 				theme.BoldStyle.Render("[R]") + " Refresh  |  " +
-				theme.BoldStyle.Render("[?]") + " Help"
+				theme.BoldStyle.Render("[?]") + " Help  |  " +
+				theme.BoldStyle.Render("[Q]") + " Quit"
 		} else {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[/]") + " Search  |  " +
 				theme.BoldStyle.Render("[u]") + " Filter Unused  |  " +
+				theme.BoldStyle.Render("[y]") + " Copy  |  " +
 				theme.BoldStyle.Render("[x]") + " Remove  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
 				theme.BoldStyle.Render("[R]") + " Refresh  |  " +
-				theme.BoldStyle.Render("[?]") + " Help"
+				theme.BoldStyle.Render("[?]") + " Help  |  " +
+				theme.BoldStyle.Render("[Q]") + " Quit"
 		}
 	} else if ctx.ActiveTab == 3 {
 		content = theme.BoldStyle.Render("[↑ / ↓]") + " Select Stack  |  " +
@@ -167,16 +208,22 @@ func RenderFooter(ctx FooterContext) string {
 			theme.BoldStyle.Render("[U]") + " Start  |  " +
 			theme.BoldStyle.Render("[P]") + " Restart  |  " +
 			theme.BoldStyle.Render("[D]") + " Down  |  " +
+			theme.BoldStyle.Render("[y]") + " Copy  |  " +
 			theme.BoldStyle.Render("[C]") + " Prune  |  " +
-			theme.BoldStyle.Render("[?]") + " Help"
+			theme.BoldStyle.Render("[R]") + " Refresh  |  " +
+			theme.BoldStyle.Render("[?]") + " Help  |  " +
+			theme.BoldStyle.Render("[Q]") + " Quit"
 	} else if ctx.ActiveTab == 4 || ctx.ActiveTab == 5 {
 		content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 			theme.BoldStyle.Render("[R]") + " Refresh  |  " +
-			theme.BoldStyle.Render("[?]") + " Help"
+			theme.BoldStyle.Render("[?]") + " Help  |  " +
+			theme.BoldStyle.Render("[Q]") + " Quit"
 	} else if ctx.ActiveTab == 6 {
 		content = theme.BoldStyle.Render("[↑ / ↓]") + " Select Service  |  " +
 			theme.BoldStyle.Render("[L]") + " Service Logs  |  " +
-			theme.BoldStyle.Render("[?]") + " Help"
+			theme.BoldStyle.Render("[R]") + " Refresh  |  " +
+			theme.BoldStyle.Render("[?]") + " Help  |  " +
+			theme.BoldStyle.Render("[Q]") + " Quit"
 	} else {
 		tabRange := "1-5"
 		if ctx.SwarmVisible {

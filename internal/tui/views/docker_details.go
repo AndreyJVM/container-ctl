@@ -263,6 +263,35 @@ func renderContainerDetailsCard(ctx *DockerContext, s *strings.Builder) {
 		s.WriteString(renderDetailRow("Compose:", composeDisplay))
 	}
 
+	// 9. Quick Actions
+	var actionHints []string
+	if sel.State == "running" {
+		actionHints = append(actionHints,
+			theme.BoldStyle.Render("[S]")+" Stop",
+			theme.BoldStyle.Render("[P]")+" Restart",
+			theme.BoldStyle.Render("[L]")+" Logs",
+			theme.BoldStyle.Render("[E]")+" Shell",
+			theme.BoldStyle.Render("[Enter]")+" Inspect",
+		)
+		if len(urls) > 0 {
+			actionHints = append(actionHints, theme.BoldStyle.Render("[w]")+" Web")
+		}
+		actionHints = append(actionHints,
+			theme.BoldStyle.Render("[y]")+" Copy",
+			theme.BoldStyle.Render("[K]")+" Kill",
+			theme.BoldStyle.Render("[x]")+" Remove",
+		)
+	} else {
+		actionHints = append(actionHints,
+			theme.BoldStyle.Render("[S]")+" Start",
+			theme.BoldStyle.Render("[x]")+" Remove",
+			theme.BoldStyle.Render("[L]")+" Logs",
+			theme.BoldStyle.Render("[Enter]")+" Inspect",
+			theme.BoldStyle.Render("[y]")+" Copy",
+		)
+	}
+	s.WriteString(renderDetailRow("Quick Actions:", strings.Join(actionHints, "  ")))
+
 	s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")
 }
 

@@ -31,11 +31,13 @@ func TestRenderHeaderAndTabs(t *testing.T) {
 }
 
 func TestRenderFooter(t *testing.T) {
-	// Tab 1 footer
+	// Tab 1 footer (compact)
 	f1 := RenderFooter(FooterContext{ActiveTab: 1, Width: 80})
-	if !strings.Contains(f1, "Kill") || !strings.Contains(f1, "Remove") {
-		t.Errorf("expected Kill and Remove hints in footer 1, got: %s", f1)
-	}
+	testutil.AssertContainsAll(t, f1, "Kill", "Remove", "Web", "Copy", "Refresh", "Quit", "Restart", "Info")
+
+	// Tab 1 footer (wide)
+	f1Wide := RenderFooter(FooterContext{ActiveTab: 1, Width: 180})
+	testutil.AssertContainsAll(t, f1Wide, "Kill", "Remove", "Web", "Copy", "Refresh", "Quit", "Search", "Sort")
 
 	// Tab 1 footer filtering
 	f1Filter := RenderFooter(FooterContext{ActiveTab: 1, IsFiltering: true, Width: 80})

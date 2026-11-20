@@ -91,7 +91,7 @@ func RenderImages(ctx ImagesContext) string {
 		if ctx.OnlyUnused {
 			s.WriteString("  " + theme.GreenStyle.Render("No unused images detected. All images are currently in use!") + "\n")
 		} else if ctx.FilterQuery != "" {
-			s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("No containers found matching %q.", ctx.FilterQuery)) + "\n")
+			s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("No images found matching %q.", ctx.FilterQuery)) + "\n")
 			s.WriteString("  " + theme.DimStyle.Render("Press Esc to clear search filter.") + "\n")
 		} else {
 			s.WriteString("  " + theme.DimStyle.Render("No Docker images found.") + "\n")

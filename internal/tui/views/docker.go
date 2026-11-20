@@ -7,19 +7,149 @@ import (
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/tui/components"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
+	"github.com/charmbracelet/lipgloss"
 )
 
 const (
-	colWidthID     = 8
-	colWidthName   = 20
-	colWidthImage  = 22
-	colWidthStatus = 20
-	colWidthCPU    = 7
-	colWidthMem    = 14
-	minPortsWidth  = 20
-	minCardWidth   = 96
+	minCardWidth   = 80
 	detailColWidth = 18
 )
+
+type containerTableLayout struct {
+	contentWidth int
+	idWidth      int
+	nameWidth    int
+	imageWidth   int
+	statusWidth  int
+	cpuWidth     int
+	memWidth     int
+	portsWidth   int
+}
+
+func computeContainerTableLayout(termWidth int) containerTableLayout {
+	contentWidth := max(termWidth-4, minCardWidth)
+
+	var idWidth, statusWidth, cpuWidth, memWidth, nameWidth, imageWidth int
+
+	if contentWidth >= 110 {
+		idWidth = 8
+		statusWidth = 15
+		cpuWidth = 6
+		memWidth = 13
+		nameWidth = 18
+		imageWidth = 18
+
+		baseUsed := 14 + idWidth + statusWidth + cpuWidth + memWidth + nameWidth + imageWidth
+		extra := contentWidth - baseUsed - 16 // reserve at least 16 for ports
+		if extra > 0 {
+			nameBonus := extra * 25 / 100
+			imgBonus := extra * 25 / 100
+			nameWidth += nameBonus
+			imageWidth += imgBonus
+		}
+	} else if contentWidth >= 90 {
+		idWidth = 8
+		statusWidth = 14
+		cpuWidth = 6
+		memWidth = 10
+		extra := contentWidth - 90
+		nameWidth = 14 + (extra * 2 / 10)
+		imageWidth = 14 + (extra * 2 / 10)
+	} else {
+		// Compact mode (< 90 columns, e.g. 80-89)
+		idWidth = 8
+		statusWidth = 14
+		cpuWidth = 6
+		memWidth = 9
+		nameWidth = 11
+		imageWidth = 11
+	}
+
+	used := 14 + idWidth + nameWidth + imageWidth + statusWidth + cpuWidth + memWidth
+	portsWidth := contentWidth - used
+	if portsWidth < 6 {
+		portsWidth = 6
+		contentWidth = used + portsWidth
+	}
+
+	return containerTableLayout{
+		contentWidth: contentWidth,
+		idWidth:      idWidth,
+		nameWidth:    nameWidth,
+		imageWidth:   imageWidth,
+		statusWidth:  statusWidth,
+		cpuWidth:     cpuWidth,
+		memWidth:     memWidth,
+		portsWidth:   portsWidth,
+	}
+}
+
+// CleanTablePorts formats raw ports string into a clean, compact representation for table display.
+func CleanTablePorts(portsStr string) string {
+	tr := strings.TrimSpace(portsStr)
+	if tr == "" {
+		return "-"
+	}
+
+	rawParts := strings.Split(tr, ",")
+	seen := make(map[string]bool)
+	var result []string
+
+	for _, p := range rawParts {
+		entry := strings.TrimSpace(p)
+		if entry == "" {
+			continue
+		}
+
+		// Deduplicate IPv6 if identical IPv4 mapping exists
+		if strings.HasPrefix(entry, "[::]:") || strings.HasPrefix(entry, "::: ") {
+			v4Suffix := strings.TrimPrefix(entry, "[::]:")
+			if seen["0.0.0.0:"+v4Suffix] || seen[v4Suffix] {
+				continue
+			}
+		}
+
+		// Simplify 0.0.0.0: prefix for table brevity
+		cleanEntry := entry
+		if strings.HasPrefix(cleanEntry, "0.0.0.0:") {
+			cleanEntry = strings.TrimPrefix(cleanEntry, "0.0.0.0:")
+		}
+
+		if seen[cleanEntry] || seen[entry] {
+			continue
+		}
+		seen[cleanEntry] = true
+		seen[entry] = true
+		result = append(result, cleanEntry)
+	}
+
+	if len(result) == 0 {
+		return "-"
+	}
+	return strings.Join(result, ", ")
+}
+
+func padRightVisual(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	w := lipgloss.Width(s)
+	if w >= width {
+		return s
+	}
+	return s + strings.Repeat(" ", width-w)
+}
+
+func padLeftVisual(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	w := lipgloss.Width(s)
+	if w >= width {
+		return s
+	}
+	return strings.Repeat(" ", width-w) + s
+}
 
 // DockerContext contains data needed to render the Docker Containers tab.
 type DockerContext struct {
@@ -94,21 +224,23 @@ func renderNoContainersFoundNotice(ctx *DockerContext, s *strings.Builder) {
 }
 
 func renderContainerTable(ctx *DockerContext, s *strings.Builder) {
-	headerText := fmt.Sprintf("  %-8s  %-20s  %-22s  %-20s  %-7s  %-14s  %s",
-		"ID",
-		"NAME",
-		"IMAGE",
-		"STATUS",
-		"CPU",
-		"MEM USAGE",
-		"PORTS",
+	layout := computeContainerTableLayout(ctx.Width)
+
+	headerText := fmt.Sprintf("  %-*s  %-*s  %-*s  %-*s  %*s  %-*s  %-*s",
+		layout.idWidth, "ID",
+		layout.nameWidth, "NAME",
+		layout.imageWidth, "IMAGE",
+		layout.statusWidth, "STATUS",
+		layout.cpuWidth, "CPU",
+		layout.memWidth, "MEM USAGE",
+		layout.portsWidth, "PORTS",
 	)
 	s.WriteString(theme.DimStyle.Render(headerText) + "\n")
-	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", max(ctx.Width-4, minCardWidth))) + "\n")
+	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", layout.contentWidth)) + "\n")
 
 	for i, c := range ctx.Containers {
 		isSelected := (i == ctx.CursorIdx)
-		s.WriteString(renderContainerRow(c, isSelected, ctx.Width))
+		s.WriteString(renderContainerRow(c, isSelected, layout))
 	}
 }
 
@@ -127,39 +259,53 @@ func formatContainerMetrics(c monitor.ContainerItem) (string, string) {
 	return cpuRaw, memRaw
 }
 
-func renderContainerRow(c monitor.ContainerItem, isSelected bool, termWidth int) string {
+func renderContainerRow(c monitor.ContainerItem, isSelected bool, layout containerTableLayout) string {
 	prefix := "  "
 	if isSelected {
 		prefix = theme.GreenStyle.Render("► ")
 	}
 
-	cID := components.PadRight(components.Truncate(c.ID, colWidthID), colWidthID)
-	cName := components.PadRight(components.Truncate(c.Name, colWidthName), colWidthName)
-	cImg := components.PadRight(components.Truncate(c.Image, colWidthImage), colWidthImage)
+	cID := padRightVisual(components.Truncate(c.ID, layout.idWidth), layout.idWidth)
+	cName := padRightVisual(components.Truncate(c.Name, layout.nameWidth), layout.nameWidth)
+	cImg := padRightVisual(components.Truncate(c.Image, layout.imageWidth), layout.imageWidth)
 
 	statusText, statusStyle := formatContainerStatus(c.State, c.Health, c.Status)
-	statusPadded := components.PadRight(components.Truncate(statusText, colWidthStatus), colWidthStatus)
+	statusPadded := padRightVisual(components.Truncate(statusText, layout.statusWidth), layout.statusWidth)
 
 	cpuRaw, memRaw := formatContainerMetrics(c)
-	cpuPadded := components.PadLeft(cpuRaw, colWidthCPU)
-	memPadded := components.PadRight(components.Truncate(memRaw, colWidthMem), colWidthMem)
-	portsPreview := components.Truncate(c.Ports, max(minPortsWidth, termWidth-105))
+	cpuPadded := padLeftVisual(cpuRaw, layout.cpuWidth)
+	memPadded := padRightVisual(components.Truncate(memRaw, layout.memWidth), layout.memWidth)
+
+	portsClean := CleanTablePorts(c.Ports)
+	portsTrunc := components.Truncate(portsClean, layout.portsWidth)
+	portsPadded := padRightVisual(portsTrunc, layout.portsWidth)
 
 	if isSelected {
-		plainRow := fmt.Sprintf("%-8s  %-20s  %-22s  %-20s  %-7s  %-14s  %s",
-			cID, cName, cImg, statusPadded, cpuPadded, memPadded, portsPreview,
+		plainRow := fmt.Sprintf("%-*s  %-*s  %-*s  %-*s  %*s  %-*s  %-*s",
+			layout.idWidth, cID,
+			layout.nameWidth, cName,
+			layout.imageWidth, cImg,
+			layout.statusWidth, statusPadded,
+			layout.cpuWidth, cpuPadded,
+			layout.memWidth, memPadded,
+			layout.portsWidth, portsPadded,
 		)
 		return fmt.Sprintf("%s%s\n", prefix, theme.SelectedRowStyle.Render(plainRow))
 	}
 
-	row := fmt.Sprintf("%-8s  %-20s  %-22s  %s  %s  %-14s  %s",
+	portsStyled := portsPadded
+	if portsClean == "-" {
+		portsStyled = theme.DimStyle.Render(portsPadded)
+	}
+
+	row := fmt.Sprintf("%s  %s  %s  %s  %s  %s  %s",
 		cID,
 		theme.BoldStyle.Render(cName),
 		theme.DimStyle.Render(cImg),
 		statusStyle.Render(statusPadded),
 		styleCPU(c.CPUPerc, c.State, cpuPadded),
 		theme.DimStyle.Render(memPadded),
-		portsPreview,
+		portsStyled,
 	)
 	return fmt.Sprintf("%s%s\n", prefix, row)
 }

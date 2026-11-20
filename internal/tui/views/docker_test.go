@@ -333,3 +333,70 @@ func TestExtractPortURLs(t *testing.T) {
 		}
 	}
 }
+
+func TestCleanTablePorts(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{"", "-"},
+		{"   ", "-"},
+		{"80/tcp", "80/tcp"},
+		{"0.0.0.0:8080->8080/tcp", "8080->8080/tcp"},
+		{"0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp", "8080->8080/tcp"},
+		{"0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp", "80->80/tcp, 443->443/tcp"},
+		{"127.0.0.1:5432->5432/tcp", "127.0.0.1:5432->5432/tcp"},
+	}
+
+	for _, c := range cases {
+		got := CleanTablePorts(c.input)
+		if got != c.expected {
+			t.Errorf("CleanTablePorts(%q) = %q, expected %q", c.input, got, c.expected)
+		}
+	}
+}
+
+func TestComputeContainerTableLayout(t *testing.T) {
+	widths := []int{76, 80, 96, 120, 160}
+	for _, w := range widths {
+		layout := computeContainerTableLayout(w)
+		total := 2 + layout.idWidth + 2 + layout.nameWidth + 2 + layout.imageWidth + 2 + layout.statusWidth + 2 + layout.cpuWidth + 2 + layout.memWidth + 2 + layout.portsWidth
+		if total != layout.contentWidth {
+			t.Errorf("width %d: expected sum of columns (%d) to equal contentWidth (%d)", w, total, layout.contentWidth)
+		}
+		if layout.portsWidth <= 0 {
+			t.Errorf("width %d: portsWidth should be positive, got %d", w, layout.portsWidth)
+		}
+	}
+}
+
+func TestQuickActionsInDetailsCard(t *testing.T) {
+	// Running container with mapped web port
+	cRunning := testutil.AContainer(
+		testutil.WithID("c123"),
+		testutil.WithName("web-app"),
+		testutil.WithState("running", "Up 1 hour"),
+		testutil.WithPorts("0.0.0.0:8080->8080/tcp"),
+	)
+	viewRunning := RenderDocker(DockerContext{
+		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cRunning}},
+		Containers: []monitor.ContainerItem{cRunning},
+		CursorIdx:  0,
+		Width:      100,
+	})
+	testutil.AssertContainsAll(t, viewRunning, "Quick Actions:", "[S]", "Stop", "[P]", "Restart", "[w]", "Web", "[E]", "Shell")
+
+	// Stopped container without web port
+	cStopped := testutil.AContainer(
+		testutil.WithID("c456"),
+		testutil.WithName("batch-job"),
+		testutil.WithState("exited", "Exited (0)"),
+	)
+	viewStopped := RenderDocker(DockerContext{
+		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cStopped}},
+		Containers: []monitor.ContainerItem{cStopped},
+		CursorIdx:  0,
+		Width:      100,
+	})
+	testutil.AssertContainsAll(t, viewStopped, "Quick Actions:", "[S]", "Start", "[x]", "Remove", "[L]", "Logs")
+}
