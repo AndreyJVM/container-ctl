@@ -1,5 +1,5 @@
 # Go build artifacts
-/dockpulse
+/container-ctl
 bin/
 dist/
 deb_pkg_*/
@@ -12,7 +12,7 @@ debian/files
 debian/.debhelper/
 debian/*.log
 debian/*.substvars
-debian/dockpulse/
+debian/container-ctl/
 debian/.debhelper.log
 debian/debhelper-build-stamp
 

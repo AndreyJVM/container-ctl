@@ -518,8 +518,9 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// openBrowser attempts to open the given URL in the default browser.
-func openBrowser(url string) bool {
+var browserOpener = defaultBrowserOpener
+
+func defaultBrowserOpener(url string) bool {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":
@@ -534,4 +535,9 @@ func openBrowser(url string) bool {
 		return true
 	}
 	return false
+}
+
+// openBrowser attempts to open the given URL in the default browser.
+func openBrowser(url string) bool {
+	return browserOpener(url)
 }

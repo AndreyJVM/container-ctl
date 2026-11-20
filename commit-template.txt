@@ -1,4 +1,4 @@
-# dockpulse: Brief summary of changes
+# container-ctl: Brief summary of changes
 #
 # Version: X.Y.Z
 # Type: bugfix|feature|release

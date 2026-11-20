@@ -691,6 +691,10 @@ func TestContainerKillAndRemoveWorkflow(t *testing.T) {
 }
 
 func TestContainerCopyAndOpenURL(t *testing.T) {
+	origOpener := browserOpener
+	defer func() { browserOpener = origOpener }()
+	browserOpener = func(url string) bool { return true }
+
 	m := NewModel(2*time.Second, 1, "v0.16.0")
 	m.dockerInfo.Status = "running"
 	m.dockerInfo.Containers = []monitor.ContainerItem{
