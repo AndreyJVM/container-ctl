@@ -79,13 +79,13 @@ Pre-built packages for **amd64** and **arm64** are available on the [Releases](h
 
 ```bash
 # Debian / Ubuntu / Linux Mint (.deb)
-sudo dpkg -i dockpulse_0.18.0_amd64.deb
+sudo dpkg -i dockpulse_0.18.1_amd64.deb
 
 # RHEL / Fedora / Rocky Linux (.rpm)
-sudo rpm -i dockpulse_0.18.0_amd64.rpm
+sudo rpm -i dockpulse_0.18.1_amd64.rpm
 
 # Alpine Linux (.apk)
-apk add --allow-untrusted dockpulse_0.18.0_amd64.apk
+apk add --allow-untrusted dockpulse_0.18.1_amd64.apk
 ```
 
 #### Pre-built Binaries (Linux, macOS, FreeBSD)
@@ -94,7 +94,7 @@ Download the archive for your operating system and architecture from [Releases](
 
 ```bash
 # Example: Linux AMD64
-tar -xzf dockpulse_0.18.0_linux_amd64.tar.gz
+tar -xzf dockpulse_0.18.1_linux_amd64.tar.gz
 ./dockpulse
 ```
 
