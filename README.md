@@ -3,14 +3,17 @@
 # Dockpulse
 
 [![CI](https://github.com/AndreyJVM/dockpulse/actions/workflows/ci.yml/badge.svg)](https://github.com/AndreyJVM/dockpulse/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/AndreyJVM/dockpulse/actions/workflows/codeql.yml/badge.svg)](https://github.com/AndreyJVM/dockpulse/actions/workflows/codeql.yml)
 [![Release](https://img.shields.io/github/v/release/AndreyJVM/dockpulse?color=blue&logo=github)](https://github.com/AndreyJVM/dockpulse/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.27.3+-00ADD8?logo=go)](https://golang.org)
+[![Go Report Card](https://goreportcard.com/badge/github.com/AndreyJVM/dockpulse)](https://goreportcard.com/report/github.com/AndreyJVM/dockpulse)
+[![Docker](https://img.shields.io/badge/Docker-GHCR-2496ED?logo=docker&logoColor=white)](https://github.com/AndreyJVM/dockpulse/pkgs/container/dockpulse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Linux-lightgrey)](https://github.com/AndreyJVM/dockpulse/releases)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20FreeBSD-lightgrey)](https://github.com/AndreyJVM/dockpulse/releases)
 
 **A fast, lightweight terminal TUI for Docker containers and resources.**<br>
 
-[Contributing](CONTRIBUTING.md)
+[Key Features](#key-features) • [Installation](#installation) • [CLI Options](#command-line-options) • [Hotkeys](#hotkeys) • [Screenshots](docs/screenshots/) • [Contributing](CONTRIBUTING.md)
 
 ---
 
@@ -50,12 +53,24 @@
 
 ### Installation
 
-#### Docker (Zero Installation)
+#### Docker (Zero Installation via GHCR)
 
-Run Dockpulse directly without installing any local dependencies:
+Run Dockpulse directly without installing any local Go binaries:
 
 ```bash
+# Standard Docker daemon socket
 docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock ghcr.io/andreyjvm/dockpulse:latest
+
+# Rootless Docker / Podman socket
+docker run --rm -it -v "$XDG_RUNTIME_DIR/podman/podman.sock:/var/run/docker.sock" ghcr.io/andreyjvm/dockpulse:latest
+```
+
+#### Go Install
+
+Install the latest release directly via the Go toolchain (requires Go 1.24+):
+
+```bash
+go install github.com/AndreyJVM/dockpulse/cmd/dockpulse@latest
 ```
 
 #### Linux Packages (.deb / .rpm / .apk)
@@ -83,7 +98,7 @@ tar -xzf dockpulse_0.13.0_linux_amd64.tar.gz
 ./dockpulse
 ```
 
-#### Build from Source (Go 1.27+)
+#### Build from Source
 
 ```bash
 git clone https://github.com/AndreyJVM/dockpulse.git
