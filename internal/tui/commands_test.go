@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/testutil"
 	tea "github.com/charmbracelet/bubbletea"
@@ -123,10 +122,8 @@ func TestDataFetchedMsg(t *testing.T) {
 }
 
 func TestKillAndRemoveCommandsExecution(t *testing.T) {
-	dict := i18n.Get()
-
 	// 1. Test killContainerCmd returns non-nil actionFinishedMsg
-	killCmd := killContainerCmd("c-test", "test-app", dict)
+	killCmd := killContainerCmd("c-test", "test-app")
 	if killCmd == nil {
 		t.Fatal("expected non-nil tea.Cmd for killContainerCmd")
 	}
@@ -140,7 +137,7 @@ func TestKillAndRemoveCommandsExecution(t *testing.T) {
 	}
 
 	// 2. Test removeContainerCmd returns non-nil actionFinishedMsg
-	removeCmd := removeContainerCmd("c-test", "test-app", dict)
+	removeCmd := removeContainerCmd("c-test", "test-app")
 	if removeCmd == nil {
 		t.Fatal("expected non-nil tea.Cmd for removeContainerCmd")
 	}
@@ -211,8 +208,6 @@ func TestMakeActionCmd(t *testing.T) {
 }
 
 func TestExecutePruneAndPruneCmd(t *testing.T) {
-	dict := i18n.Get()
-
 	// Invalid option
 	_, err := executePrune(99)
 	if err == nil || !strings.Contains(err.Error(), "unknown prune option: 99") {
@@ -220,19 +215,19 @@ func TestExecutePruneAndPruneCmd(t *testing.T) {
 	}
 
 	// Test pruneCmd with unknown option
-	badCmd := pruneCmd(99, dict)
+	badCmd := pruneCmd(99)
 	badMsg := badCmd()
 	afm, ok := badMsg.(actionFinishedMsg)
 	if !ok {
 		t.Fatalf("expected actionFinishedMsg, got %T", badMsg)
 	}
-	if afm.err == nil || !strings.Contains(afm.err.Error(), dict.ToastPruneError) {
+	if afm.err == nil || !strings.Contains(afm.err.Error(), "Prune error:") {
 		t.Errorf("expected prune error toast, got: %+v", afm)
 	}
 
 	// Valid options run without panic
 	for _, opt := range []int{PruneOptionContainers, PruneOptionImages, PruneOptionVolumes, PruneOptionAll} {
-		cmd := pruneCmd(opt, dict)
+		cmd := pruneCmd(opt)
 		if cmd == nil {
 			t.Errorf("expected non-nil cmd for option %d", opt)
 			continue
@@ -245,19 +240,17 @@ func TestExecutePruneAndPruneCmd(t *testing.T) {
 }
 
 func TestContainerAndComposeCommandsExecution(t *testing.T) {
-	dict := i18n.Get()
-
 	cmds := []struct {
 		name string
 		cmd  tea.Cmd
 	}{
-		{"startContainer", startContainerCmd("c1", "web", dict)},
-		{"stopContainer", stopContainerCmd("c1", "web", dict)},
-		{"restartContainer", restartContainerCmd("c1", "web", dict)},
-		{"startCompose", startComposeCmd("stack", nil, dict)},
-		{"stopCompose", stopComposeCmd("stack", nil, dict)},
-		{"restartCompose", restartComposeCmd("stack", nil, dict)},
-		{"downCompose", downComposeCmd("stack", nil, dict)},
+		{"startContainer", startContainerCmd("c1", "web")},
+		{"stopContainer", stopContainerCmd("c1", "web")},
+		{"restartContainer", restartContainerCmd("c1", "web")},
+		{"startCompose", startComposeCmd("stack", nil)},
+		{"stopCompose", stopComposeCmd("stack", nil)},
+		{"restartCompose", restartComposeCmd("stack", nil)},
+		{"downCompose", downComposeCmd("stack", nil)},
 	}
 
 	for _, tc := range cmds {

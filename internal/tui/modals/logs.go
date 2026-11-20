@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/tui/components"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
 	"github.com/charmbracelet/lipgloss"
@@ -18,11 +17,10 @@ const (
 )
 
 // RenderLogs renders the interactive container/service log viewer modal with search and filter support.
-func RenderLogs(lines []string, scroll int, targetName, targetID string, width int, dict *i18n.Dictionary, filterOpts ...string) string {
+func RenderLogs(lines []string, scroll int, targetName, targetID string, width int, filterOpts ...string) string {
 	var s strings.Builder
-	d := getModalDictionary(dict)
 
-	title := fmt.Sprintf(d.LogsTitle, theme.BoldStyle.Render(targetName), theme.DimStyle.Render(targetID))
+	title := fmt.Sprintf("LOGS: %s (%s)", theme.BoldStyle.Render(targetName), theme.DimStyle.Render(targetID))
 	s.WriteString(theme.TitleStyle.Render(title) + "\n\n")
 
 	filterQuery := ""
@@ -65,7 +63,7 @@ func RenderLogs(lines []string, scroll int, targetName, targetID string, width i
 		if filterQuery != "" {
 			s.WriteString(fmt.Sprintf("  %s %q\n", theme.DimStyle.Render("No log lines match filter:"), filterQuery))
 		} else {
-			s.WriteString("  " + theme.DimStyle.Render(d.NoLogsOutput) + "\n")
+			s.WriteString("  " + theme.DimStyle.Render("No logs output available for this container.") + "\n")
 		}
 		return theme.BoxStyle.Render(s.String())
 	}
@@ -82,42 +80,36 @@ func RenderLogs(lines []string, scroll int, targetName, targetID string, width i
 	if filterQuery != "" {
 		s.WriteString(fmt.Sprintf("\n  %s\n", theme.DimStyle.Render(fmt.Sprintf("[Lines %d-%d of %d matches (total %d lines)]", start+1, end, len(displayLines), len(lines)))))
 	} else {
-		s.WriteString(fmt.Sprintf("\n  %s\n", theme.DimStyle.Render(fmt.Sprintf(d.LogsRangeCount, start+1, end, len(lines)))))
+		s.WriteString(fmt.Sprintf("\n  %s\n", theme.DimStyle.Render(fmt.Sprintf("[Lines %d-%d of %d] (scroll ↑/↓/PgUp/PgDn, [/] Search, [Esc] Clear filter, [q] Close)", start+1, end, len(lines)))))
 	}
 
 	return theme.BoxStyle.Render(s.String())
-}
-
-func getModalDictionary(dict *i18n.Dictionary) *i18n.Dictionary {
-	if dict != nil {
-		return dict
-	}
-	d := i18n.Get()
-	return &d
 }
 
 func calculateLogRange(totalLines, scroll, maxVisible int) (int, int) {
 	if totalLines <= 0 {
 		return 0, 0
 	}
-	maxScroll := max(0, totalLines-1)
 	start := scroll
 	if start < 0 {
 		start = 0
 	}
-	if start > maxScroll {
-		start = maxScroll
+	if start >= totalLines {
+		start = totalLines - 1
 	}
-	end := min(start+maxVisible, totalLines)
+	end := start + maxVisible
+	if end > totalLines {
+		end = totalLines
+	}
 	return start, end
 }
 
 func getLogGutterStyle(line string) lipgloss.Style {
-	upper := strings.ToUpper(line)
-	if strings.Contains(upper, "ERROR") || strings.Contains(upper, "FATAL") || strings.Contains(upper, "PANIC") {
+	lower := strings.ToLower(line)
+	if strings.Contains(lower, "err") || strings.Contains(lower, "fail") || strings.Contains(lower, "fatal") || strings.Contains(lower, "crit") {
 		return theme.RedStyle
 	}
-	if strings.Contains(upper, "WARN") {
+	if strings.Contains(lower, "warn") {
 		return theme.YellowStyle
 	}
 	return theme.DimStyle

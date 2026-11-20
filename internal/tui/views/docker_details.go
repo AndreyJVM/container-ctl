@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/tui/components"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
@@ -111,7 +110,7 @@ func FormatPortDisplay(portsStr string) []string {
 	return result
 }
 
-func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *strings.Builder) {
+func renderContainerDetailsCard(ctx *DockerContext, s *strings.Builder) {
 	if ctx.CursorIdx < 0 || ctx.CursorIdx >= len(ctx.Containers) {
 		return
 	}
@@ -119,7 +118,7 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 	sel := ctx.Containers[ctx.CursorIdx]
 	s.WriteString("\n")
 	cardWidth := max(ctx.Width-4, minCardWidth)
-	title := fmt.Sprintf(" %s: %s (%s) ", dict.SelectedContainerDetails, sel.Name, sel.ID)
+	title := fmt.Sprintf(" SELECTED CONTAINER DETAILS: %s (%s) ", sel.Name, sel.ID)
 	topDashLen := cardWidth - lipgloss.Width(title) - 3
 	if topDashLen < 2 {
 		topDashLen = 2
@@ -130,16 +129,16 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 	ipDisplay := sel.IPAddress
 	if ipDisplay == "" {
 		if sel.NetworkName != "" {
-			ipDisplay = fmt.Sprintf("%s (%s)", theme.DimStyle.Render(dict.DetailNone), sel.NetworkName)
+			ipDisplay = fmt.Sprintf("%s (%s)", theme.DimStyle.Render("none"), sel.NetworkName)
 		} else {
-			ipDisplay = theme.DimStyle.Render(dict.DetailNone)
+			ipDisplay = theme.DimStyle.Render("none")
 		}
 	} else if sel.NetworkName != "" {
 		ipDisplay = fmt.Sprintf("%s  %s", theme.BoldStyle.Render(ipDisplay), theme.DimStyle.Render(fmt.Sprintf("(%s)", sel.NetworkName)))
 	} else {
 		ipDisplay = theme.BoldStyle.Render(ipDisplay)
 	}
-	s.WriteString(renderDetailRow(dict.DetailIPLabel, ipDisplay))
+	s.WriteString(renderDetailRow("IP / Network:", ipDisplay))
 
 	// 2. Uptime / Started
 	uptimeDisplay := sel.Status
@@ -161,18 +160,18 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 	if sel.Created != "" {
 		uptimeDisplay = fmt.Sprintf("%s  %s %s",
 			statusStyled,
-			theme.DimStyle.Render("• "+dict.CreatedLabel),
+			theme.DimStyle.Render("• Created:"),
 			theme.DimStyle.Render(sel.Created),
 		)
 	} else {
 		uptimeDisplay = statusStyled
 	}
-	s.WriteString(renderDetailRow(dict.DetailUptimeLabel, uptimeDisplay))
+	s.WriteString(renderDetailRow("Uptime / Started:", uptimeDisplay))
 
 	// 3. Restart Policy
 	restartDisplay := sel.RestartPolicy
 	if restartDisplay == "" {
-		restartDisplay = theme.DimStyle.Render(dict.DetailNone)
+		restartDisplay = theme.DimStyle.Render("none")
 	} else {
 		switch strings.ToLower(restartDisplay) {
 		case "always", "unless-stopped":
@@ -185,36 +184,36 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 			restartDisplay = theme.CyanStyle.Render(restartDisplay)
 		}
 	}
-	s.WriteString(renderDetailRow(dict.DetailRestartPolicyLabel, restartDisplay))
+	s.WriteString(renderDetailRow("Restart Policy:", restartDisplay))
 
 	// 4. Ports & Localhost URLs
 	portItems := FormatPortDisplay(sel.Ports)
 	if len(portItems) == 0 {
-		s.WriteString(renderDetailRow(dict.DetailPortsLabel, theme.DimStyle.Render(dict.DetailNone)))
+		s.WriteString(renderDetailRow("Ports:", theme.DimStyle.Render("none")))
 	} else if len(portItems) == 1 {
-		s.WriteString(renderDetailRow(dict.DetailPortsLabel, theme.CyanStyle.Render(portItems[0])))
+		s.WriteString(renderDetailRow("Ports:", theme.CyanStyle.Render(portItems[0])))
 	} else {
 		for idx, port := range portItems {
 			label := ""
 			if idx == 0 {
-				label = dict.DetailPortsLabel
+				label = "Ports:"
 			}
 			s.WriteString(renderDetailRow(label, theme.CyanStyle.Render("• ")+theme.CyanStyle.Render(port)))
 		}
 	}
 	urls := ExtractPortURLs(sel.Ports)
 	if len(urls) > 0 {
-		s.WriteString(renderDetailRow(dict.DetailURLLabel, theme.CyanStyle.Render(strings.Join(urls, ", "))))
+		s.WriteString(renderDetailRow("URL:", theme.CyanStyle.Render(strings.Join(urls, ", "))))
 	}
 
 	// 5. Volumes / Mounts
 	if len(sel.Mounts) == 0 {
-		s.WriteString(renderDetailRow(dict.DetailMountsLabel, theme.DimStyle.Render(dict.DetailNone)))
+		s.WriteString(renderDetailRow("Volumes / Mounts:", theme.DimStyle.Render("none")))
 	} else {
 		for idx, mnt := range sel.Mounts {
 			label := ""
 			if idx == 0 {
-				label = dict.DetailMountsLabel
+				label = "Volumes / Mounts:"
 			}
 			s.WriteString(renderDetailRow(label, theme.YellowStyle.Render("• ")+mnt))
 		}
@@ -226,7 +225,7 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 		for idx, line := range lines {
 			label := ""
 			if idx == 0 {
-				label = dict.DetailLastErrorLabel
+				label = "Last Error:"
 			}
 			maxLen := max(20, cardWidth-detailColWidth-8)
 			s.WriteString(renderDetailRow(label, theme.RedStyle.Render("✖ ")+theme.RedStyle.Render(components.Truncate(line, maxLen))))
@@ -239,7 +238,7 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 				theme.CyanStyle.Render(monitor.FormatUintBytes(sel.NetTxBytes)),
 			)
 		}
-		s.WriteString(renderDetailRow(dict.DetailNetIOLabel, netIODisplay))
+		s.WriteString(renderDetailRow("Net I/O:", netIODisplay))
 
 		blockIODisplay := theme.DimStyle.Render("0 B / 0 B")
 		if sel.State == "running" {
@@ -248,13 +247,13 @@ func renderContainerDetailsCard(ctx *DockerContext, dict *i18n.Dictionary, s *st
 				theme.YellowStyle.Render(monitor.FormatUintBytes(sel.BlockWriteBytes)),
 			)
 		}
-		s.WriteString(renderDetailRow(dict.DetailBlockIOLabel, blockIODisplay))
+		s.WriteString(renderDetailRow("Block I/O:", blockIODisplay))
 	}
 
 	// 8. Compose Info
 	if sel.ComposeProject != "" {
 		composeDisplay := fmt.Sprintf("%s / %s", theme.BoldStyle.Render(sel.ComposeProject), sel.ComposeService)
-		s.WriteString(renderDetailRow(dict.DetailComposeLabel, composeDisplay))
+		s.WriteString(renderDetailRow("Compose:", composeDisplay))
 	}
 
 	s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")

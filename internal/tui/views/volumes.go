@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/tui/components"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
@@ -17,21 +16,19 @@ type VolumesContext struct {
 	CursorIdx int
 	Error     string
 	Width     int
-	I18n      *i18n.Dictionary
 }
 
 // RenderVolumes renders Docker volumes and details for the selected volume.
 func RenderVolumes(ctx VolumesContext) string {
-	d := getDictionary(ctx.I18n)
 	var s strings.Builder
-	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf(d.VolumesTabTitle, len(ctx.Volumes))) + "\n\n")
+	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf("DOCKER VOLUMES (%d)", len(ctx.Volumes))) + "\n\n")
 
 	if ctx.Error != "" {
-		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf(d.VolumesUnavailable, ctx.Error)) + "\n")
+		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("Docker volumes are unavailable: %s", ctx.Error)) + "\n")
 		return s.String()
 	}
 	if len(ctx.Volumes) == 0 {
-		s.WriteString("  " + theme.DimStyle.Render(d.NoVolumes) + "\n")
+		s.WriteString("  " + theme.DimStyle.Render("No Docker volumes found.") + "\n")
 		return s.String()
 	}
 
@@ -40,7 +37,7 @@ func RenderVolumes(ctx VolumesContext) string {
 	nameWidth := 24 + extraSpace
 
 	s.WriteString(fmt.Sprintf("  %-*s  %-10s  %-8s  %-6s  %s\n",
-		nameWidth, d.ColName, d.ColDriver, d.ColScope, d.ColReferences, d.ColSize))
+		nameWidth, "NAME", "DRIVER", "SCOPE", "REFS", "SIZE"))
 	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", contentWidth)) + "\n")
 	for index, volume := range ctx.Volumes {
 		size := "-"
@@ -76,15 +73,15 @@ func RenderVolumes(ctx VolumesContext) string {
 		s.WriteString("\n")
 
 		cardWidth := contentWidth
-		title := fmt.Sprintf(" %s: %s ", d.VolumeDetailsTitle, volume.Name)
+		title := fmt.Sprintf(" SELECTED VOLUME DETAILS: %s ", volume.Name)
 		topDashLen := cardWidth - lipgloss.Width(title) - 3
 		if topDashLen < 2 {
 			topDashLen = 2
 		}
 		s.WriteString("  " + theme.CyanStyle.Render("┌─") + theme.BoldStyle.Render(title) + theme.CyanStyle.Render(strings.Repeat("─", topDashLen)+"┐") + "\n")
 
-		s.WriteString(renderDetailRow(d.VolumeMountLabel, valueOrDash(volume.Mountpoint)))
-		s.WriteString(renderDetailRow(d.ComposeProjectLabel, valueOrDash(volume.ComposeProject)))
+		s.WriteString(renderDetailRow("Mountpoint:", valueOrDash(volume.Mountpoint)))
+		s.WriteString(renderDetailRow("Compose project:", valueOrDash(volume.ComposeProject)))
 
 		s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")
 	}

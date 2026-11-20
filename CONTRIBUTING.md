@@ -42,17 +42,15 @@ dockpulse/
 │   │   ├── docker/         # Docker client, container stats, logs, inspect, exec
 │   │   ├── compose/        # Docker Compose service discovery and lifecycle
 │   │   ├── swarm/          # Docker Swarm cluster nodes and services monitoring
-│   │   ├── prune/          # Docker system prune and disk reclamation
-│   │   └── system/         # Host system metrics (CPU, RAM, Disk, Network)
+│   │   └── prune/          # Docker system prune and disk reclamation
 │   ├── tui/                # Terminal User Interface (Bubble Tea & Lip Gloss)
 │   │   ├── views/          # Primary views (containers, images, Compose, networks, volumes, Swarm)
 │   │   ├── modals/         # Interactive dialogs (logs, inspect, exec, prune, help)
-│   │   ├── components/     # Reusable UI widgets (progress bar, sparkline, tables)
+│   │   ├── components/     # Reusable UI widgets
 │   │   ├── shell/          # Embedded PTY terminal engine
 │   │   ├── theme/          # Color schemes, styles, and borders
 │   │   └── update*.go      # Event handling, keybindings, and command dispatchers
-│   ├── testutil/           # Test fixtures, builders, and assertions
-│   └── i18n/               # English UI text catalog
+│   └── testutil/           # Test fixtures, builders, and assertions
 ├── docs/                   # Documentation and screenshots
 └── debian/                 # Debian/Ubuntu packaging metadata
 ```
@@ -62,7 +60,6 @@ dockpulse/
 - Adding a new dashboard view? Work in `internal/tui/views/`.
 - Adding a popup modal or action? Work in `internal/tui/modals/`.
 - Adding UI components or widgets? Work in `internal/tui/components/`.
-- Updating UI text? Update `internal/i18n/dictionary.go`.
 
 ### Development & Testing
 

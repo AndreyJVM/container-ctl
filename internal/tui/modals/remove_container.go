@@ -4,18 +4,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
 )
 
 // RenderRemoveContainer renders the container deletion confirmation modal.
-func RenderRemoveContainer(containerName, containerID string, dict *i18n.Dictionary) string {
+func RenderRemoveContainer(containerName, containerID string) string {
 	var s strings.Builder
-	s.WriteString(theme.TitleStyle.Render(dict.RemoveContainerTitle) + "\n\n")
+	s.WriteString(theme.TitleStyle.Render("CONFIRM CONTAINER REMOVAL") + "\n\n")
 	label := fmt.Sprintf("%s (%s)", containerName, containerID)
-	s.WriteString(fmt.Sprintf("  "+dict.ContainerLabel+"\n\n", theme.BoldStyle.Render(label)))
-	s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.YellowStyle.Render(dict.WarningLabel), dict.RemoveContainerNotice))
-	s.WriteString(fmt.Sprintf("  "+dict.RemoveContainerConfirm+"\n\n", theme.BoldStyle.Render(containerName)))
-	s.WriteString(fmt.Sprintf("  %s %s (Remove)    %s %s\n", theme.RedStyle.Render("[Y]"), dict.FooterConfirm, theme.DimStyle.Render("[N / Esc]"), dict.FooterCancel))
+	s.WriteString(fmt.Sprintf("  Container: %s\n\n", theme.BoldStyle.Render(label)))
+	s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.YellowStyle.Render("Warning:"), "The container and all non-persisted state will be permanently deleted (docker rm)."))
+	s.WriteString(fmt.Sprintf("  Are you sure you want to remove container %s?\n\n", theme.BoldStyle.Render(containerName)))
+	s.WriteString(fmt.Sprintf("  %s %s (Remove)    %s %s\n", theme.RedStyle.Render("[Y]"), "Confirm", theme.DimStyle.Render("[N / Esc]"), "Cancel"))
 	return theme.BoxStyle.Render(s.String())
 }

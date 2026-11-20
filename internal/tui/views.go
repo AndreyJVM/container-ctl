@@ -20,19 +20,18 @@ func (m Model) View() string {
 		LastUpdate:            m.lastUpdate,
 		DockerInfo:            m.dockerInfo,
 		FormattedDockerStatus: m.formatDockerStatus(m.dockerInfo.Status),
-		I18n:                  &m.i18n,
 	}) + "\n\n")
 
 	// 2. Tabs
 	tabs := []string{
-		m.i18n.TabDocker,
-		m.i18n.TabImages,
-		m.i18n.TabCompose,
-		m.i18n.TabNetworks,
-		m.i18n.TabVolumes,
+		"1: Containers",
+		"2: Images",
+		"3: Compose",
+		"4: Networks",
+		"5: Volumes",
 	}
 	if m.IsSwarmVisible() {
-		tabs = append(tabs, m.i18n.TabSwarm)
+		tabs = append(tabs, "6: Swarm")
 	}
 	b.WriteString(views.RenderTabs(tabs, int(m.activeTab), m.width) + "\n")
 
@@ -94,7 +93,6 @@ func (m Model) View() string {
 		ShellActive:  m.embeddedShell != nil,
 		ShellFocused: m.shellFocused,
 		SwarmVisible: m.IsSwarmVisible(),
-		I18n:         &m.i18n,
 	}))
 
 	return b.String()
@@ -113,7 +111,6 @@ func (m Model) renderEmbeddedShellLayout(content string) string {
 		Width:         panelWidth,
 		Height:        panelHeight,
 		Focused:       m.shellFocused,
-		I18n:          &m.i18n,
 	})
 	if m.width < embeddedShellWideLayoutMin {
 		return terminal
@@ -131,11 +128,11 @@ func (m Model) renderEmbeddedShellLayout(content string) string {
 func (m Model) renderDockerTab() string {
 	containers := m.getFilteredContainers()
 	sortNames := []string{
-		m.i18n.SortModeDefault,
-		m.i18n.SortModeCPU,
-		m.i18n.SortModeMem,
-		m.i18n.SortModeName,
-		m.i18n.SortModeStatus,
+		"Default",
+		"CPU ↓",
+		"Memory ↓",
+		"Name ↑",
+		"Status",
 	}
 
 	return views.RenderDocker(views.DockerContext{
@@ -148,7 +145,6 @@ func (m Model) renderDockerTab() string {
 		SortMode:             m.containerSortMode,
 		SortNames:            sortNames,
 		Width:                m.width,
-		I18n:                 &m.i18n,
 	})
 }
 
@@ -164,7 +160,6 @@ func (m Model) renderImagesTab() string {
 		FilterQuery:      m.filterQuery,
 		OnlyUnused:       m.onlyUnusedImages,
 		Width:            m.width,
-		I18n:             &m.i18n,
 	})
 }
 
@@ -174,7 +169,6 @@ func (m Model) renderComposeTab() string {
 		CursorIdx:    m.composeCursorIdx,
 		FormatStatus: m.formatComposeStatus,
 		Width:        m.width,
-		I18n:         &m.i18n,
 	})
 }
 
@@ -184,7 +178,6 @@ func (m Model) renderNetworksTab() string {
 		CursorIdx: m.networkCursorIdx,
 		Error:     m.networkErr,
 		Width:     m.width,
-		I18n:      &m.i18n,
 	})
 }
 
@@ -194,7 +187,6 @@ func (m Model) renderVolumesTab() string {
 		CursorIdx: m.volumeCursorIdx,
 		Error:     m.volumeErr,
 		Width:     m.width,
-		I18n:      &m.i18n,
 	})
 }
 
@@ -204,7 +196,6 @@ func (m Model) renderSwarmTab() string {
 		CursorIdx:    m.swarmCursorIdx,
 		FormatStatus: m.formatSwarmStatus,
 		Width:        m.width,
-		I18n:         &m.i18n,
 	})
 }
 
@@ -213,27 +204,27 @@ func (m Model) renderLogsModal() string {
 	if m.logsFiltering {
 		filterActive = "true"
 	}
-	return modals.RenderLogs(m.logsLines, m.logsScroll, m.logsTargetName, m.logsTargetID, m.width, &m.i18n, m.logsFilterQuery, filterActive)
+	return modals.RenderLogs(m.logsLines, m.logsScroll, m.logsTargetName, m.logsTargetID, m.width, m.logsFilterQuery, filterActive)
 }
 
 func (m Model) renderInspectModal() string {
-	return modals.RenderInspect(m.inspectTarget, &m.i18n, m.inspectScroll)
+	return modals.RenderInspect(m.inspectTarget, m.inspectScroll)
 }
 
 func (m Model) renderPruneModal() string {
-	return modals.RenderPrune(m.pruneUsage, m.pruneUsageErr, m.pruneConfirm, &m.i18n)
+	return modals.RenderPrune(m.pruneUsage, m.pruneUsageErr, m.pruneConfirm)
 }
 
 func (m Model) renderComposeDownModal() string {
-	return modals.RenderComposeDown(m.composeDownTarget, &m.i18n)
+	return modals.RenderComposeDown(m.composeDownTarget)
 }
 
 func (m Model) renderRemoveContainerModal() string {
-	return modals.RenderRemoveContainer(m.removeContainerTargetName, m.removeContainerTargetID, &m.i18n)
+	return modals.RenderRemoveContainer(m.removeContainerTargetName, m.removeContainerTargetID)
 }
 
 func (m Model) renderRemoveImageModal() string {
-	return modals.RenderRemoveImage(m.removeImageTargetName, m.removeImageTargetID, m.removeImageTargetInUse, &m.i18n)
+	return modals.RenderRemoveImage(m.removeImageTargetName, m.removeImageTargetID, m.removeImageTargetInUse)
 }
 
 func (m Model) renderExecModal() string {
@@ -243,10 +234,9 @@ func (m Model) renderExecModal() string {
 		CursorIdx:     m.execCursorIdx,
 		IsCustomInput: m.execIsCustomInput,
 		CustomCmd:     m.execCustomCmd,
-		I18n:          &m.i18n,
 	})
 }
 
 func (m Model) renderHelpBox() string {
-	return modals.RenderHelp(m.refreshInterval, &m.i18n, m.IsSwarmVisible())
+	return modals.RenderHelp(m.refreshInterval, m.IsSwarmVisible())
 }

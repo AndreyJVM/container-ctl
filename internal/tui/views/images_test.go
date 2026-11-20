@@ -4,13 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/testutil"
 )
 
 func TestRenderImagesView(t *testing.T) {
-	dict := i18n.Get()
 	view := RenderImages(ImagesContext{
 		Images: []monitor.DockerImage{
 			testutil.AnImage(
@@ -27,17 +25,16 @@ func TestRenderImagesView(t *testing.T) {
 		},
 		CursorIdx: 0,
 		Width:     100,
-		I18n:      &dict,
 	})
 
-	for _, expected := range []string{"c557bd415052", "sambryx-web", "latest (+1)", "DOCKER IMAGES", dict.ImageInUseBadge, dict.ImageDanglingBadge} {
+	for _, expected := range []string{"c557bd415052", "sambryx-web", "latest (+1)", "DOCKER IMAGES", "[In Use]", "[Dangling]"} {
 		if !strings.Contains(view, expected) {
 			t.Errorf("expected %q in images view, got: %s", expected, view)
 		}
 	}
 
 	// Details card for selected image
-	if !strings.Contains(view, dict.ImageDetailsTitle) || !strings.Contains(view, "sambryx-web:latest, sambryx-web:v1.0") {
+	if !strings.Contains(view, "SELECTED IMAGE DETAILS") || !strings.Contains(view, "sambryx-web:latest, sambryx-web:v1.0") {
 		t.Errorf("expected image details card in images view, got: %s", view)
 	}
 
@@ -47,7 +44,7 @@ func TestRenderImagesView(t *testing.T) {
 	}
 
 	// Action row in details card
-	if !strings.Contains(view, dict.ImageStatusActionLabel) {
+	if !strings.Contains(view, "Status / Action:") {
 		t.Errorf("expected status/action row in images view, got: %s", view)
 	}
 
@@ -58,17 +55,16 @@ func TestRenderImagesView(t *testing.T) {
 		},
 		OnlyUnused: true,
 		Width:      100,
-		I18n:       &dict,
 	})
-	if !strings.Contains(unusedOnlyView, dict.FilterUnusedBadge) {
+	if !strings.Contains(unusedOnlyView, "[Filter: Unused Images Only — press 'u' or 'Esc' to show all]") {
 		t.Errorf("expected unused badge in unused only view, got: %s", unusedOnlyView)
 	}
-	if !strings.Contains(unusedOnlyView, dict.ImageActionUnused) {
+	if !strings.Contains(unusedOnlyView, "Unused (reclaimable) — Press 'x' to delete, 'C' to prune") {
 		t.Errorf("expected reclaimable action hint for unused image, got: %s", unusedOnlyView)
 	}
 
 	// Error view
-	errorView := RenderImages(ImagesContext{Error: "daemon unavailable", I18n: &dict})
+	errorView := RenderImages(ImagesContext{Error: "daemon unavailable"})
 	if !strings.Contains(errorView, "daemon unavailable") {
 		t.Errorf("expected discovery error in images view, got: %s", errorView)
 	}
@@ -77,20 +73,18 @@ func TestRenderImagesView(t *testing.T) {
 	compactView := RenderImages(ImagesContext{
 		Images: []monitor.DockerImage{{ID: "c557bd415052", Repository: "sambryx-web", Tag: "latest"}},
 		Width:  80,
-		I18n:   &dict,
 	})
 	wideView := RenderImages(ImagesContext{
 		Images: []monitor.DockerImage{{ID: "c557bd415052", Repository: "sambryx-web", Tag: "latest"}},
 		Width:  160,
-		I18n:   &dict,
 	})
 	if !strings.Contains(compactView, "sambryx-web") || !strings.Contains(wideView, "sambryx-web") {
 		t.Errorf("expected repository in both compact and wide views")
 	}
 
 	// Empty view
-	emptyView := RenderImages(ImagesContext{I18n: &dict})
-	if !strings.Contains(emptyView, dict.NoImages) {
+	emptyView := RenderImages(ImagesContext{})
+	if !strings.Contains(emptyView, "No Docker images found.") {
 		t.Errorf("expected no images notice in images view, got: %s", emptyView)
 	}
 }

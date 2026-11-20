@@ -8,7 +8,7 @@ import (
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 )
 
-func TestEnglishLanguageModel(t *testing.T) {
+func TestViewModel_RenderingTabsAndModals(t *testing.T) {
 	m := NewModel(2*time.Second, 1, "v0.6.1")
 
 	// Docker tab and persistent status.
@@ -21,8 +21,8 @@ func TestEnglishLanguageModel(t *testing.T) {
 	if !strings.Contains(vDocker, "DOCKER CONTAINERS") {
 		t.Errorf("expected 'DOCKER CONTAINERS' in View(), got: %s", vDocker)
 	}
-	if !strings.Contains(vDocker, "Daemon: Running") {
-		t.Errorf("expected English 'Daemon: Running', got: %s", vDocker)
+	if !strings.Contains(vDocker, "Docker: Running") {
+		t.Errorf("expected 'Docker: Running', got: %s", vDocker)
 	}
 
 	// Images tab.
@@ -56,7 +56,7 @@ func TestEnglishLanguageModel(t *testing.T) {
 		t.Errorf("expected 'DOCKER COMPOSE PROJECTS' in View(), got: %s", vCompose)
 	}
 	if !strings.Contains(vCompose, "[Running]") {
-		t.Errorf("expected English '[Running]' status in Compose tab, got: %s", vCompose)
+		t.Errorf("expected '[Running]' status in Compose tab, got: %s", vCompose)
 	}
 
 	// Swarm tab.
@@ -70,7 +70,7 @@ func TestEnglishLanguageModel(t *testing.T) {
 		t.Errorf("expected 'DOCKER SWARM CLUSTER' in View(), got: %s", vSwarm)
 	}
 	if !strings.Contains(vSwarm, "Status: Inactive") {
-		t.Errorf("expected English 'Status: Inactive', got: %s", vSwarm)
+		t.Errorf("expected 'Status: Inactive', got: %s", vSwarm)
 	}
 
 	// Help modal.

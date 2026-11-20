@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
 )
 
@@ -15,7 +14,6 @@ type ExecModalContext struct {
 	CursorIdx     int
 	IsCustomInput bool
 	CustomCmd     string
-	I18n          *i18n.Dictionary
 }
 
 // ExecMenuItem represents a selectable execution target or shell.
@@ -26,64 +24,63 @@ type ExecMenuItem struct {
 }
 
 // GetExecMenuItems returns the list of available shell/exec modes.
-func GetExecMenuItems(d *i18n.Dictionary) []ExecMenuItem {
+func GetExecMenuItems() []ExecMenuItem {
 	return []ExecMenuItem{
 		{
 			Key:         "1",
 			Title:       "Embedded Bash / Sh",
-			Description: d.ExecModeAutoBash,
+			Description: "Recommended: integrated terminal inside Dockpulse",
 		},
 		{
 			Key:         "2",
 			Title:       "POSIX Shell (/bin/sh)",
-			Description: d.ExecModeSh,
+			Description: "Interactive POSIX shell inside Dockpulse",
 		},
 		{
 			Key:         "3",
 			Title:       "Zsh Shell (/bin/zsh)",
-			Description: d.ExecModeZsh,
+			Description: "Interactive Z shell inside Dockpulse",
 		},
 		{
 			Key:         "4",
 			Title:       "Docker Attach",
-			Description: d.ExecModeAttach,
+			Description: "Attach stdout/stderr/stdin directly",
 		},
 		{
 			Key:         "5",
 			Title:       "Root Shell (-u 0)",
-			Description: d.ExecModeRootBash,
+			Description: "Embedded root session inside container",
 		},
 		{
 			Key:         "6",
 			Title:       "Custom Command...",
-			Description: d.ExecModeCustom,
+			Description: "Execute arbitrary command interactively",
 		},
 		{
 			Key:         "7",
 			Title:       "External Bash / Sh",
-			Description: d.ExecModeExternal,
+			Description: "Suspends Dockpulse and runs in your host terminal",
 		},
 	}
 }
 
 // RenderExec renders the interactive exec / attach selection modal.
 func RenderExec(ctx ExecModalContext) string {
-	d := getModalDictionary(ctx.I18n)
 	var s strings.Builder
 
-	s.WriteString(theme.TitleStyle.Render(d.ExecModalTitle) + "\n\n")
-	s.WriteString(fmt.Sprintf("  "+d.ContainerLabel+" (%s)\n\n",
+	s.WriteString(theme.TitleStyle.Render("EXECUTE INTERACTIVE SHELL") + "\n\n")
+	s.WriteString(fmt.Sprintf("  Container: %s (%s)\n\n",
 		theme.BoldStyle.Render(ctx.ContainerName),
 		theme.DimStyle.Render(ctx.ContainerID),
 	))
 
 	if ctx.IsCustomInput {
-		s.WriteString(fmt.Sprintf("  %s\n", theme.YellowStyle.Render(fmt.Sprintf(d.ExecCustomPrompt, ctx.CustomCmd+"█"))))
-		s.WriteString(fmt.Sprintf("  %s\n\n", theme.DimStyle.Render(d.ExecCustomHint)))
+		s.WriteString(fmt.Sprintf("  %s\n", theme.YellowStyle.Render(fmt.Sprintf("Enter custom command: %s", ctx.CustomCmd+"█"))))
+		s.WriteString(fmt.Sprintf("  %s\n\n", theme.DimStyle.Render("(Press Enter to execute, Esc to cancel)")))
 		return theme.BoxStyle.Render(s.String())
 	}
 
-	items := GetExecMenuItems(d)
+	items := GetExecMenuItems()
 	for i, item := range items {
 		cursor := "  "
 		itemStyle := theme.BoldStyle
@@ -102,8 +99,8 @@ func RenderExec(ctx ExecModalContext) string {
 	}
 
 	s.WriteString("\n  " +
-		theme.BoldStyle.Render("[1-7 / Enter]") + " " + d.FooterSelectAction + "  |  " +
-		theme.BoldStyle.Render("[Esc / Q]") + " " + d.FooterCancel + "\n")
+		theme.BoldStyle.Render("[1-7 / Enter]") + " Select Action  |  " +
+		theme.BoldStyle.Render("[Esc / Q]") + " Cancel\n")
 
 	return theme.BoxStyle.Render(s.String())
 }

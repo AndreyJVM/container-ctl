@@ -5,22 +5,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 )
 
 func TestRenderLogs(t *testing.T) {
-	dict := i18n.Get()
-
 	// Empty logs
-	emptyView := RenderLogs(nil, 0, "test-container", "c12345", 100, &dict)
-	if !strings.Contains(emptyView, "test-container") || !strings.Contains(emptyView, dict.NoLogsOutput) {
+	emptyView := RenderLogs(nil, 0, "test-container", "c12345", 100)
+	if !strings.Contains(emptyView, "test-container") || !strings.Contains(emptyView, "No logs output available") {
 		t.Errorf("expected container name and no logs message, got: %s", emptyView)
 	}
 
 	// Logs with scrolling
 	lines := []string{"log line 1", "log line 2", "log line 3", "log line 4"}
-	view := RenderLogs(lines, 1, "test-container", "c12345", 80, &dict)
+	view := RenderLogs(lines, 1, "test-container", "c12345", 80)
 	if !strings.Contains(view, "log line 2") {
 		t.Errorf("expected 'log line 2' in view, got: %s", view)
 	}
@@ -80,21 +77,19 @@ func TestRenderLogs_EdgeCases(t *testing.T) {
 	}
 
 	// Negative scroll should not panic and render safely
-	negView := RenderLogs(lines, -10, "app", "id1", 60, nil)
+	negView := RenderLogs(lines, -10, "app", "id1", 60)
 	if !strings.Contains(negView, "app") || !strings.Contains(negView, "INFO started") {
 		t.Errorf("expected safe render with negative scroll, got: %s", negView)
 	}
 
 	// Excessive scroll should not panic
-	bigScrollView := RenderLogs(lines, 100, "app", "id1", 60, nil)
+	bigScrollView := RenderLogs(lines, 100, "app", "id1", 60)
 	if !strings.Contains(bigScrollView, "ERROR db down") {
 		t.Errorf("expected last line on excessive scroll, got: %s", bigScrollView)
 	}
 }
 
 func TestRenderInspect(t *testing.T) {
-	dict := i18n.Get()
-
 	detail := monitor.ContainerDetail{
 		ID:              "c123456789",
 		Name:            "web-service",
@@ -117,7 +112,7 @@ func TestRenderInspect(t *testing.T) {
 		RestartPolicy:   "unless-stopped",
 	}
 
-	view := RenderInspect(detail, &dict)
+	view := RenderInspect(detail)
 	if !strings.Contains(view, "web-service") || !strings.Contains(view, "[healthy]") {
 		t.Errorf("expected container name and healthy badge, got: %s", view)
 	}
@@ -142,7 +137,7 @@ func TestRenderInspect(t *testing.T) {
 		"API_KEY=abcdef123456",
 		"PORT=8080",
 	}
-	envView := RenderInspect(detailWithEnv, &dict)
+	envView := RenderInspect(detailWithEnv)
 	if !strings.Contains(envView, "APP_ENV=production") || !strings.Contains(envView, "PORT=8080") {
 		t.Errorf("expected regular env vars rendered, got: %s", envView)
 	}
@@ -176,7 +171,6 @@ func TestMaskEnvVar(t *testing.T) {
 }
 
 func TestRenderLogs_Filter(t *testing.T) {
-	dict := i18n.Get()
 	lines := []string{
 		"2026-11-20 INFO starting server on port 8080",
 		"2026-11-20 ERROR failed to connect to database",
@@ -185,7 +179,7 @@ func TestRenderLogs_Filter(t *testing.T) {
 	}
 
 	// Filter query for ERROR
-	filteredView := RenderLogs(lines, 0, "api-srv", "c999", 80, &dict, "ERROR", "false")
+	filteredView := RenderLogs(lines, 0, "api-srv", "c999", 80, "ERROR", "false")
 	if !strings.Contains(filteredView, "failed to connect to database") {
 		t.Errorf("expected error line in filtered logs, got: %s", filteredView)
 	}
@@ -197,23 +191,21 @@ func TestRenderLogs_Filter(t *testing.T) {
 	}
 
 	// Active search input
-	activeSearchView := RenderLogs(lines, 0, "api-srv", "c999", 80, &dict, "WARN", "true")
+	activeSearchView := RenderLogs(lines, 0, "api-srv", "c999", 80, "WARN", "true")
 	if !strings.Contains(activeSearchView, "Search:") || !strings.Contains(activeSearchView, "WARN") {
 		t.Errorf("expected active search bar in view, got: %s", activeSearchView)
 	}
 
 	// No matching filter query
-	noMatchView := RenderLogs(lines, 0, "api-srv", "c999", 80, &dict, "FATAL", "false")
+	noMatchView := RenderLogs(lines, 0, "api-srv", "c999", 80, "FATAL", "false")
 	if !strings.Contains(noMatchView, "No log lines match filter") {
 		t.Errorf("expected no log lines match message, got: %s", noMatchView)
 	}
 }
 
 func TestRenderPrune(t *testing.T) {
-	dict := i18n.Get()
-
 	// Error view
-	errView := RenderPrune(monitor.DockerDiskUsage{}, "daemon error", 0, &dict)
+	errView := RenderPrune(monitor.DockerDiskUsage{}, "daemon error", 0)
 	if !strings.Contains(errView, "daemon error") {
 		t.Errorf("expected error message in prune view, got: %s", errView)
 	}
@@ -225,113 +217,81 @@ func TestRenderPrune(t *testing.T) {
 		TotalSize:  1024 * 1024 * 550,
 		TotalRecl:  1024 * 1024 * 230,
 	}
-	menuView := RenderPrune(usage, "", 0, &dict)
-	if !strings.Contains(menuView, dict.PruneTitle) || !strings.Contains(menuView, "[1]") {
+	menuView := RenderPrune(usage, "", 0)
+	if !strings.Contains(menuView, "CLEANUP & PRUNE DOCKER RESOURCES") || !strings.Contains(menuView, "[1]") {
 		t.Errorf("expected prune menu items, got: %s", menuView)
 	}
 
 	// Confirmation step view
-	confirmView := RenderPrune(usage, "", 1, &dict)
-	if !strings.Contains(confirmView, dict.PruneWarnTitle) || !strings.Contains(confirmView, "[Y]") {
+	confirmView := RenderPrune(usage, "", 1)
+	if !strings.Contains(confirmView, "WARNING:") || !strings.Contains(confirmView, "[Y]") {
 		t.Errorf("expected prune confirmation view, got: %s", confirmView)
 	}
 }
 
 func TestGetPruneActionName(t *testing.T) {
-	dict := i18n.Get()
-	if act1 := getPruneActionName(1, &dict); act1 != dict.PruneWarnAction1 {
-		t.Errorf("expected %q, got %q", dict.PruneWarnAction1, act1)
+	if act1 := getPruneActionName(1); act1 != "Prune Stopped Containers" {
+		t.Errorf("expected Prune Stopped Containers, got %q", act1)
 	}
-	if act2 := getPruneActionName(2, &dict); act2 != dict.PruneWarnAction2 {
-		t.Errorf("expected %q, got %q", dict.PruneWarnAction2, act2)
+	if act2 := getPruneActionName(2); act2 != "Prune Dangling & Unused Images" {
+		t.Errorf("expected Prune Dangling & Unused Images, got %q", act2)
 	}
-	if act3 := getPruneActionName(3, &dict); act3 != dict.PruneWarnAction3 {
-		t.Errorf("expected %q, got %q", dict.PruneWarnAction3, act3)
+	if act3 := getPruneActionName(3); act3 != "Prune Unused Volumes" {
+		t.Errorf("expected Prune Unused Volumes, got %q", act3)
 	}
-	if act4 := getPruneActionName(4, &dict); act4 != dict.PruneWarnAction4 {
-		t.Errorf("expected %q, got %q", dict.PruneWarnAction4, act4)
+	if act4 := getPruneActionName(4); act4 != "Prune System (All Unused Resources)" {
+		t.Errorf("expected Prune System (All Unused Resources), got %q", act4)
 	}
-	if actOther := getPruneActionName(99, &dict); actOther != "" {
+	if actOther := getPruneActionName(99); actOther != "" {
 		t.Errorf("expected empty string for unknown step, got %q", actOther)
 	}
 }
 
-func TestRenderPrune_NilDictAndZeroTotal(t *testing.T) {
-	usage := monitor.DockerDiskUsage{
-		Images:     monitor.DockerDiskItem{TotalCount: 2, ActiveCount: 1, TotalSize: 1000, Reclaimable: 500},
-		Containers: monitor.DockerDiskItem{TotalCount: 1, ActiveCount: 0, TotalSize: 2000, Reclaimable: 1500},
-	}
-	// nil dict should safely fallback to default without panic
-	view := RenderPrune(usage, "", 0, nil)
-	if !strings.Contains(view, "1000 B") || !strings.Contains(view, "2.0 KB") {
-		t.Errorf("expected categories in prune view, got: %s", view)
-	}
-}
-
 func TestRenderComposeDown(t *testing.T) {
-	dict := i18n.Get()
-	view := RenderComposeDown("my-stack", &dict)
-	if !strings.Contains(view, "my-stack") || !strings.Contains(view, dict.ComposeDownTitle) {
+	view := RenderComposeDown("my-stack")
+	if !strings.Contains(view, "my-stack") || !strings.Contains(view, "CONFIRM DOCKER COMPOSE DOWN") {
 		t.Errorf("expected project name and title in compose down modal, got: %s", view)
 	}
 }
 
 func TestRenderRemoveContainer(t *testing.T) {
-	dict := i18n.Get()
-	view := RenderRemoveContainer("my-db", "c98765", &dict)
-	if !strings.Contains(view, "my-db") || !strings.Contains(view, "c98765") || !strings.Contains(view, dict.RemoveContainerTitle) {
+	view := RenderRemoveContainer("my-db", "c98765")
+	if !strings.Contains(view, "my-db") || !strings.Contains(view, "c98765") || !strings.Contains(view, "CONFIRM CONTAINER REMOVAL") {
 		t.Errorf("expected container name, id and title in remove modal, got: %s", view)
 	}
 }
 
 func TestRenderRemoveImage(t *testing.T) {
-	dict := i18n.Get()
-
 	// Normal unused image
-	view := RenderRemoveImage("nginx:alpine", "img12345", false, &dict)
-	if !strings.Contains(view, "nginx:alpine") || !strings.Contains(view, "img12345") || !strings.Contains(view, dict.RemoveImageTitle) {
+	view := RenderRemoveImage("nginx:alpine", "img12345", false)
+	if !strings.Contains(view, "nginx:alpine") || !strings.Contains(view, "img12345") || !strings.Contains(view, "CONFIRM IMAGE REMOVAL") {
 		t.Errorf("expected image name, id and title in remove image modal, got: %s", view)
 	}
 
 	// In use image with warning
-	viewInUse := RenderRemoveImage("redis:latest", "img67890", true, &dict)
-	if !strings.Contains(viewInUse, dict.RemoveImageInUseWarning) {
+	viewInUse := RenderRemoveImage("redis:latest", "img67890", true)
+	if !strings.Contains(viewInUse, "Warning: Image is currently in use by containers") {
 		t.Errorf("expected in-use warning in modal, got: %s", viewInUse)
 	}
 }
 
 func TestRenderHelp(t *testing.T) {
-	dict := i18n.Get()
-
-	t.Run("standard en rendering", func(t *testing.T) {
-		view := RenderHelp(2*time.Second, &dict)
-		if !strings.Contains(view, dict.HelpTitle) || !strings.Contains(view, "[K]") || !strings.Contains(view, "[x]") {
-			t.Errorf("expected help title and new shortcut keys [K] and [x], got: %s", view)
-		}
-		if !strings.Contains(view, dict.HelpSecNav) || !strings.Contains(view, dict.HelpSecContainers) {
-			t.Errorf("expected section titles in help view, got: %s", view)
-		}
-	})
-
-	t.Run("nil dictionary fallback", func(t *testing.T) {
-		view := RenderHelp(3*time.Second, nil)
-		if !strings.Contains(view, "[K]") || !strings.Contains(view, "HOTKEYS:") {
-			t.Errorf("expected fallback en help view when dict is nil, got: %s", view)
-		}
-	})
-
+	view := RenderHelp(2 * time.Second)
+	if !strings.Contains(view, "HELP & KEYBOARD SHORTCUTS") || !strings.Contains(view, "[K]") || !strings.Contains(view, "[x]") {
+		t.Errorf("expected help title and new shortcut keys [K] and [x], got: %s", view)
+	}
+	if !strings.Contains(view, "NAVIGATION") || !strings.Contains(view, "CONTAINER ACTIONS") {
+		t.Errorf("expected section titles in help view, got: %s", view)
+	}
 }
 
 func TestRenderExec(t *testing.T) {
-	dict := i18n.Get()
-
 	// 1. Menu view
 	menuView := RenderExec(ExecModalContext{
 		ContainerName: "my-web",
 		ContainerID:   "c999",
 		CursorIdx:     0,
 		IsCustomInput: false,
-		I18n:          &dict,
 	})
 
 	if !strings.Contains(menuView, "my-web") || !strings.Contains(menuView, "c999") {
@@ -347,7 +307,6 @@ func TestRenderExec(t *testing.T) {
 		ContainerID:   "c999",
 		IsCustomInput: true,
 		CustomCmd:     "htop",
-		I18n:          &dict,
 	})
 
 	if !strings.Contains(customView, "htop") {
@@ -356,11 +315,9 @@ func TestRenderExec(t *testing.T) {
 }
 
 func TestRenderExecOffersEmbeddedAndExternalShells(t *testing.T) {
-	dict := i18n.Get()
 	view := RenderExec(ExecModalContext{
 		ContainerName: "api",
 		ContainerID:   "c123",
-		I18n:          &dict,
 	})
 
 	if !strings.Contains(view, "Embedded Bash / Sh") {
@@ -372,8 +329,6 @@ func TestRenderExecOffersEmbeddedAndExternalShells(t *testing.T) {
 }
 
 func TestRenderInspect_Scrolling(t *testing.T) {
-	dict := i18n.Get()
-
 	detail := monitor.ContainerDetail{
 		ID:     "c1234567890abcdef",
 		Name:   "huge-app",
@@ -389,34 +344,32 @@ func TestRenderInspect_Scrolling(t *testing.T) {
 		},
 	}
 
-	lines := BuildInspectLines(detail, &dict)
+	lines := BuildInspectLines(detail)
 	if len(lines) <= DefaultMaxVisibleInspect {
 		t.Fatalf("expected more than %d lines, got %d", DefaultMaxVisibleInspect, len(lines))
 	}
 
 	// Render page 1 (scroll = 0)
-	v0 := RenderInspect(detail, &dict, 0)
+	v0 := RenderInspect(detail, 0)
 	if !strings.Contains(v0, "[Lines 1-18 of") || !strings.Contains(v0, "[y] Copy ID") {
 		t.Errorf("expected pagination footer in v0, got: %s", v0)
 	}
 
 	// Render scrolled
-	vScroll := RenderInspect(detail, &dict, 5)
+	vScroll := RenderInspect(detail, 5)
 	if !strings.Contains(vScroll, "[Lines 6-") {
 		t.Errorf("expected scrolled lines indicator, got: %s", vScroll)
 	}
 }
 
 func TestBuildInspectLines_Variants(t *testing.T) {
-	dict := i18n.Get()
-
 	// Test starting status
 	startingDetail := monitor.ContainerDetail{
 		ID:     "starting-c",
 		Name:   "starter",
 		Health: "starting",
 	}
-	lines := BuildInspectLines(startingDetail, &dict)
+	lines := BuildInspectLines(startingDetail)
 	joined := strings.Join(lines, "\n")
 	if !strings.Contains(joined, "[starting]") {
 		t.Errorf("expected [starting] health badge, got: %s", joined)

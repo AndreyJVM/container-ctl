@@ -351,8 +351,8 @@ func TestDockerTabHealthBadges(t *testing.T) {
 	}
 
 	view := m.View()
-	if !strings.Contains(view, m.i18n.ColStatus) {
-		t.Errorf("expected %s column in header, got: %s", m.i18n.ColStatus, view)
+	if !strings.Contains(view, "STATUS") {
+		t.Errorf("expected STATUS column in header, got: %s", view)
 	}
 	if !strings.Contains(view, "[healthy]") {
 		t.Errorf("expected [healthy] badge in View(), got: %s", view)

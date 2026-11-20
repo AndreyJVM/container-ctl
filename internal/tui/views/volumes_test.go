@@ -4,13 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/testutil"
 )
 
 func TestRenderVolumesView(t *testing.T) {
-	dict := i18n.Get()
 	vol := testutil.AVolume(func(v *monitor.DockerVolume) {
 		v.Name = "shop_data"
 		v.Mountpoint = "/var/lib/docker/volumes/shop_data/_data"
@@ -22,7 +20,6 @@ func TestRenderVolumesView(t *testing.T) {
 		Volumes:   []monitor.DockerVolume{vol},
 		CursorIdx: 0,
 		Width:     100,
-		I18n:      &dict,
 	})
 
 	for _, expected := range []string{"shop_data", "4.0 KB", "/var/lib/docker/volumes/shop_data/_data", "shop"} {
@@ -31,13 +28,13 @@ func TestRenderVolumesView(t *testing.T) {
 		}
 	}
 
-	errorView := RenderVolumes(VolumesContext{Error: "daemon unavailable", I18n: &dict})
+	errorView := RenderVolumes(VolumesContext{Error: "daemon unavailable"})
 	if !strings.Contains(errorView, "daemon unavailable") {
 		t.Errorf("expected discovery error in volumes view, got: %s", errorView)
 	}
 
-	emptyView := RenderVolumes(VolumesContext{Volumes: nil, I18n: &dict})
-	if !strings.Contains(emptyView, dict.NoVolumes) {
+	emptyView := RenderVolumes(VolumesContext{Volumes: nil})
+	if !strings.Contains(emptyView, "No Docker volumes found.") {
 		t.Errorf("expected no volumes notice, got: %s", emptyView)
 	}
 }

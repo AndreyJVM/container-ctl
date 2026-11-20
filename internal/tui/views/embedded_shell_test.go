@@ -3,13 +3,9 @@ package views
 import (
 	"strings"
 	"testing"
-
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 )
 
 func TestRenderEmbeddedShellView(t *testing.T) {
-	dict := i18n.Get()
-
 	// Unfocused with default starting output
 	viewUnf := RenderEmbeddedShell(EmbeddedShellContext{
 		ContainerName: "my-web-app",
@@ -17,12 +13,11 @@ func TestRenderEmbeddedShellView(t *testing.T) {
 		Width:         80,
 		Height:        20,
 		Focused:       false,
-		I18n:          &dict,
 	})
-	if !strings.Contains(viewUnf, "my-web-app") || !strings.Contains(viewUnf, dict.EmbeddedShellUnfocused) {
+	if !strings.Contains(viewUnf, "my-web-app") || !strings.Contains(viewUnf, "DOCKPULSE FOCUSED") {
 		t.Errorf("expected unfocused shell title and status, got: %s", viewUnf)
 	}
-	if !strings.Contains(viewUnf, dict.EmbeddedShellStarting) {
+	if !strings.Contains(viewUnf, "Starting shell...") {
 		t.Errorf("expected shell starting message, got: %s", viewUnf)
 	}
 
@@ -33,9 +28,8 @@ func TestRenderEmbeddedShellView(t *testing.T) {
 		Width:         100,
 		Height:        25,
 		Focused:       true,
-		I18n:          &dict,
 	})
-	if !strings.Contains(viewFoc, "redis-db") || !strings.Contains(viewFoc, dict.EmbeddedShellFocused) {
+	if !strings.Contains(viewFoc, "redis-db") || !strings.Contains(viewFoc, "FOCUSED") {
 		t.Errorf("expected focused shell title and status, got: %s", viewFoc)
 	}
 	if !strings.Contains(viewFoc, "root@container") {

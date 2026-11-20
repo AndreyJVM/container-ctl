@@ -4,16 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 )
 
 func TestRenderComposeView(t *testing.T) {
-	dict := i18n.Get()
-
 	// Empty
-	emptyView := RenderCompose(ComposeContext{Projects: nil, I18n: &dict})
-	if !strings.Contains(emptyView, dict.NoComposeProjects) {
+	emptyView := RenderCompose(ComposeContext{Projects: nil})
+	if !strings.Contains(emptyView, "No Docker Compose projects detected") {
 		t.Errorf("expected empty compose message, got: %s", emptyView)
 	}
 
@@ -34,7 +31,6 @@ func TestRenderComposeView(t *testing.T) {
 		CursorIdx:    0,
 		FormatStatus: func(s, _ string) string { return s },
 		Width:        100,
-		I18n:         &dict,
 	})
 	if !strings.Contains(view, "web-stack") || !strings.Contains(view, "nginx:alpine") {
 		t.Errorf("expected project details in compose view, got: %s", view)

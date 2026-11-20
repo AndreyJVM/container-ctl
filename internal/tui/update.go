@@ -39,7 +39,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.embeddedShell != nil {
 			width, height := embeddedShellSize(m.width, m.height)
 			if err := m.embeddedShell.Resize(width, height); err != nil {
-				m.showToast(fmt.Sprintf(m.i18n.ToastShellError, m.shellContainerName, err))
+				m.showToast(fmt.Sprintf("Shell error in %s: %v", m.shellContainerName, err))
 				m.closeEmbeddedShell()
 			}
 		}
@@ -94,15 +94,15 @@ func (m Model) handleExecFinished(msg execFinishedMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
 		if exitErr, ok := msg.err.(*exec.ExitError); ok {
 			if exitErr.ExitCode() == 130 {
-				m.showToast(fmt.Sprintf(m.i18n.ToastShellEnded, msg.containerName))
+				m.showToast(fmt.Sprintf("Shell session in %s ended", msg.containerName))
 			} else {
-				m.showToast(fmt.Sprintf(m.i18n.ToastShellEndedCode, msg.containerName, exitErr.ExitCode()))
+				m.showToast(fmt.Sprintf("Shell session in %s ended (code %d)", msg.containerName, exitErr.ExitCode()))
 			}
 		} else {
-			m.showToast(fmt.Sprintf(m.i18n.ToastShellError, msg.containerName, msg.err))
+			m.showToast(fmt.Sprintf("Shell error in %s: %v", msg.containerName, msg.err))
 		}
 	} else {
-		m.showToast(fmt.Sprintf(m.i18n.ToastShellEnded, msg.containerName))
+		m.showToast(fmt.Sprintf("Shell session in %s ended", msg.containerName))
 	}
 	m.fetchAllData()
 	return m, nil

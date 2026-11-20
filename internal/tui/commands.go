@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -54,83 +53,83 @@ func makeActionCmd(action func() error, errPrefix, successMsg string) tea.Cmd {
 	}
 }
 
-func startContainerCmd(id, name string, dict i18n.Dictionary) tea.Cmd {
+func startContainerCmd(id, name string) tea.Cmd {
 	return makeActionCmd(
 		func() error { return monitor.StartContainer(id) },
-		dict.ToastErrorStarting,
-		fmt.Sprintf(dict.ToastContainerStarted, name),
+		"Error starting container: ",
+		fmt.Sprintf("Container %s started", name),
 	)
 }
 
-func stopContainerCmd(id, name string, dict i18n.Dictionary) tea.Cmd {
+func stopContainerCmd(id, name string) tea.Cmd {
 	return makeActionCmd(
 		func() error { return monitor.StopContainer(id) },
-		dict.ToastErrorStopping,
-		fmt.Sprintf(dict.ToastContainerStopped, name),
+		"Error stopping container: ",
+		fmt.Sprintf("Container %s stopped", name),
 	)
 }
 
-func restartContainerCmd(id, name string, dict i18n.Dictionary) tea.Cmd {
+func restartContainerCmd(id, name string) tea.Cmd {
 	return makeActionCmd(
 		func() error { return monitor.RestartContainer(id) },
-		dict.ToastErrorRestartingCont,
-		fmt.Sprintf(dict.ToastContainerRest, name),
+		"Error restarting container: ",
+		fmt.Sprintf("Container %s restarted successfully", name),
 	)
 }
 
-func killContainerCmd(id, name string, dict i18n.Dictionary) tea.Cmd {
+func killContainerCmd(id, name string) tea.Cmd {
 	return makeActionCmd(
 		func() error { return monitor.KillContainer(id) },
-		dict.ToastErrorKillingCont,
-		fmt.Sprintf(dict.ToastContainerKilled, name),
+		"Error killing container: ",
+		fmt.Sprintf("Container %s force-killed successfully", name),
 	)
 }
 
-func removeContainerCmd(id, name string, dict i18n.Dictionary) tea.Cmd {
+func removeContainerCmd(id, name string) tea.Cmd {
 	return makeActionCmd(
 		func() error { return monitor.RemoveContainer(id) },
-		dict.ToastErrorRemovingCont,
-		fmt.Sprintf(dict.ToastContainerRemoved, name),
+		"Error removing container: ",
+		fmt.Sprintf("Container %s removed successfully", name),
 	)
 }
 
-func removeImageCmd(id, name string, force bool, dict i18n.Dictionary) tea.Cmd {
+func removeImageCmd(id, name string, force bool) tea.Cmd {
 	return makeActionCmd(
 		func() error { return monitor.RemoveDockerImage(id, force) },
-		dict.ToastErrorRemovingImage,
-		fmt.Sprintf(dict.ToastImageRemoved, name),
+		"Error removing image: ",
+		fmt.Sprintf("Image %s removed successfully", name),
 	)
 }
 
-func startComposeCmd(name string, containers []monitor.ContainerItem, dict i18n.Dictionary) tea.Cmd {
+func startComposeCmd(name string, containers []monitor.ContainerItem) tea.Cmd {
 	return makeActionCmd(
 		func() error { return monitor.StartComposeProject(name, containers) },
-		dict.ToastStartingCompose,
-		fmt.Sprintf(dict.ToastComposeStarted, name),
+		"Error starting project: ",
+		fmt.Sprintf("Project %s started successfully", name),
 	)
 }
 
-func stopComposeCmd(name string, containers []monitor.ContainerItem, dict i18n.Dictionary) tea.Cmd {
+func stopComposeCmd(name string, containers []monitor.ContainerItem) tea.Cmd {
 	return makeActionCmd(
 		func() error { return monitor.StopComposeProject(name, containers) },
-		dict.ToastStoppingCompose,
-		fmt.Sprintf(dict.ToastComposeStopped, name),
+		"Error stopping project: ",
+		fmt.Sprintf("Project %s stopped successfully", name),
 	)
 }
 
-func restartComposeCmd(name string, containers []monitor.ContainerItem, dict i18n.Dictionary) tea.Cmd {
+func restartComposeCmd(name string, containers []monitor.ContainerItem) tea.Cmd {
 	return makeActionCmd(
 		func() error { return monitor.RestartComposeProject(name, containers) },
-		dict.ToastErrorRestarting,
-		fmt.Sprintf(dict.ToastComposeRestarted, name),
+		"Error restarting project: ",
+		fmt.Sprintf("Project %s restarted successfully", name),
 	)
 }
 
-func downComposeCmd(name string, containers []monitor.ContainerItem, dict i18n.Dictionary) tea.Cmd {
+func downComposeCmd(name string, containers []monitor.ContainerItem) tea.Cmd {
 	return makeActionCmd(
 		func() error { return monitor.DownComposeProject(name, containers) },
-		dict.ToastErrorDowning,
-		fmt.Sprintf(dict.ToastComposeDowned, name),
+		"Error downing project: ",
+		fmt.Sprintf("Project %s downed successfully", name),
 	)
 }
 
@@ -149,11 +148,11 @@ func executePrune(option int) (string, error) {
 	}
 }
 
-func pruneCmd(option int, dict i18n.Dictionary) tea.Cmd {
+func pruneCmd(option int) tea.Cmd {
 	return func() tea.Msg {
 		res, err := executePrune(option)
 		if err != nil {
-			return actionFinishedMsg{err: fmt.Errorf("%s%w", dict.ToastPruneError, err)}
+			return actionFinishedMsg{err: fmt.Errorf("Prune error: %w", err)}
 		}
 		return actionFinishedMsg{message: res, refresh: true}
 	}

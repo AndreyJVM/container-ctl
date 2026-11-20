@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
 )
@@ -17,22 +16,21 @@ const (
 )
 
 // RenderPrune renders the Docker resource pruning menu and confirmation modal.
-func RenderPrune(usage monitor.DockerDiskUsage, usageErr string, confirmStep int, dict *i18n.Dictionary) string {
+func RenderPrune(usage monitor.DockerDiskUsage, usageErr string, confirmStep int) string {
 	var s strings.Builder
-	d := getModalDictionary(dict)
 
-	s.WriteString(theme.TitleStyle.Render(d.PruneTitle) + "\n\n")
+	s.WriteString(theme.TitleStyle.Render("CLEANUP & PRUNE DOCKER RESOURCES") + "\n\n")
 
 	if usageErr != "" {
-		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.DimStyle.Render(d.StatusLabel), theme.RedStyle.Render(usageErr)))
+		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.DimStyle.Render("Status:"), theme.RedStyle.Render(usageErr)))
 	} else {
-		s.WriteString(renderPruneUsageTable(usage, d))
+		s.WriteString(renderPruneUsageTable(usage))
 	}
 
 	if confirmStep > 0 {
-		s.WriteString(renderPruneConfirmStep(confirmStep, d))
+		s.WriteString(renderPruneConfirmStep(confirmStep))
 	} else {
-		s.WriteString(renderPruneActionMenu(d))
+		s.WriteString(renderPruneActionMenu())
 	}
 
 	return theme.BoxStyle.Render(s.String())
@@ -47,14 +45,14 @@ func renderPruneRow(name string, item monitor.DockerDiskItem) string {
 	)
 }
 
-func renderPruneUsageTable(u monitor.DockerDiskUsage, d *i18n.Dictionary) string {
+func renderPruneUsageTable(u monitor.DockerDiskUsage) string {
 	var sb strings.Builder
-	sb.WriteString("  " + theme.BoldStyle.Render(d.CurrentDiskUsage) + "\n")
+	sb.WriteString("  " + theme.BoldStyle.Render("CURRENT RECLAIMABLE DISK SPACE") + "\n")
 	sb.WriteString(fmt.Sprintf("  %-16s %-12s %-14s %s\n",
-		theme.DimStyle.Render(d.TypeCol),
-		theme.DimStyle.Render(d.SizeCol),
-		theme.DimStyle.Render(d.ActiveTotalCol),
-		theme.DimStyle.Render(d.ReclaimableCol),
+		theme.DimStyle.Render("TYPE"),
+		theme.DimStyle.Render("TOTAL SIZE"),
+		theme.DimStyle.Render("ACTIVE / TOTAL"),
+		theme.DimStyle.Render("RECLAIMABLE"),
 	))
 	sb.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", pruneTableWidth)) + "\n")
 
@@ -62,10 +60,10 @@ func renderPruneUsageTable(u monitor.DockerDiskUsage, d *i18n.Dictionary) string
 		name string
 		item monitor.DockerDiskItem
 	}{
-		{d.TypeImages, u.Images},
-		{d.TypeContainers, u.Containers},
-		{d.TypeVolumes, u.Volumes},
-		{d.TypeBuildCache, u.BuildCache},
+		{"Images", u.Images},
+		{"Containers", u.Containers},
+		{"Local Volumes", u.Volumes},
+		{"Build Cache", u.BuildCache},
 	}
 
 	for _, c := range categories {
@@ -81,7 +79,7 @@ func renderPruneUsageTable(u monitor.DockerDiskUsage, d *i18n.Dictionary) string
 
 	sb.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", pruneTableWidth)) + "\n")
 	sb.WriteString(fmt.Sprintf("  %-16s %-12s %-14s %s\n\n",
-		theme.BoldStyle.Render(d.TypeTotal),
+		theme.BoldStyle.Render("Total:"),
 		theme.BoldStyle.Render(monitor.FormatBytes(totalSize)),
 		"",
 		theme.GreenStyle.Render(monitor.FormatBytes(totalRecl)),
@@ -90,40 +88,40 @@ func renderPruneUsageTable(u monitor.DockerDiskUsage, d *i18n.Dictionary) string
 	return sb.String()
 }
 
-func getPruneActionName(step int, d *i18n.Dictionary) string {
+func getPruneActionName(step int) string {
 	switch step {
 	case 1:
-		return d.PruneWarnAction1
+		return "Prune Stopped Containers"
 	case 2:
-		return d.PruneWarnAction2
+		return "Prune Dangling & Unused Images"
 	case 3:
-		return d.PruneWarnAction3
+		return "Prune Unused Volumes"
 	case 4:
-		return d.PruneWarnAction4
+		return "Prune System (All Unused Resources)"
 	default:
 		return ""
 	}
 }
 
-func renderPruneConfirmStep(confirmStep int, d *i18n.Dictionary) string {
-	actionName := getPruneActionName(confirmStep, d)
+func renderPruneConfirmStep(confirmStep int) string {
+	actionName := getPruneActionName(confirmStep)
 	var sb strings.Builder
-	sb.WriteString("  " + theme.RedStyle.Render(d.PruneWarnTitle) + theme.BoldStyle.Render(actionName) + "\n")
-	sb.WriteString("  " + d.PruneWarnIrrev + "\n\n")
+	sb.WriteString("  " + theme.RedStyle.Render("WARNING: ") + theme.BoldStyle.Render(actionName) + "\n")
+	sb.WriteString("  This action is permanent and cannot be undone.\n\n")
 	sb.WriteString(fmt.Sprintf("  %s %s  |  %s %s\n",
-		theme.GreenStyle.Render("[Y]"), d.FooterConfirm,
-		theme.DimStyle.Render("[N / Esc]"), d.FooterCancel,
+		theme.GreenStyle.Render("[Y]"), "Confirm Prune",
+		theme.DimStyle.Render("[N / Esc]"), "Cancel",
 	))
 	return sb.String()
 }
 
-func renderPruneActionMenu(d *i18n.Dictionary) string {
+func renderPruneActionMenu() string {
 	var sb strings.Builder
-	sb.WriteString("  " + theme.BoldStyle.Render(d.PruneChooseAction) + "\n")
-	sb.WriteString(fmt.Sprintf("  %s %s\n", theme.GreenStyle.Render("[1]"), d.PruneOpt1))
-	sb.WriteString(fmt.Sprintf("  %s %s\n", theme.GreenStyle.Render("[2]"), d.PruneOpt2))
-	sb.WriteString(fmt.Sprintf("  %s %s\n", theme.GreenStyle.Render("[3]"), d.PruneOpt3))
-	sb.WriteString(fmt.Sprintf("  %s %s\n\n", theme.YellowStyle.Render("[4]"), d.PruneOpt4))
-	sb.WriteString(fmt.Sprintf("  %s %s\n", theme.DimStyle.Render("[Esc / Q]"), d.FooterClose))
+	sb.WriteString("  " + theme.BoldStyle.Render("Choose a resource cleanup action:") + "\n")
+	sb.WriteString(fmt.Sprintf("  %s %s\n", theme.GreenStyle.Render("[1]"), "Prune Stopped Containers (docker container prune)"))
+	sb.WriteString(fmt.Sprintf("  %s %s\n", theme.GreenStyle.Render("[2]"), "Prune Dangling & Unused Images (docker image prune -a)"))
+	sb.WriteString(fmt.Sprintf("  %s %s\n", theme.GreenStyle.Render("[3]"), "Prune Unused Volumes (docker volume prune)"))
+	sb.WriteString(fmt.Sprintf("  %s %s\n\n", theme.YellowStyle.Render("[4]"), "Prune Everything: All Unused Resources (docker system prune -a --volumes)"))
+	sb.WriteString(fmt.Sprintf("  %s %s\n", theme.DimStyle.Render("[Esc / Q]"), "Close"))
 	return sb.String()
 }

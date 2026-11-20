@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
 )
@@ -15,7 +14,6 @@ type HeaderContext struct {
 	LastUpdate            string
 	DockerInfo            monitor.DockerSummary
 	FormattedDockerStatus string
-	I18n                  *i18n.Dictionary
 }
 
 // RenderHeader renders the application banner and persistent Docker status.
@@ -24,19 +22,14 @@ func RenderHeader(ctx HeaderContext) string {
 	if verStr == "" {
 		verStr = "v0.4.0"
 	}
-	d := ctx.I18n
-	if d == nil {
-		dict := i18n.Get()
-		d = &dict
-	}
 	appLine := theme.HeaderStyle.Render("Dockpulse") +
 		theme.DimStyle.Render(fmt.Sprintf("  %s  ", verStr)) +
 		theme.GreenStyle.Render("["+ctx.LastUpdate+"]")
 	statusLine := fmt.Sprintf("%s %s  |  %s  |  %s %d  |  %s %s",
-		theme.DimStyle.Render(d.ServiceLabel), ctx.FormattedDockerStatus,
-		theme.BoldStyle.Render(fmt.Sprintf(d.ContainersSummary, ctx.DockerInfo.RunningContainers, ctx.DockerInfo.StoppedContainers)),
-		theme.DimStyle.Render(d.ImagesCountLabel), ctx.DockerInfo.ImagesCount,
-		theme.DimStyle.Render(d.VersionLabel), ctx.DockerInfo.Version,
+		theme.DimStyle.Render("Docker:"), ctx.FormattedDockerStatus,
+		theme.BoldStyle.Render(fmt.Sprintf("Containers: %d active, %d stopped", ctx.DockerInfo.RunningContainers, ctx.DockerInfo.StoppedContainers)),
+		theme.DimStyle.Render("Images:"), ctx.DockerInfo.ImagesCount,
+		theme.DimStyle.Render("Engine:"), ctx.DockerInfo.Version,
 	)
 	return appLine + "\n" + statusLine
 }
@@ -68,133 +61,131 @@ type FooterContext struct {
 	ShellActive  bool
 	ShellFocused bool
 	SwarmVisible bool
-	I18n         *i18n.Dictionary
 }
 
 // RenderFooter renders the bottom hotkeys guide.
 func RenderFooter(ctx FooterContext) string {
-	d := ctx.I18n
 	var content string
 
 	if ctx.ActiveModal != "" {
 		if ctx.ActiveModal == "compose_down" {
-			content = theme.BoldStyle.Render("[Y]") + " " + d.FooterConfirm + " (Down)  |  " +
-				theme.BoldStyle.Render("[N / Esc]") + " " + d.FooterCancel
+			content = theme.BoldStyle.Render("[Y]") + " Confirm (Down)  |  " +
+				theme.BoldStyle.Render("[N / Esc]") + " Cancel"
 		} else if ctx.ActiveModal == "remove_container" {
-			content = theme.RedStyle.Render("[Y]") + " " + d.FooterConfirm + " (Remove)  |  " +
-				theme.BoldStyle.Render("[N / Esc]") + " " + d.FooterCancel
+			content = theme.RedStyle.Render("[Y]") + " Confirm (Remove)  |  " +
+				theme.BoldStyle.Render("[N / Esc]") + " Cancel"
 		} else if ctx.ActiveModal == "remove_image" {
-			content = theme.RedStyle.Render("[Y]") + " " + d.FooterConfirm + " (Remove Image)  |  " +
-				theme.BoldStyle.Render("[N / Esc]") + " " + d.FooterCancel
+			content = theme.RedStyle.Render("[Y]") + " Confirm (Remove Image)  |  " +
+				theme.BoldStyle.Render("[N / Esc]") + " Cancel"
 		} else if ctx.ActiveModal == "exec" {
-			content = theme.BoldStyle.Render("[1-7 / Enter]") + " " + d.FooterSelectAction + "  |  " +
-				theme.BoldStyle.Render("[Esc / Q]") + " " + d.FooterCancel
+			content = theme.BoldStyle.Render("[1-7 / Enter]") + " Select Action  |  " +
+				theme.BoldStyle.Render("[Esc / Q]") + " Cancel"
 		} else if ctx.ActiveModal == "prune" {
 			if ctx.PruneConfirm > 0 {
-				content = theme.BoldStyle.Render("[Y]") + " " + d.FooterConfirmPrune + "  |  " +
-					theme.BoldStyle.Render("[N / Esc]") + " " + d.FooterCancel
+				content = theme.BoldStyle.Render("[Y]") + " Confirm Prune  |  " +
+					theme.BoldStyle.Render("[N / Esc]") + " Cancel"
 			} else {
-				content = theme.BoldStyle.Render("[1-4]") + " " + d.FooterSelectAction + "  |  " +
-					theme.BoldStyle.Render("[Esc / Q]") + " " + d.FooterClose
+				content = theme.BoldStyle.Render("[1-4]") + " Select Action  |  " +
+					theme.BoldStyle.Render("[Esc / Q]") + " Close"
 			}
 		} else {
-			content = theme.BoldStyle.Render("[Esc / Q]") + " " + d.FooterClose + "  |  " +
-				theme.BoldStyle.Render("[↑ / ↓ / PgUp / PgDn]") + " " + d.FooterScroll
+			content = theme.BoldStyle.Render("[Esc / Q]") + " Close  |  " +
+				theme.BoldStyle.Render("[↑ / ↓ / PgUp / PgDn]") + " Scroll"
 		}
 	} else if ctx.ShellActive {
 		if ctx.ShellFocused {
-			content = theme.BoldStyle.Render("[Ctrl+]]") + " " + d.FooterShellReleaseFocus + "  |  " +
-				theme.BoldStyle.Render("[Ctrl+D]") + " " + d.FooterShellExit
+			content = theme.BoldStyle.Render("[Ctrl+]]") + " Return to Dockpulse  |  " +
+				theme.BoldStyle.Render("[Ctrl+D]") + " Exit shell"
 		} else {
-			content = theme.BoldStyle.Render("[E]") + " " + d.FooterShellFocus + "  |  " +
-				theme.BoldStyle.Render("[Ctrl+X]") + " " + d.FooterShellClose + "  |  " +
-				theme.BoldStyle.Render("[Q]") + " " + d.FooterQuit
+			content = theme.BoldStyle.Render("[E]") + " Focus terminal  |  " +
+				theme.BoldStyle.Render("[Ctrl+X]") + " Close terminal  |  " +
+				theme.BoldStyle.Render("[Q]") + " Quit"
 		}
 	} else if ctx.ActiveTab == 1 {
 		if ctx.IsFiltering {
-			content = theme.BoldStyle.Render("[Enter]") + " " + d.FooterApplyFilter + "  |  " +
-				theme.BoldStyle.Render("[Esc]") + " " + d.FooterCancel
+			content = theme.BoldStyle.Render("[Enter]") + " Apply Filter  |  " +
+				theme.BoldStyle.Render("[Esc]") + " Cancel"
 		} else if ctx.FilterQuery != "" {
-			content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
-				theme.BoldStyle.Render("[Esc]") + " " + d.FooterResetFilter + "  |  " +
-				theme.BoldStyle.Render("[O]") + " " + d.FooterSort + "  |  " +
-				theme.BoldStyle.Render("[L]") + " " + d.FooterLogs + "  |  " +
-				theme.BoldStyle.Render("[Enter/I]") + " " + d.FooterInfo + "  |  " +
-				theme.BoldStyle.Render("[E]") + " " + d.FooterShell + "  |  " +
-				theme.BoldStyle.Render("[S]") + " " + d.FooterStartStop + "  |  " +
-				theme.BoldStyle.Render("[P]") + " " + d.FooterRestart + "  |  " +
-				theme.BoldStyle.Render("[K]") + " " + d.FooterKill + "  |  " +
-				theme.BoldStyle.Render("[x]") + " " + d.FooterRemove
+			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
+				theme.BoldStyle.Render("[Esc]") + " Reset Filter  |  " +
+				theme.BoldStyle.Render("[O]") + " Sort  |  " +
+				theme.BoldStyle.Render("[L]") + " Logs  |  " +
+				theme.BoldStyle.Render("[Enter/I]") + " Info  |  " +
+				theme.BoldStyle.Render("[E]") + " Shell  |  " +
+				theme.BoldStyle.Render("[S]") + " Start/Stop  |  " +
+				theme.BoldStyle.Render("[P]") + " Restart  |  " +
+				theme.BoldStyle.Render("[K]") + " Kill  |  " +
+				theme.BoldStyle.Render("[x]") + " Remove"
 		} else if ctx.Width > 0 && ctx.Width < 120 {
-			content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
-				theme.BoldStyle.Render("[L]") + " " + d.FooterLogs + "  |  " +
-				theme.BoldStyle.Render("[Enter/I]") + " " + d.FooterInfo + "  |  " +
-				theme.BoldStyle.Render("[E]") + " " + d.FooterShell + "  |  " +
-				theme.BoldStyle.Render("[S]") + " " + d.FooterStartStop + "  |  " +
-				theme.BoldStyle.Render("[K]") + " " + d.FooterKill + "  |  " +
-				theme.BoldStyle.Render("[x]") + " " + d.FooterRemove + "  |  " +
-				theme.BoldStyle.Render("[C]") + " " + d.FooterPrune + "  |  " +
-				theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
+			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
+				theme.BoldStyle.Render("[L]") + " Logs  |  " +
+				theme.BoldStyle.Render("[Enter/I]") + " Info  |  " +
+				theme.BoldStyle.Render("[E]") + " Shell  |  " +
+				theme.BoldStyle.Render("[S]") + " Start/Stop  |  " +
+				theme.BoldStyle.Render("[K]") + " Kill  |  " +
+				theme.BoldStyle.Render("[x]") + " Remove  |  " +
+				theme.BoldStyle.Render("[C]") + " Prune  |  " +
+				theme.BoldStyle.Render("[?]") + " Help"
 		} else {
-			content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
-				theme.BoldStyle.Render("[/]") + " " + d.FooterSearch + "  |  " +
-				theme.BoldStyle.Render("[O]") + " " + d.FooterSort + "  |  " +
-				theme.BoldStyle.Render("[L]") + " " + d.FooterLogs + "  |  " +
-				theme.BoldStyle.Render("[Enter/I]") + " " + d.FooterInfo + "  |  " +
-				theme.BoldStyle.Render("[E]") + " " + d.FooterShell + "  |  " +
-				theme.BoldStyle.Render("[S]") + " " + d.FooterStartStop + "  |  " +
-				theme.BoldStyle.Render("[P]") + " " + d.FooterRestart + "  |  " +
-				theme.BoldStyle.Render("[K]") + " " + d.FooterKill + "  |  " +
-				theme.BoldStyle.Render("[x]") + " " + d.FooterRemove + "  |  " +
-				theme.BoldStyle.Render("[C]") + " " + d.FooterPrune + "  |  " +
-				theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
+			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
+				theme.BoldStyle.Render("[/]") + " Search  |  " +
+				theme.BoldStyle.Render("[O]") + " Sort  |  " +
+				theme.BoldStyle.Render("[L]") + " Logs  |  " +
+				theme.BoldStyle.Render("[Enter/I]") + " Info  |  " +
+				theme.BoldStyle.Render("[E]") + " Shell  |  " +
+				theme.BoldStyle.Render("[S]") + " Start/Stop  |  " +
+				theme.BoldStyle.Render("[P]") + " Restart  |  " +
+				theme.BoldStyle.Render("[K]") + " Kill  |  " +
+				theme.BoldStyle.Render("[x]") + " Remove  |  " +
+				theme.BoldStyle.Render("[C]") + " Prune  |  " +
+				theme.BoldStyle.Render("[?]") + " Help"
 		}
 	} else if ctx.ActiveTab == 2 {
 		if ctx.IsFiltering {
-			content = theme.BoldStyle.Render("[Enter]") + " " + d.FooterApplyFilter + "  |  " +
-				theme.BoldStyle.Render("[Esc]") + " " + d.FooterCancel
+			content = theme.BoldStyle.Render("[Enter]") + " Apply Filter  |  " +
+				theme.BoldStyle.Render("[Esc]") + " Cancel"
 		} else if ctx.FilterQuery != "" {
-			content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
-				theme.BoldStyle.Render("[Esc]") + " " + d.FooterResetFilter + "  |  " +
-				theme.BoldStyle.Render("[x]") + " " + d.FooterRemove + "  |  " +
-				theme.BoldStyle.Render("[C]") + " " + d.FooterPrune + "  |  " +
-				theme.BoldStyle.Render("[R]") + " " + d.FooterRefresh + "  |  " +
-				theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
+			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
+				theme.BoldStyle.Render("[Esc]") + " Reset Filter  |  " +
+				theme.BoldStyle.Render("[x]") + " Remove  |  " +
+				theme.BoldStyle.Render("[C]") + " Prune  |  " +
+				theme.BoldStyle.Render("[R]") + " Refresh  |  " +
+				theme.BoldStyle.Render("[?]") + " Help"
 		} else {
-			content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
-				theme.BoldStyle.Render("[/]") + " " + d.FooterSearch + "  |  " +
-				theme.BoldStyle.Render("[u]") + " " + d.FooterFilterUnused + "  |  " +
-				theme.BoldStyle.Render("[x]") + " " + d.FooterRemove + "  |  " +
-				theme.BoldStyle.Render("[C]") + " " + d.FooterPrune + "  |  " +
-				theme.BoldStyle.Render("[R]") + " " + d.FooterRefresh + "  |  " +
-				theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
+			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
+				theme.BoldStyle.Render("[/]") + " Search  |  " +
+				theme.BoldStyle.Render("[u]") + " Filter Unused  |  " +
+				theme.BoldStyle.Render("[x]") + " Remove  |  " +
+				theme.BoldStyle.Render("[C]") + " Prune  |  " +
+				theme.BoldStyle.Render("[R]") + " Refresh  |  " +
+				theme.BoldStyle.Render("[?]") + " Help"
 		}
 	} else if ctx.ActiveTab == 3 {
-		content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelectStack + "  |  " +
-			theme.BoldStyle.Render("[L]") + " " + d.FooterLogs + "  |  " +
-			theme.BoldStyle.Render("[S]") + " " + d.FooterStop + "  |  " +
-			theme.BoldStyle.Render("[U]") + " " + d.FooterStart + "  |  " +
-			theme.BoldStyle.Render("[P]") + " " + d.FooterRestart + "  |  " +
-			theme.BoldStyle.Render("[D]") + " " + d.FooterDown + "  |  " +
-			theme.BoldStyle.Render("[C]") + " " + d.FooterPrune + "  |  " +
-			theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
+		content = theme.BoldStyle.Render("[↑ / ↓]") + " Select Stack  |  " +
+			theme.BoldStyle.Render("[L]") + " Logs  |  " +
+			theme.BoldStyle.Render("[S]") + " Stop  |  " +
+			theme.BoldStyle.Render("[U]") + " Start  |  " +
+			theme.BoldStyle.Render("[P]") + " Restart  |  " +
+			theme.BoldStyle.Render("[D]") + " Down  |  " +
+			theme.BoldStyle.Render("[C]") + " Prune  |  " +
+			theme.BoldStyle.Render("[?]") + " Help"
 	} else if ctx.ActiveTab == 4 || ctx.ActiveTab == 5 {
-		content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelect + "  |  " +
-			theme.BoldStyle.Render("[R]") + " " + d.FooterRefresh + "  |  " +
-			theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
+		content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
+			theme.BoldStyle.Render("[R]") + " Refresh  |  " +
+			theme.BoldStyle.Render("[?]") + " Help"
 	} else if ctx.ActiveTab == 6 {
-		content = theme.BoldStyle.Render("[↑ / ↓]") + " " + d.FooterSelectService + "  |  " +
-			theme.BoldStyle.Render("[L]") + " " + d.FooterServiceLogs + "  |  " +
-			theme.BoldStyle.Render("[?]") + " " + d.FooterHelp
+		content = theme.BoldStyle.Render("[↑ / ↓]") + " Select Service  |  " +
+			theme.BoldStyle.Render("[L]") + " Service Logs  |  " +
+			theme.BoldStyle.Render("[?]") + " Help"
 	} else {
 		tabRange := "1-5"
 		if ctx.SwarmVisible {
 			tabRange = "1-6"
 		}
-		content = theme.BoldStyle.Render("["+tabRange+" / Tab / ← →]") + " " + d.FooterTabs + "  |  " +
-			theme.BoldStyle.Render("[R]") + " " + d.FooterRefresh + "  |  " +
-			theme.BoldStyle.Render("[?]") + " " + d.FooterHelp + "  |  " +
-			theme.BoldStyle.Render("[Q]") + " " + d.FooterQuit
+		content = theme.BoldStyle.Render("["+tabRange+" / Tab / ← →]") + " Tabs  |  " +
+			theme.BoldStyle.Render("[R]") + " Refresh  |  " +
+			theme.BoldStyle.Render("[?]") + " Help  |  " +
+			theme.BoldStyle.Render("[Q]") + " Quit"
 	}
 
 	return "\n" + theme.DimStyle.Render(strings.Repeat("─", max(ctx.Width, 70))) + "\n" +

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/tui/components"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
@@ -30,12 +29,10 @@ type ImagesContext struct {
 	FilterQuery      string
 	OnlyUnused       bool
 	Width            int
-	I18n             *i18n.Dictionary
 }
 
 // RenderImages renders Docker images and details for the selected image.
 func RenderImages(ctx ImagesContext) string {
-	d := getDictionary(ctx.I18n)
 	var s strings.Builder
 
 	count := len(ctx.Images)
@@ -64,29 +61,29 @@ func RenderImages(ctx ImagesContext) string {
 		}
 	}
 
-	headerLine := theme.TitleStyle.Render(fmt.Sprintf(d.ImagesTabTitle, count))
+	headerLine := theme.TitleStyle.Render(fmt.Sprintf("DOCKER IMAGES (%d)", count))
 	if len(sourceImages) > 0 {
 		headerLine += fmt.Sprintf("  %s    %s",
-			theme.GreenStyle.Render("● "+fmt.Sprintf(d.ImageSummaryInUse, inUseCount, monitor.FormatBytes(inUseSize))),
-			theme.YellowStyle.Render("○ "+fmt.Sprintf(d.ImageSummaryReclaimable, unusedCount, monitor.FormatBytes(unusedSize))),
+			theme.GreenStyle.Render("● "+fmt.Sprintf("In Use: %d (%s)", inUseCount, monitor.FormatBytes(inUseSize))),
+			theme.YellowStyle.Render("○ "+fmt.Sprintf("Reclaimable: %d (%s)", unusedCount, monitor.FormatBytes(unusedSize))),
 		)
 	}
 	s.WriteString(headerLine + "\n\n")
 
 	if ctx.Error != "" {
-		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf(d.ImagesUnavailable, ctx.Error)) + "\n")
+		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("Docker images are unavailable: %s", ctx.Error)) + "\n")
 		return s.String()
 	}
 
 	if ctx.OnlyUnused {
-		s.WriteString("  " + theme.ActiveTabStyle.Render(d.FilterUnusedBadge) + "\n\n")
+		s.WriteString("  " + theme.ActiveTabStyle.Render("[Filter: Unused Images Only — press 'u' or 'Esc' to show all]") + "\n\n")
 	}
 
 	if ctx.IsFiltering {
-		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf(d.FilterPrompt, ctx.FilterQuery)) + "  " + theme.DimStyle.Render(d.FilterHint) + "\n\n")
+		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("[Search: %s█]", ctx.FilterQuery)) + "  " + theme.DimStyle.Render("(Enter: apply, Esc: cancel)") + "\n\n")
 	} else if ctx.FilterQuery != "" {
-		badge := theme.ActiveTabStyle.Render(fmt.Sprintf(d.FilterActiveBadge, ctx.FilterQuery)) + "  " +
-			theme.DimStyle.Render(fmt.Sprintf(d.FilterResultsCount, len(ctx.Images), ctx.TotalImagesCount))
+		badge := theme.ActiveTabStyle.Render(fmt.Sprintf("Filter: %s", ctx.FilterQuery)) + "  " +
+			theme.DimStyle.Render(fmt.Sprintf("(Found: %d of %d, Esc: reset)", len(ctx.Images), ctx.TotalImagesCount))
 		s.WriteString("  " + badge + "\n\n")
 	}
 
@@ -94,10 +91,10 @@ func RenderImages(ctx ImagesContext) string {
 		if ctx.OnlyUnused {
 			s.WriteString("  " + theme.GreenStyle.Render("No unused images detected. All images are currently in use!") + "\n")
 		} else if ctx.FilterQuery != "" {
-			s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf(d.NoContainersFound, ctx.FilterQuery)) + "\n")
-			s.WriteString("  " + theme.DimStyle.Render(d.PressEscToClear) + "\n")
+			s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("No containers found matching %q.", ctx.FilterQuery)) + "\n")
+			s.WriteString("  " + theme.DimStyle.Render("Press Esc to clear search filter.") + "\n")
 		} else {
-			s.WriteString("  " + theme.DimStyle.Render(d.NoImages) + "\n")
+			s.WriteString("  " + theme.DimStyle.Render("No Docker images found.") + "\n")
 		}
 		return s.String()
 	}
@@ -110,7 +107,7 @@ func RenderImages(ctx ImagesContext) string {
 	tagWidth := colWidthImageTag + (extraSpace * 4 / 10)
 
 	headerText := fmt.Sprintf("  %-12s  %-*s  %-*s  %-10s  %-16s  %s",
-		d.ColID, repoWidth, d.ColRepository, tagWidth, d.ColTag, d.ColSize, d.ColCreated, d.ColStatus)
+		"ID", repoWidth, "REPOSITORY", tagWidth, "TAG", "SIZE", "CREATED", "STATUS")
 	s.WriteString(headerText + "\n")
 	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", contentWidth)) + "\n")
 
@@ -123,13 +120,13 @@ func RenderImages(ctx ImagesContext) string {
 		var statusBadge string
 		var plainStatus string
 		if img.InUse {
-			plainStatus = "● " + d.ImageInUseBadge
+			plainStatus = "● [In Use]"
 			statusBadge = theme.GreenStyle.Render(plainStatus)
 		} else if img.Dangling {
-			plainStatus = "▲ " + d.ImageDanglingBadge
+			plainStatus = "▲ [Dangling]"
 			statusBadge = theme.RedStyle.Render(plainStatus)
 		} else {
-			plainStatus = "○ " + d.ImageUnusedBadge
+			plainStatus = "○ [Unused]"
 			statusBadge = theme.YellowStyle.Render(plainStatus)
 		}
 
@@ -159,39 +156,39 @@ func RenderImages(ctx ImagesContext) string {
 		s.WriteString("\n")
 
 		cardWidth := contentWidth
-		title := fmt.Sprintf(" %s: %s:%s (%s) ", d.ImageDetailsTitle, img.Repository, img.Tag, img.ID)
+		title := fmt.Sprintf(" SELECTED IMAGE DETAILS: %s:%s (%s) ", img.Repository, img.Tag, img.ID)
 		topDashLen := cardWidth - lipgloss.Width(title) - 3
 		if topDashLen < 2 {
 			topDashLen = 2
 		}
 		s.WriteString("  " + theme.CyanStyle.Render("┌─") + theme.BoldStyle.Render(title) + theme.CyanStyle.Render(strings.Repeat("─", topDashLen)+"┐") + "\n")
 
-		s.WriteString(renderDetailRow(d.ImageFullIDLabel, valueOrDash(img.FullID)))
-		s.WriteString(renderDetailRow(d.ImageDigestLabel, valueOrDash(img.Digest)))
+		s.WriteString(renderDetailRow("Full ID:", valueOrDash(img.FullID)))
+		s.WriteString(renderDetailRow("Digest:", valueOrDash(img.Digest)))
 
 		tagsStr := "<none>"
 		if len(img.AllTags) > 0 {
 			tagsStr = strings.Join(img.AllTags, ", ")
 		}
-		s.WriteString(renderDetailRow(d.ImageTagsLabel, tagsStr))
+		s.WriteString(renderDetailRow("All Tags:", tagsStr))
 
 		containersStr := "-"
 		if img.Containers >= 0 {
 			if img.Containers > 0 {
-				containersStr = fmt.Sprintf("%d %s", img.Containers, theme.GreenStyle.Render(d.ImageInUseBadge))
+				containersStr = fmt.Sprintf("%d %s", img.Containers, theme.GreenStyle.Render("[In Use]"))
 			} else {
-				containersStr = fmt.Sprintf("%d %s", img.Containers, theme.YellowStyle.Render(d.ImageUnusedBadge))
+				containersStr = fmt.Sprintf("%d %s", img.Containers, theme.YellowStyle.Render("[Unused]"))
 			}
 		}
-		s.WriteString(renderDetailRow(d.ImageContainersLabel, containersStr))
+		s.WriteString(renderDetailRow("Containers:", containersStr))
 
 		var actionStr string
 		if img.InUse {
-			actionStr = theme.GreenStyle.Render("● ") + fmt.Sprintf(d.ImageActionInUse, img.Containers)
+			actionStr = theme.GreenStyle.Render("● ") + fmt.Sprintf("In Use by %d container(s) — Cannot be removed while containers exist", img.Containers)
 		} else {
-			actionStr = theme.YellowStyle.Render("○ ") + d.ImageActionUnused
+			actionStr = theme.YellowStyle.Render("○ ") + "Unused (reclaimable) — Press 'x' to delete, 'C' to prune"
 		}
-		s.WriteString(renderDetailRow(d.ImageStatusActionLabel, actionStr))
+		s.WriteString(renderDetailRow("Status / Action:", actionStr))
 
 		s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")
 	}

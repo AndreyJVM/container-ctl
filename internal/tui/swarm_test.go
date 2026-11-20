@@ -63,7 +63,7 @@ func TestSwarmTabNavigationAndLogs(t *testing.T) {
 	if !strings.Contains(view, "► ") {
 		t.Errorf("expected cursor marker '► ' in swarm tab view")
 	}
-	if !strings.Contains(view, "Select service") || !strings.Contains(view, "Service logs") {
+	if !strings.Contains(view, "Select Service") || !strings.Contains(view, "Service Logs") {
 		t.Errorf("expected swarm footer hints in View(), got: %s", view)
 	}
 

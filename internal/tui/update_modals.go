@@ -21,8 +21,8 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			target := m.composeDownTarget
 			m.closeModal()
 			m.composeDownTarget = ""
-			m.showToast(fmt.Sprintf(m.i18n.ToastDowningCompose, target))
-			return m, downComposeCmd(target, m.dockerInfo.Containers, m.i18n)
+			m.showToast(fmt.Sprintf("Downing Compose project %s (down)...", target))
+			return m, downComposeCmd(target, m.dockerInfo.Containers)
 		}
 		return m, nil
 	}
@@ -40,8 +40,8 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.closeModal()
 			m.removeContainerTargetID = ""
 			m.removeContainerTargetName = ""
-			m.showToast(fmt.Sprintf(m.i18n.ToastRemovingCont, targetName))
-			return m, removeContainerCmd(targetID, targetName, m.i18n)
+			m.showToast(fmt.Sprintf("Removing container %s...", targetName))
+			return m, removeContainerCmd(targetID, targetName)
 		}
 		return m, nil
 	}
@@ -62,8 +62,8 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.removeImageTargetID = ""
 			m.removeImageTargetName = ""
 			m.removeImageTargetInUse = false
-			m.showToast(fmt.Sprintf(m.i18n.ToastRemovingImage, targetName))
-			return m, removeImageCmd(targetID, targetName, inUse, m.i18n)
+			m.showToast(fmt.Sprintf("Removing image %s...", targetName))
+			return m, removeImageCmd(targetID, targetName, inUse)
 		}
 		return m, nil
 	}
@@ -104,8 +104,8 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				opt := m.pruneConfirm
 				m.closeModal()
 				m.pruneConfirm = 0
-				m.showToast(m.i18n.ToastPruning)
-				return m, pruneCmd(opt, m.i18n)
+				m.showToast("Pruning Docker resources...")
+				return m, pruneCmd(opt)
 			}
 			return m, nil
 		case "n", "N":
@@ -206,7 +206,7 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "y", "Y":
 		if m.activeModal == ModalInspect {
 			_ = clipboard.Write(m.inspectTarget.ID)
-			m.showToast(fmt.Sprintf(m.i18n.ToastCopiedExec, m.inspectTarget.ID))
+			m.showToast(fmt.Sprintf("Copied to clipboard: %s", m.inspectTarget.ID))
 			return m, nil
 		}
 	}
@@ -214,7 +214,7 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) countInspectLines() int {
-	return len(modals.BuildInspectLines(m.inspectTarget, &m.i18n))
+	return len(modals.BuildInspectLines(m.inspectTarget))
 }
 
 func (m Model) countFilteredLogs() int {

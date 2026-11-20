@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/tui/components"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
@@ -17,21 +16,19 @@ type NetworksContext struct {
 	CursorIdx int
 	Error     string
 	Width     int
-	I18n      *i18n.Dictionary
 }
 
 // RenderNetworks renders Docker networks and details for the selected network.
 func RenderNetworks(ctx NetworksContext) string {
-	d := getDictionary(ctx.I18n)
 	var s strings.Builder
-	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf(d.NetworksTabTitle, len(ctx.Networks))) + "\n\n")
+	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf("DOCKER NETWORKS (%d)", len(ctx.Networks))) + "\n\n")
 
 	if ctx.Error != "" {
-		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf(d.NetworksUnavailable, ctx.Error)) + "\n")
+		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("Docker networks are unavailable: %s", ctx.Error)) + "\n")
 		return s.String()
 	}
 	if len(ctx.Networks) == 0 {
-		s.WriteString("  " + theme.DimStyle.Render(d.NoNetworks) + "\n")
+		s.WriteString("  " + theme.DimStyle.Render("No Docker networks found.") + "\n")
 		return s.String()
 	}
 
@@ -41,7 +38,7 @@ func RenderNetworks(ctx NetworksContext) string {
 	subnetWidth := max(16, contentWidth-(12+nameWidth+10+10+10))
 
 	s.WriteString(fmt.Sprintf("  %-12s  %-*s  %-10s  %-10s  %s\n",
-		d.ColID, nameWidth, d.ColName, d.ColDriver, d.ColContainers, d.ColSubnet))
+		"ID", nameWidth, "NAME", "DRIVER", "CONTAINERS", "SUBNET"))
 	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", contentWidth)) + "\n")
 	for index, network := range ctx.Networks {
 		idPadded := components.Truncate(network.ID, 12)
@@ -69,18 +66,18 @@ func RenderNetworks(ctx NetworksContext) string {
 		s.WriteString("\n")
 
 		cardWidth := contentWidth
-		title := fmt.Sprintf(" %s: %s (%s) ", d.NetworkDetailsTitle, network.Name, network.ID)
+		title := fmt.Sprintf(" SELECTED NETWORK DETAILS: %s (%s) ", network.Name, network.ID)
 		topDashLen := cardWidth - lipgloss.Width(title) - 3
 		if topDashLen < 2 {
 			topDashLen = 2
 		}
 		s.WriteString("  " + theme.CyanStyle.Render("┌─") + theme.BoldStyle.Render(title) + theme.CyanStyle.Render(strings.Repeat("─", topDashLen)+"┐") + "\n")
 
-		s.WriteString(renderDetailRow(d.NetworkGatewayLabel, valueOrDash(network.Gateway)))
-		s.WriteString(renderDetailRow(d.NetworkScopeLabel, valueOrDash(network.Scope)))
-		s.WriteString(renderDetailRow(d.NetworkInternalLabel, fmt.Sprintf("%t", network.Internal)))
-		s.WriteString(renderDetailRow(d.NetworkAttachableLabel, fmt.Sprintf("%t", network.Attachable)))
-		s.WriteString(renderDetailRow(d.ComposeProjectLabel, valueOrDash(network.ComposeProject)))
+		s.WriteString(renderDetailRow("Gateway:", valueOrDash(network.Gateway)))
+		s.WriteString(renderDetailRow("Scope:", valueOrDash(network.Scope)))
+		s.WriteString(renderDetailRow("Internal:", fmt.Sprintf("%t", network.Internal)))
+		s.WriteString(renderDetailRow("Attachable:", fmt.Sprintf("%t", network.Attachable)))
+		s.WriteString(renderDetailRow("Compose project:", valueOrDash(network.ComposeProject)))
 
 		s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")
 	}

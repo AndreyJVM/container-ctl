@@ -4,20 +4,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 )
 
 func TestRenderSwarmView(t *testing.T) {
-	dict := i18n.Get()
-
 	// Inactive
 	inactView := RenderSwarm(SwarmContext{
 		Swarm:        monitor.SwarmSummary{IsActive: false},
 		FormatStatus: func(_ bool) string { return "Inactive" },
-		I18n:         &dict,
 	})
-	if !strings.Contains(inactView, dict.SwarmInactive) {
+	if !strings.Contains(inactView, "Host is not part of an active Swarm cluster.") {
 		t.Errorf("expected swarm inactive notice, got: %s", inactView)
 	}
 
@@ -37,7 +33,6 @@ func TestRenderSwarmView(t *testing.T) {
 		CursorIdx:    0,
 		FormatStatus: func(_ bool) string { return "Active" },
 		Width:        100,
-		I18n:         &dict,
 	})
 	if !strings.Contains(actView, "worker-1") || !strings.Contains(actView, "db-svc") {
 		t.Errorf("expected swarm nodes and services in view, got: %s", actView)

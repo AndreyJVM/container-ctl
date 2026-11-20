@@ -4,7 +4,6 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/tui/shell"
 	tea "github.com/charmbracelet/bubbletea"
@@ -93,8 +92,6 @@ type Model struct {
 	width           int
 	height          int
 
-	i18n i18n.Dictionary
-
 	// Navigation and modal state.
 	cursorIdx           int
 	imageCursorIdx      int
@@ -181,7 +178,6 @@ func NewModel(refreshInterval time.Duration, initialTab int, version string, sho
 		version:         version,
 		activeTab:       tab,
 		refreshInterval: refreshInterval,
-		i18n:            i18n.Get(),
 		showSwarm:       forceSwarm,
 	}
 	m.fetchAllData()
@@ -210,7 +206,7 @@ func (m *Model) applyFetchedData(d dataFetchedMsg) {
 
 	if !m.IsSwarmVisible() && m.activeTab == TabSwarm {
 		m.activeTab = TabDocker
-		m.showToast(m.i18n.SwarmInactive)
+		m.showToast("Host is not part of an active Swarm cluster.")
 	}
 }
 

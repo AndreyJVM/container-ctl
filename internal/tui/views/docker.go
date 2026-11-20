@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/tui/components"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
@@ -33,87 +32,76 @@ type DockerContext struct {
 	SortMode             int
 	SortNames            []string
 	Width                int
-	I18n                 *i18n.Dictionary
 }
 
 // RenderDocker renders the Docker Containers tab.
 func RenderDocker(ctx DockerContext) string {
 	var s strings.Builder
-	dict := getDictionary(ctx.I18n)
 
-	renderDockerHeader(dict, &s)
+	renderDockerHeader(&s)
 
 	if len(ctx.DockerInfo.Containers) == 0 {
-		renderEmptyContainersNotice(&ctx, dict, &s)
+		renderEmptyContainersNotice(&ctx, &s)
 		return s.String()
 	}
 
-	renderFilterAndSortBadges(&ctx, dict, &s)
+	renderFilterAndSortBadges(&ctx, &s)
 
 	if len(ctx.Containers) == 0 {
-		renderNoContainersFoundNotice(&ctx, dict, &s)
+		renderNoContainersFoundNotice(&ctx, &s)
 		return s.String()
 	}
 
-	renderContainerTable(&ctx, dict, &s)
-	renderContainerDetailsCard(&ctx, dict, &s)
+	renderContainerTable(&ctx, &s)
+	renderContainerDetailsCard(&ctx, &s)
 
 	return s.String()
 }
 
-func getDictionary(dict *i18n.Dictionary) *i18n.Dictionary {
-	if dict != nil {
-		return dict
-	}
-	d := i18n.Get()
-	return &d
+func renderDockerHeader(s *strings.Builder) {
+	s.WriteString(theme.TitleStyle.Render("DOCKER CONTAINERS") + "\n\n")
 }
 
-func renderDockerHeader(dict *i18n.Dictionary, s *strings.Builder) {
-	s.WriteString(theme.TitleStyle.Render(dict.DockerTabTitle) + "\n")
-	s.WriteString("\n")
-}
-
-func renderEmptyContainersNotice(ctx *DockerContext, dict *i18n.Dictionary, s *strings.Builder) {
+func renderEmptyContainersNotice(ctx *DockerContext, s *strings.Builder) {
 	if ctx.DockerInfo.Status == "running" {
-		s.WriteString("  " + theme.DimStyle.Render(dict.ContainersNotRunning) + "\n")
+		s.WriteString("  " + theme.DimStyle.Render("No running containers found.") + "\n")
 	} else {
-		s.WriteString("  " + theme.YellowStyle.Render(dict.DockerDaemonDown) + "\n")
+		s.WriteString("  " + theme.YellowStyle.Render("Docker daemon is stopped or unreachable.") + "\n")
 	}
 }
 
-func renderFilterAndSortBadges(ctx *DockerContext, dict *i18n.Dictionary, s *strings.Builder) {
+func renderFilterAndSortBadges(ctx *DockerContext, s *strings.Builder) {
 	if ctx.IsFiltering {
-		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf(dict.FilterPrompt, ctx.FilterQuery)) + "  " + theme.DimStyle.Render(dict.FilterHint) + "\n\n")
+		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("[Search: %s█]", ctx.FilterQuery)) + "  " + theme.DimStyle.Render("(Enter: apply, Esc: cancel)") + "\n\n")
 		return
 	}
 
 	var statusBadges []string
 	if ctx.FilterQuery != "" {
-		statusBadges = append(statusBadges, theme.ActiveTabStyle.Render(fmt.Sprintf(dict.FilterActiveBadge, ctx.FilterQuery))+"  "+theme.DimStyle.Render(fmt.Sprintf(dict.FilterResultsCount, len(ctx.Containers), ctx.TotalContainersCount)))
+		statusBadges = append(statusBadges, theme.ActiveTabStyle.Render(fmt.Sprintf("[Filter: %s]", ctx.FilterQuery))+"  "+theme.DimStyle.Render(fmt.Sprintf("(%d of %d containers)", len(ctx.Containers), ctx.TotalContainersCount)))
 	}
 	if ctx.SortMode > 0 && ctx.SortMode < len(ctx.SortNames) {
-		statusBadges = append(statusBadges, theme.CyanStyle.Render(fmt.Sprintf(dict.SortBadge, ctx.SortNames[ctx.SortMode])))
+		statusBadges = append(statusBadges, theme.CyanStyle.Render(fmt.Sprintf("Sort: %s", ctx.SortNames[ctx.SortMode])))
 	}
 	if len(statusBadges) > 0 {
 		s.WriteString("  " + strings.Join(statusBadges, "   ") + "\n\n")
 	}
 }
 
-func renderNoContainersFoundNotice(ctx *DockerContext, dict *i18n.Dictionary, s *strings.Builder) {
-	s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf(dict.NoContainersFound, ctx.FilterQuery)) + "\n")
-	s.WriteString("  " + theme.DimStyle.Render(dict.PressEscToClear) + "\n")
+func renderNoContainersFoundNotice(ctx *DockerContext, s *strings.Builder) {
+	s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("No containers found matching %q.", ctx.FilterQuery)) + "\n")
+	s.WriteString("  " + theme.DimStyle.Render("Press Esc to clear search filter.") + "\n")
 }
 
-func renderContainerTable(ctx *DockerContext, dict *i18n.Dictionary, s *strings.Builder) {
+func renderContainerTable(ctx *DockerContext, s *strings.Builder) {
 	headerText := fmt.Sprintf("  %-8s  %-20s  %-22s  %-20s  %-7s  %-14s  %s",
-		dict.ColID,
-		dict.ColName,
-		dict.ColImage,
-		dict.ColStatus,
-		dict.ColCPU,
-		dict.ColMem,
-		dict.ColPorts,
+		"ID",
+		"NAME",
+		"IMAGE",
+		"STATUS",
+		"CPU",
+		"MEM USAGE",
+		"PORTS",
 	)
 	s.WriteString(theme.DimStyle.Render(headerText) + "\n")
 	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", max(ctx.Width-4, minCardWidth))) + "\n")

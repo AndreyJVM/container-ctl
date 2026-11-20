@@ -392,8 +392,8 @@ func TestDynamicSwarmTabLifecycle(t *testing.T) {
 	if m.activeTab != TabDocker {
 		t.Fatalf("expected activeTab to remain TabDocker when Swarm inactive, got %v", m.activeTab)
 	}
-	if !strings.Contains(m.actionMessage, m.i18n.SwarmInactive) {
-		t.Fatalf("expected toast %q, got %q", m.i18n.SwarmInactive, m.actionMessage)
+	if !strings.Contains(m.actionMessage, "Host is not part of an active Swarm cluster.") {
+		t.Fatalf("expected toast %q, got %q", "Host is not part of an active Swarm cluster.", m.actionMessage)
 	}
 
 	// 2. Swarm becomes active: tab 6 is now navigable
@@ -412,7 +412,7 @@ func TestDynamicSwarmTabLifecycle(t *testing.T) {
 	if m.activeTab != TabDocker {
 		t.Fatalf("expected fallback to TabDocker after Swarm deactivation, got %v", m.activeTab)
 	}
-	if !strings.Contains(m.actionMessage, m.i18n.SwarmInactive) {
+	if !strings.Contains(m.actionMessage, "Host is not part of an active Swarm cluster.") {
 		t.Fatalf("expected toast on deactivation fallback, got %q", m.actionMessage)
 	}
 }

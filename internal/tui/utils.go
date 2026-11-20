@@ -7,25 +7,25 @@ import (
 func (m Model) formatDockerStatus(status string) string {
 	switch status {
 	case monitor.DockerStatusRunning:
-		return m.i18n.StatusRunning
+		return "Running"
 	case monitor.DockerStatusStopped:
-		return m.i18n.StatusStopped
+		return "Stopped"
 	case monitor.DockerStatusNotInstalled:
-		return m.i18n.StatusNotInstalled
+		return "Not Installed"
 	default:
 		switch m.dockerInfo.StatusDisplay {
 		case monitor.DockerStatusDisplayRunning, "running":
-			return m.i18n.StatusRunning
+			return "Running"
 		case monitor.DockerStatusDisplayStopped, "stopped":
-			return m.i18n.StatusStopped
+			return "Stopped"
 		case monitor.DockerStatusDisplayNotInstalled, "not_installed":
-			return m.i18n.StatusNotInstalled
+			return "Not Installed"
 		default:
 			if m.dockerInfo.StatusDisplay != "" {
 				return m.dockerInfo.StatusDisplay
 			}
 			if status == "" {
-				return m.i18n.StatusStopped
+				return "Stopped"
 			}
 			return status
 		}
@@ -35,22 +35,25 @@ func (m Model) formatDockerStatus(status string) string {
 func (m Model) formatComposeStatus(status, statusDisplay string) string {
 	switch status {
 	case monitor.StatusRunning:
-		return m.i18n.StatusRunning
+		return "Running"
 	case monitor.StatusPartial:
-		return m.i18n.StatusPartial
+		return "Partial"
 	case monitor.StatusStopped:
-		return m.i18n.StatusStopped
+		return "Stopped"
 	default:
 		switch statusDisplay {
 		case monitor.StatusDisplayRunning, "running":
-			return m.i18n.StatusRunning
+			return "Running"
 		case monitor.StatusDisplayPartial, "partial":
-			return m.i18n.StatusPartial
+			return "Partial"
 		case monitor.StatusDisplayStopped, "stopped":
-			return m.i18n.StatusStopped
+			return "Stopped"
 		default:
 			if statusDisplay != "" {
 				return statusDisplay
+			}
+			if status == "" {
+				return "Stopped"
 			}
 			return status
 		}
@@ -59,7 +62,7 @@ func (m Model) formatComposeStatus(status, statusDisplay string) string {
 
 func (m Model) formatSwarmStatus(isActive bool) string {
 	if isActive {
-		return m.i18n.StatusActive
+		return "Active"
 	}
-	return m.i18n.StatusInactive
+	return "Inactive"
 }

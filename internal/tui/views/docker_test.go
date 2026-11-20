@@ -4,20 +4,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/testutil"
 )
 
 func TestRenderDockerView(t *testing.T) {
-	dict := i18n.Get()
-
 	// Empty
 	emptyView := RenderDocker(DockerContext{
 		DockerInfo: monitor.DockerSummary{Status: "running"},
-		I18n:       &dict,
 	})
-	if !strings.Contains(emptyView, dict.ContainersNotRunning) {
+	if !strings.Contains(emptyView, "No running containers found.") {
 		t.Errorf("expected no containers running in docker view, got: %s", emptyView)
 	}
 
@@ -42,7 +38,6 @@ func TestRenderDockerView(t *testing.T) {
 		TotalContainersCount: 1,
 		CursorIdx:            0,
 		Width:                100,
-		I18n:                 &dict,
 	})
 
 	testutil.AssertContainsAll(t, view,
@@ -158,7 +153,6 @@ func TestRenderDockerView_EdgeCases(t *testing.T) {
 	}
 
 	// 2. Filter active with results and sorting badge
-	dict := i18n.Get()
 	containers := []monitor.ContainerItem{
 		{ID: "c1", Name: "app", State: "running", Ports: "80:80"},
 	}
@@ -170,7 +164,6 @@ func TestRenderDockerView_EdgeCases(t *testing.T) {
 		FilterQuery:          "app",
 		SortMode:             1,
 		SortNames:            []string{"Default", "CPU"},
-		I18n:                 &dict,
 	})
 	if !strings.Contains(filteredView, "Filter:") || !strings.Contains(filteredView, "Sort:") {
 		t.Errorf("expected filter and sort badges, got: %s", filteredView)
@@ -182,7 +175,6 @@ func TestRenderDockerView_EdgeCases(t *testing.T) {
 		Containers:  containers,
 		IsFiltering: true,
 		FilterQuery: "ap",
-		I18n:        &dict,
 	})
 	if !strings.Contains(filteringView, "[Search: ap") {
 		t.Errorf("expected search prompt in filtering view, got: %s", filteringView)
@@ -193,18 +185,16 @@ func TestRenderDockerView_EdgeCases(t *testing.T) {
 		DockerInfo:  monitor.DockerSummary{Status: "running", Containers: containers},
 		Containers:  nil,
 		FilterQuery: "xyz",
-		I18n:        &dict,
 	})
 	if !strings.Contains(noMatchView, "No containers found matching") {
 		t.Errorf("expected no match notice, got: %s", noMatchView)
 	}
 
-	// 5. Cursor out of bounds should not panic, and nil I18n safely handled
+	// 5. Cursor out of bounds should not panic
 	outOfBoundsView := RenderDocker(DockerContext{
 		DockerInfo: monitor.DockerSummary{Status: "running", Containers: containers},
 		Containers: containers,
 		CursorIdx:  999,
-		I18n:       nil,
 	})
 	if !strings.Contains(outOfBoundsView, "app") {
 		t.Errorf("expected container row in view, got: %s", outOfBoundsView)
@@ -242,8 +232,6 @@ func TestFormatPortDisplay(t *testing.T) {
 }
 
 func TestRenderContainerDetailsCard_Extended(t *testing.T) {
-	dict := i18n.Get()
-
 	// 1. Container with complete extended fields (IP, Network, RestartPolicy, Created)
 	cFull := testutil.AContainer(
 		testutil.WithID("c123456789ab"),
@@ -260,7 +248,6 @@ func TestRenderContainerDetailsCard_Extended(t *testing.T) {
 		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cFull}},
 		Containers: []monitor.ContainerItem{cFull},
 		CursorIdx:  0,
-		I18n:       &dict,
 		Width:      100,
 	})
 
@@ -286,7 +273,6 @@ func TestRenderContainerDetailsCard_Extended(t *testing.T) {
 		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cOnFailure}},
 		Containers: []monitor.ContainerItem{cOnFailure},
 		CursorIdx:  0,
-		I18n:       &dict,
 		Width:      100,
 	})
 
@@ -308,7 +294,6 @@ func TestRenderContainerDetailsCard_Extended(t *testing.T) {
 		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cError}},
 		Containers: []monitor.ContainerItem{cError},
 		CursorIdx:  0,
-		I18n:       &dict,
 		Width:      100,
 	})
 

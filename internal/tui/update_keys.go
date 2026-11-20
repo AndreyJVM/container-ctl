@@ -67,11 +67,11 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.IsSwarmVisible() {
 			m.setTab(TabSwarm)
 		} else {
-			m.showToast(m.i18n.SwarmInactive)
+			m.showToast("Host is not part of an active Swarm cluster.")
 		}
 
 	case "r", "R":
-		m.showToast(m.i18n.ToastRefreshing)
+		m.showToast("Refreshing data...")
 		return m, fetchDataCmd()
 
 	// Container sorting on the Docker tab.
@@ -80,14 +80,14 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.containerSortMode = (m.containerSortMode + 1) % sortModeCount
 			m.clampCursor()
 			sortNames := []string{
-				m.i18n.SortModeDefault,
-				m.i18n.SortModeCPU,
-				m.i18n.SortModeMem,
-				m.i18n.SortModeName,
-				m.i18n.SortModeStatus,
+				"Default",
+				"CPU ↓",
+				"Memory ↓",
+				"Name ↑",
+				"Status",
 			}
 			if m.containerSortMode >= 0 && m.containerSortMode < len(sortNames) {
-				m.showToast(fmt.Sprintf(m.i18n.SortBadge, sortNames[m.containerSortMode]))
+				m.showToast(fmt.Sprintf("Sort: %s", sortNames[m.containerSortMode]))
 			}
 			return m, nil
 		}
@@ -108,7 +108,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.activeTab == TabImages && m.onlyUnusedImages {
 			m.onlyUnusedImages = false
 			m.clampCursor()
-			m.showToast(m.i18n.ToastFilterAllImages)
+			m.showToast("Showing all images")
 			return m, nil
 		}
 
@@ -128,7 +128,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.logsTargetID = c.ID
 				logs, err := monitor.GetContainerLogs(c.ID, 120)
 				if err != nil {
-					m.showToast(m.i18n.ToastLogsError + err.Error())
+					m.showToast("Logs error: " + err.Error())
 				} else {
 					m.logsLines = strings.Split(strings.TrimSpace(logs), "\n")
 					m.logsScroll = max(0, len(m.logsLines)-18)
@@ -141,7 +141,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.logsTargetID = proj.Name
 			logs, err := monitor.GetComposeProjectLogs(proj.Name, m.dockerInfo.Containers, 150)
 			if err != nil {
-				m.showToast(m.i18n.ToastLogsError + err.Error())
+				m.showToast("Logs error: " + err.Error())
 			} else {
 				m.logsLines = strings.Split(strings.TrimSpace(logs), "\n")
 				m.logsScroll = max(0, len(m.logsLines)-18)
@@ -153,7 +153,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.logsTargetID = svc.ID
 			logs, err := monitor.GetSwarmServiceLogs(svc.ID, 150)
 			if err != nil {
-				m.showToast(m.i18n.ToastLogsError + err.Error())
+				m.showToast("Logs error: " + err.Error())
 			} else {
 				m.logsLines = strings.Split(strings.TrimSpace(logs), "\n")
 				m.logsScroll = max(0, len(m.logsLines)-18)
@@ -168,7 +168,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			c := containers[m.cursorIdx]
 			detail, err := monitor.GetContainerDetail(c.ID)
 			if err != nil {
-				m.showToast(m.i18n.ToastInspectError + err.Error())
+				m.showToast("Inspect error: " + err.Error())
 			} else {
 				m.inspectTarget = detail
 				m.openModal(ModalInspect)
@@ -182,16 +182,16 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if len(containers) > 0 && m.cursorIdx < len(containers) {
 				c := containers[m.cursorIdx]
 				if c.State == "running" {
-					m.showToast(fmt.Sprintf(m.i18n.ToastStoppingContainer, c.Name))
-					return m, stopContainerCmd(c.ID, c.Name, m.i18n)
+					m.showToast(fmt.Sprintf("Stopping container %s...", c.Name))
+					return m, stopContainerCmd(c.ID, c.Name)
 				}
-				m.showToast(fmt.Sprintf(m.i18n.ToastStartingContainer, c.Name))
-				return m, startContainerCmd(c.ID, c.Name, m.i18n)
+				m.showToast(fmt.Sprintf("Starting container %s...", c.Name))
+				return m, startContainerCmd(c.ID, c.Name)
 			}
 		} else if m.activeTab == TabCompose && len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
 			proj := m.compose[m.composeCursorIdx]
-			m.showToast(fmt.Sprintf(m.i18n.ToastStoppingCompose, proj.Name))
-			return m, stopComposeCmd(proj.Name, m.dockerInfo.Containers, m.i18n)
+			m.showToast(fmt.Sprintf("Stopping Compose project %s...", proj.Name))
+			return m, stopComposeCmd(proj.Name, m.dockerInfo.Containers)
 		}
 
 	// Toggle unused images filter on Images tab, or Start a Compose project.
@@ -200,15 +200,15 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.onlyUnusedImages = !m.onlyUnusedImages
 			m.clampCursor()
 			if m.onlyUnusedImages {
-				m.showToast(m.i18n.ToastFilterUnusedOnly)
+				m.showToast("Filter: Unused images only")
 			} else {
-				m.showToast(m.i18n.ToastFilterAllImages)
+				m.showToast("Showing all images")
 			}
 			return m, nil
 		} else if m.activeTab == TabCompose && len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
 			proj := m.compose[m.composeCursorIdx]
-			m.showToast(fmt.Sprintf(m.i18n.ToastStartingCompose, proj.Name))
-			return m, startComposeCmd(proj.Name, m.dockerInfo.Containers, m.i18n)
+			m.showToast(fmt.Sprintf("Starting Compose project %s...", proj.Name))
+			return m, startComposeCmd(proj.Name, m.dockerInfo.Containers)
 		}
 
 	// Down a Compose project, remove a container, or remove an image.
@@ -250,11 +250,11 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if len(containers) > 0 && m.cursorIdx < len(containers) {
 				c := containers[m.cursorIdx]
 				if c.State != "running" {
-					m.showToast(fmt.Sprintf(m.i18n.ToastCannotConnect, c.Name))
+					m.showToast(fmt.Sprintf("Cannot connect: container %s is not running", c.Name))
 					return m, nil
 				}
 				if !monitor.IsDockerCLIAvailable() {
-					m.showToast(m.i18n.ToastDockerNotFound)
+					m.showToast("Error: docker binary not found in $PATH")
 					return m, nil
 				}
 				m.openModal(ModalExec)
@@ -274,10 +274,10 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if len(containers) > 0 && m.cursorIdx < len(containers) {
 				c := containers[m.cursorIdx]
 				if c.State == "running" {
-					m.showToast(fmt.Sprintf(m.i18n.ToastKillingCont, c.Name))
-					return m, killContainerCmd(c.ID, c.Name, m.i18n)
+					m.showToast(fmt.Sprintf("Force killing %s...", c.Name))
+					return m, killContainerCmd(c.ID, c.Name)
 				}
-				m.showToast(fmt.Sprintf(m.i18n.ToastCannotConnect, c.Name))
+				m.showToast(fmt.Sprintf("Cannot connect: container %s is not running", c.Name))
 				return m, nil
 			}
 		}
@@ -315,13 +315,13 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			containers := m.getFilteredContainers()
 			if len(containers) > 0 && m.cursorIdx < len(containers) {
 				c := containers[m.cursorIdx]
-				m.showToast(fmt.Sprintf(m.i18n.ToastRestartingCont, c.Name))
-				return m, restartContainerCmd(c.ID, c.Name, m.i18n)
+				m.showToast(fmt.Sprintf("Restarting %s...", c.Name))
+				return m, restartContainerCmd(c.ID, c.Name)
 			}
 		} else if m.activeTab == TabCompose && len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
 			proj := m.compose[m.composeCursorIdx]
-			m.showToast(fmt.Sprintf(m.i18n.ToastRestartingCompose, proj.Name))
-			return m, restartComposeCmd(proj.Name, m.dockerInfo.Containers, m.i18n)
+			m.showToast(fmt.Sprintf("Restarting Compose project %s...", proj.Name))
+			return m, restartComposeCmd(proj.Name, m.dockerInfo.Containers)
 		}
 
 	// Prune unused Docker resources.
@@ -347,15 +347,15 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				c := containers[m.cursorIdx]
 				urls := views.ExtractPortURLs(c.Ports)
 				if len(urls) == 0 {
-					m.showToast(fmt.Sprintf(m.i18n.ToastNoPorts, c.Name))
+					m.showToast(fmt.Sprintf("No mapped ports for %s", c.Name))
 					return m, nil
 				}
 				targetURL := urls[0]
 				_ = clipboard.Write(targetURL)
 				if openBrowser(targetURL) {
-					m.showToast(fmt.Sprintf(m.i18n.ToastOpenedURL, targetURL))
+					m.showToast(fmt.Sprintf("Opened %s (copied to clipboard)", targetURL))
 				} else {
-					m.showToast(fmt.Sprintf(m.i18n.ToastCopiedURL, targetURL))
+					m.showToast(fmt.Sprintf("Copied URL: %s", targetURL))
 				}
 				return m, nil
 			}
@@ -369,7 +369,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				c := containers[m.cursorIdx]
 				cmdText := fmt.Sprintf("docker exec -it %s sh", c.Name)
 				_ = clipboard.Write(cmdText)
-				m.showToast(fmt.Sprintf(m.i18n.ToastCopiedExec, cmdText))
+				m.showToast(fmt.Sprintf("Copied to clipboard: %s", cmdText))
 				return m, nil
 			}
 		} else if m.activeTab == TabImages && !m.isFiltering {
@@ -381,14 +381,14 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					name = fmt.Sprintf("%s:%s", img.Repository, img.Tag)
 				}
 				_ = clipboard.Write(name)
-				m.showToast(fmt.Sprintf(m.i18n.ToastCopiedExec, name))
+				m.showToast(fmt.Sprintf("Copied to clipboard: %s", name))
 				return m, nil
 			}
 		} else if m.activeTab == TabCompose && !m.isFiltering {
 			if len(m.compose) > 0 && m.composeCursorIdx < len(m.compose) {
 				proj := m.compose[m.composeCursorIdx]
 				_ = clipboard.Write(proj.Name)
-				m.showToast(fmt.Sprintf(m.i18n.ToastCopiedExec, proj.Name))
+				m.showToast(fmt.Sprintf("Copied to clipboard: %s", proj.Name))
 				return m, nil
 			}
 		}

@@ -62,10 +62,10 @@ func TestPruneModalAndWorkflow(t *testing.T) {
 
 	// 2. View in menu state
 	view := m.View()
-	if !strings.Contains(view, "DOCKER RESOURCE PRUNE") {
+	if !strings.Contains(view, "CLEANUP & PRUNE DOCKER RESOURCES") {
 		t.Errorf("expected prune modal header in view, got: %s", view)
 	}
-	if !strings.Contains(view, "Prune stopped containers") {
+	if !strings.Contains(view, "Prune Stopped Containers") {
 		t.Errorf("expected menu item 1 in view, got: %s", view)
 	}
 	if !strings.Contains(view, "[1-4]") {
@@ -79,7 +79,7 @@ func TestPruneModalAndWorkflow(t *testing.T) {
 		t.Errorf("expected pruneConfirm to be 1, got %d", m.pruneConfirm)
 	}
 	confirmView := m.View()
-	if !strings.Contains(confirmView, "Remove all stopped containers") {
+	if !strings.Contains(confirmView, "WARNING: Prune Stopped Containers") {
 		t.Errorf("expected confirmation prompt in view, got: %s", confirmView)
 	}
 	if !strings.Contains(confirmView, "[Y]") {

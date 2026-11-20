@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/i18n"
 	"github.com/AndreyJVM/dockpulse/internal/monitor"
 	"github.com/AndreyJVM/dockpulse/internal/tui/components"
 	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
@@ -16,42 +15,41 @@ type SwarmContext struct {
 	CursorIdx    int
 	FormatStatus func(isActive bool) string
 	Width        int
-	I18n         *i18n.Dictionary
 }
 
 // RenderSwarm renders the Swarm Cluster tab.
 func RenderSwarm(ctx SwarmContext) string {
 	var s strings.Builder
 
-	s.WriteString(theme.TitleStyle.Render(ctx.I18n.SwarmTabTitle) + "\n\n")
+	s.WriteString(theme.TitleStyle.Render("DOCKER SWARM CLUSTER") + "\n\n")
 
 	swarmStatus := ctx.FormatStatus(ctx.Swarm.IsActive)
 	if !ctx.Swarm.IsActive {
-		s.WriteString(fmt.Sprintf("  %s %s\n\n", ctx.I18n.DaemonStatus, swarmStatus))
-		s.WriteString("  " + theme.DimStyle.Render(ctx.I18n.SwarmInactive) + "\n")
-		s.WriteString("  " + ctx.I18n.SwarmInitHint + "\n")
+		s.WriteString(fmt.Sprintf("  Status: %s\n\n", swarmStatus))
+		s.WriteString("  " + theme.DimStyle.Render("Host is not part of an active Swarm cluster.") + "\n")
+		s.WriteString("  " + "To initialize a cluster, run: docker swarm init" + "\n")
 		return s.String()
 	}
 
 	s.WriteString(fmt.Sprintf("  %s %s    %s %d    %s %d\n\n",
-		theme.DimStyle.Render(ctx.I18n.DaemonStatus), swarmStatus,
-		theme.DimStyle.Render(ctx.I18n.SwarmNodesCount), ctx.Swarm.NodesCount,
-		theme.DimStyle.Render(ctx.I18n.SwarmManagers), ctx.Swarm.ManagersCount,
+		theme.DimStyle.Render("Status:"), swarmStatus,
+		theme.DimStyle.Render("Cluster nodes:"), ctx.Swarm.NodesCount,
+		theme.DimStyle.Render("Managers:"), ctx.Swarm.ManagersCount,
 	))
 
 	contentWidth := max(ctx.Width-4, 88)
 
 	if len(ctx.Swarm.Nodes) > 0 {
-		s.WriteString(theme.BoldStyle.Render("  "+ctx.I18n.SwarmNodesTitle) + "\n")
+		s.WriteString(theme.BoldStyle.Render("  CLUSTER NODES:") + "\n")
 		s.WriteString(fmt.Sprintf("  %-14s %-20s %-12s %-10s %-14s %-8s %-10s\n",
-			theme.DimStyle.Render(ctx.I18n.ColNodeID), theme.DimStyle.Render(ctx.I18n.ColHostname), theme.DimStyle.Render(ctx.I18n.ColRole),
-			theme.DimStyle.Render(ctx.I18n.ColState), theme.DimStyle.Render(ctx.I18n.ColAvailability), theme.DimStyle.Render(ctx.I18n.ColTasks), theme.DimStyle.Render(ctx.I18n.ColLeader),
+			theme.DimStyle.Render("NODE ID"), theme.DimStyle.Render("HOSTNAME"), theme.DimStyle.Render("ROLE"),
+			theme.DimStyle.Render("STATE"), theme.DimStyle.Render("AVAILABILITY"), theme.DimStyle.Render("TASKS"), theme.DimStyle.Render("LEADER"),
 		))
 		s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", contentWidth)) + "\n")
 		for _, n := range ctx.Swarm.Nodes {
 			leaderMark := ""
 			if n.IsLeader {
-				leaderMark = theme.YellowStyle.Render(ctx.I18n.LeaderBadge)
+				leaderMark = theme.YellowStyle.Render("[Leader]")
 			}
 			avail := n.Availability
 			if avail == "" {
@@ -65,10 +63,10 @@ func RenderSwarm(ctx SwarmContext) string {
 	}
 
 	if len(ctx.Swarm.Services) > 0 {
-		s.WriteString(theme.BoldStyle.Render("  "+ctx.I18n.SwarmSvcsTitle) + "\n")
+		s.WriteString(theme.BoldStyle.Render("  SWARM SERVICES:") + "\n")
 		s.WriteString(fmt.Sprintf("  %-14s %-20s %-20s %-10s %-12s %s\n",
-			theme.DimStyle.Render(ctx.I18n.ColServiceID), theme.DimStyle.Render(ctx.I18n.ColName), theme.DimStyle.Render(ctx.I18n.ColImage),
-			theme.DimStyle.Render("MODE"), theme.DimStyle.Render(ctx.I18n.ColReplicas), theme.DimStyle.Render(ctx.I18n.ColPorts),
+			theme.DimStyle.Render("SERVICE ID"), theme.DimStyle.Render("NAME"), theme.DimStyle.Render("IMAGE"),
+			theme.DimStyle.Render("MODE"), theme.DimStyle.Render("REPLICAS"), theme.DimStyle.Render("PORTS"),
 		))
 		s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", contentWidth)) + "\n")
 		for i, svc := range ctx.Swarm.Services {
