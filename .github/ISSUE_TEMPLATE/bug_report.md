@@ -26,7 +26,7 @@ assignees: ''
 
 ### Environment
 
-- **Dockpulse Version**: (for example, `dockpulse --version` or `git rev-parse --short HEAD`)
+- **Dockpulse Version**: (for example, `container-ctl --version` or `git rev-parse --short HEAD`)
 - **OS**: (for example, `Ubuntu 24.04` or `Debian 12`)
 - **Terminal Emulator**: (for example, `kitty`, `alacritty`, `gnome-terminal`, or `tmux`)
 - **Docker Version**: (for example, `Docker Engine 27.0.3`)

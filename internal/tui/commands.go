@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

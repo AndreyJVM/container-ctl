@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
+	"github.com/AndreyJVM/container-ctl/internal/tui/theme"
 )
 
 const helpKeyColumnWidth = 34

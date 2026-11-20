@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
+	"github.com/AndreyJVM/container-ctl/internal/tui/theme"
 )
 
 // RenderRemoveImage renders the Docker image deletion confirmation modal.

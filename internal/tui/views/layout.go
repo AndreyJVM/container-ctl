@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
-	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/tui/theme"
 )
 
 // HeaderContext contains the application and Docker status shown above every tab.

@@ -1,7 +1,7 @@
 package testutil
 
 import (
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 )
 
 // ContainerOption defines a functional option to customize a test ContainerItem.

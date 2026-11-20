@@ -3,7 +3,7 @@ package monitor_test
 import (
 	"testing"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 )
 
 func TestFacadeExports(t *testing.T) {

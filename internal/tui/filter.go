@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 )
 
 func containerStatusScore(c monitor.ContainerItem) int {

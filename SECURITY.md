@@ -15,7 +15,7 @@ We take the security of Dockpulse seriously. If you believe you have found a sec
 
 ### How to Report
 
-- **Preferred Method**: Use GitHub [Private Vulnerability Reporting](https://github.com/AndreyJVM/dockpulse/security/advisories/new) directly in this repository.
+- **Preferred Method**: Use GitHub [Private Vulnerability Reporting](https://github.com/AndreyJVM/container-ctl/security/advisories/new) directly in this repository.
 - **Alternative Method**: If you cannot use GitHub Advisories, email the maintainers at `andrey.vorobev.aqa@gmail.com` with the subject line `[SECURITY] Dockpulse Vulnerability Report`.
 
 Please include in your report:

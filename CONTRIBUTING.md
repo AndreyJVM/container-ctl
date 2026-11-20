@@ -12,13 +12,13 @@ Thank you for your interest in contributing to **Dockpulse**! We welcome all con
 ### Getting Started
 
 1. **Fork** the repository on GitHub:
-   [https://github.com/AndreyJVM/dockpulse](https://github.com/AndreyJVM/dockpulse)
+   [https://github.com/AndreyJVM/container-ctl](https://github.com/AndreyJVM/container-ctl)
 
 2. **Clone** your fork locally and configure the `upstream` remote:
    ```bash
-   git clone git@github.com:<your-username>/dockpulse.git
-   cd dockpulse
-   git remote add upstream https://github.com/AndreyJVM/dockpulse.git
+   git clone git@github.com:<your-username>/container-ctl.git
+   cd container-ctl
+   git remote add upstream https://github.com/AndreyJVM/container-ctl.git
    git fetch upstream
    ```
 
@@ -34,9 +34,9 @@ Thank you for your interest in contributing to **Dockpulse**! We welcome all con
 Dockpulse is structured into clear and modular packages:
 
 ```text
-dockpulse/
+container-ctl/
 ├── cmd/
-│   └── dockpulse/          # Application entrypoint (main.go), CLI flags, and initialization
+│   └── container-ctl/          # Application entrypoint (main.go), CLI flags, and initialization
 ├── internal/               # Core internal packages (not importable by external projects)
 │   ├── monitor/            # Monitoring engine facade and sub-domain packages
 │   │   ├── docker/         # Docker client, container stats, logs, inspect, exec
@@ -107,7 +107,7 @@ fix(monitor): handle missing docker socket gracefully
    ```bash
    git push origin feat/my-new-feature
    ```
-3. Open a Pull Request against the `main` branch of `AndreyJVM/dockpulse`.
+3. Open a Pull Request against the `main` branch of `AndreyJVM/container-ctl`.
 4. Fill out the PR template with a clear description of the problem solved, what changes were made, and how they were tested.
 
 ### Automated Dependency Updates (Dependabot)

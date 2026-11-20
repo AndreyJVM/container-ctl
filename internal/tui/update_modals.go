@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/clipboard"
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
-	"github.com/AndreyJVM/dockpulse/internal/tui/modals"
+	"github.com/AndreyJVM/container-ctl/internal/clipboard"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/tui/modals"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

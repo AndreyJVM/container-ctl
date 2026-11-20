@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	configPkg "github.com/AndreyJVM/dockpulse/internal/config"
-	"github.com/AndreyJVM/dockpulse/internal/monitor/docker"
-	"github.com/AndreyJVM/dockpulse/internal/tui"
+	configPkg "github.com/AndreyJVM/container-ctl/internal/config"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker"
+	"github.com/AndreyJVM/container-ctl/internal/tui"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/term"
 )
@@ -58,13 +58,13 @@ func main() {
 func printUsage(w io.Writer) {
 	fmt.Fprintf(w, "Dockpulse %s\n\n", version)
 	fmt.Fprintf(w, "Usage:\n")
-	fmt.Fprintf(w, "  dockpulse [options]\n\n")
+	fmt.Fprintf(w, "  container-ctl [options]\n\n")
 	fmt.Fprintf(w, "Options:\n")
-	fmt.Fprintf(w, "  -c, --config <path>        Path to YAML config file (default: ~/.config/dockpulse/config.yaml)\n")
+	fmt.Fprintf(w, "  -c, --config <path>        Path to YAML config file (default: ~/.config/container-ctl/config.yaml)\n")
 	fmt.Fprintf(w, "  -i, --interval <duration>  Auto-refresh interval (default: %v, env: DOCKPULSE_INTERVAL)\n", defaultInterval)
 	fmt.Fprintf(w, "  -t, --tab <1-6|name>       Initial tab: 1|docker, 2|images, 3|compose, 4|networks, 5|volumes, 6|swarm (default: %d, env: DOCKPULSE_TAB)\n", defaultTab)
 	fmt.Fprintf(w, "      --show-swarm           Always display Swarm tab even if inactive (env: DOCKPULSE_SHOW_SWARM)\n")
-	fmt.Fprintf(w, "      --init-config          Generate a sample config file in ~/.config/dockpulse/config.yaml\n")
+	fmt.Fprintf(w, "      --init-config          Generate a sample config file in ~/.config/container-ctl/config.yaml\n")
 	fmt.Fprintf(w, "      --print-config         Print active configuration and exit\n")
 	fmt.Fprintf(w, "  -v, --version              Show version\n")
 	fmt.Fprintf(w, "  -h, --help                 Show this help\n\n")
@@ -82,7 +82,7 @@ func parseFlags(args []string, stdout, stderr io.Writer) (*config, error) {
 	var intervalFlag time.Duration
 	var showSwarmFlag bool
 
-	flags := flag.NewFlagSet("dockpulse", flag.ContinueOnError)
+	flags := flag.NewFlagSet("container-ctl", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	flags.Usage = func() {
 		printUsage(stdout)
@@ -186,7 +186,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	}
 
 	if cfg.showVersion {
-		fmt.Fprintf(stdout, "dockpulse %s\n", version)
+		fmt.Fprintf(stdout, "container-ctl %s\n", version)
 		return nil
 	}
 
@@ -221,7 +221,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	}
 
 	if !isTerminal(os.Stdin.Fd()) || !isTerminal(os.Stdout.Fd()) {
-		return errors.New("dockpulse requires an interactive terminal (TTY)")
+		return errors.New("container-ctl requires an interactive terminal (TTY)")
 	}
 
 	if cfg.appConfig != nil && cfg.appConfig.Docker.SocketPath != "" {

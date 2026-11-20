@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
+	"github.com/AndreyJVM/container-ctl/internal/tui/theme"
 )
 
 // RenderComposeDown renders the compose stack down confirmation modal.

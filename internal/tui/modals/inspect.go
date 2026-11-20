@@ -5,9 +5,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
-	"github.com/AndreyJVM/dockpulse/internal/tui/components"
-	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/tui/components"
+	"github.com/AndreyJVM/container-ctl/internal/tui/theme"
 )
 
 // Constants for inspect modal constraints.

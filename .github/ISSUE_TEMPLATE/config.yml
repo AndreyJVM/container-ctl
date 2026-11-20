@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: GitHub Discussions
-    url: https://github.com/AndreyJVM/dockpulse/discussions
+    url: https://github.com/AndreyJVM/container-ctl/discussions
     about: Ask questions, share ideas, and discuss Dockpulse with the community.
   - name: Security Vulnerability Reporting
-    url: https://github.com/AndreyJVM/dockpulse/security/advisories/new
+    url: https://github.com/AndreyJVM/container-ctl/security/advisories/new
     about: Privately report potential security vulnerabilities.

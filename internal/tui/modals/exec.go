@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
+	"github.com/AndreyJVM/container-ctl/internal/tui/theme"
 )
 
 // ExecModalContext holds information required to render the interactive exec/attach modal.

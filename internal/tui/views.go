@@ -4,9 +4,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/tui/modals"
-	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
-	"github.com/AndreyJVM/dockpulse/internal/tui/views"
+	"github.com/AndreyJVM/container-ctl/internal/tui/modals"
+	"github.com/AndreyJVM/container-ctl/internal/tui/theme"
+	"github.com/AndreyJVM/container-ctl/internal/tui/views"
 	"github.com/charmbracelet/lipgloss"
 )
 

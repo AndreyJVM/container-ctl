@@ -4,8 +4,8 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
-	"github.com/AndreyJVM/dockpulse/internal/tui/shell"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/tui/shell"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

@@ -5,6 +5,6 @@ ARG TARGETARCH
 
 RUN apk --no-cache add ca-certificates tzdata
 
-COPY ${TARGETOS}/${TARGETARCH}/dockpulse /usr/local/bin/dockpulse
+COPY ${TARGETOS}/${TARGETARCH}/container-ctl /usr/local/bin/container-ctl
 
-ENTRYPOINT ["/usr/local/bin/dockpulse"]
+ENTRYPOINT ["/usr/local/bin/container-ctl"]

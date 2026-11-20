@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/dockpulse/internal/tui/components"
-	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
+	"github.com/AndreyJVM/container-ctl/internal/tui/components"
+	"github.com/AndreyJVM/container-ctl/internal/tui/theme"
 	"github.com/charmbracelet/lipgloss"
 )
 

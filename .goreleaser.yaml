@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 version: 2
 
-project_name: dockpulse
+project_name: container-ctl
 
 before:
   hooks:
@@ -9,9 +9,9 @@ before:
     - go test ./...
 
 builds:
-  - id: dockpulse
-    main: ./cmd/dockpulse
-    binary: dockpulse
+  - id: container-ctl
+    main: ./cmd/container-ctl
+    binary: container-ctl
     env:
       - CGO_ENABLED=0
     goos:
@@ -39,10 +39,10 @@ archives:
 
 nfpms:
   - id: packages
-    package_name: dockpulse
+    package_name: container-ctl
     file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}"
     vendor: "Dockpulse"
-    homepage: "https://github.com/AndreyJVM/dockpulse"
+    homepage: "https://github.com/AndreyJVM/container-ctl"
     maintainer: "Andrey Vorobev <andrey.vorobev.aqa@gmail.com>"
     description: "Fast terminal TUI for Docker containers, Compose, and Swarm"
     license: "MIT"
@@ -54,9 +54,9 @@ nfpms:
     bindir: /usr/bin
 
 dockers_v2:
-  - id: dockpulse
+  - id: container-ctl
     images:
-      - "ghcr.io/andreyjvm/dockpulse"
+      - "ghcr.io/andreyjvm/container-ctl"
     tags:
       - "{{ .Version }}"
       - "latest"

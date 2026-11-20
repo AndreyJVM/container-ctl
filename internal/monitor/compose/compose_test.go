@@ -1,6 +1,6 @@
 package compose
 
-import "github.com/AndreyJVM/dockpulse/internal/monitor/docker"
+import "github.com/AndreyJVM/container-ctl/internal/monitor/docker"
 
 import (
 	"context"

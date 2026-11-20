@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 )
 
 func TestViewModel_RenderingTabsAndModals(t *testing.T) {

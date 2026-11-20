@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor/docker"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker"
 )
 
 func TestGetSwarmSummary(t *testing.T) {

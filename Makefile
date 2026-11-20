@@ -1,6 +1,6 @@
-PACKAGE_NAME = dockpulse
+PACKAGE_NAME = container-ctl
 VERSION = $(shell cat VERSION)
-BINARY = dockpulse
+BINARY = container-ctl
 
 .PHONY: all clean clean-all build install reinstall remove purge check test lint fmt info files run help version version-patch version-minor version-major update-changelog release release-check release-help release-tag release-patch release-minor release-major snapshot
 
@@ -56,13 +56,13 @@ lint:
 # Build the standalone Go binary.
 build:
 	@echo "Building $(BINARY) v$(VERSION)..."
-	CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=v$(VERSION)" -o $(BINARY) ./cmd/dockpulse
+	CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=v$(VERSION)" -o $(BINARY) ./cmd/container-ctl
 	@echo "Build complete: ./$(BINARY)"
 
 # Run the application locally.
 run:
 	@echo "Running $(BINARY)..."
-	go run ./cmd/dockpulse
+	go run ./cmd/container-ctl
 
 # Update the changelog.
 update-changelog:

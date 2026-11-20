@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 )
 
 func TestGenerateScreenshotDumps(t *testing.T) {
@@ -15,7 +15,7 @@ func TestGenerateScreenshotDumps(t *testing.T) {
 		t.Skip("skipping screenshot generation unless GENERATE_SCREENSHOTS=1")
 	}
 
-	outDir := "/tmp/dockpulse_screens"
+	outDir := "/tmp/container-ctl_screens"
 	if err := os.MkdirAll(outDir, 0755); err != nil {
 		t.Fatalf("failed to create out dir: %v", err)
 	}
@@ -119,8 +119,8 @@ func TestGenerateScreenshotDumps(t *testing.T) {
 			filtered = []string{
 				"127.0.0.1 - - [20/Nov/2026:03:28:15 +0000] \"GET / HTTP/1.1\" 200 615 \"-\" \"curl/8.5.0\"",
 				"127.0.0.1 - - [20/Nov/2026:03:28:18 +0000] \"GET /health HTTP/1.1\" 200 24 \"-\" \"HealthChecker/1.0\"",
-				"127.0.0.1 - - [20/Nov/2026:03:28:22 +0000] \"GET /api/v1/status HTTP/1.1\" 200 182 \"-\" \"dockpulse-agent\"",
-				"127.0.0.1 - - [20/Nov/2026:03:28:30 +0000] \"POST /api/v1/metrics HTTP/1.1\" 204 0 \"-\" \"dockpulse-collector\"",
+				"127.0.0.1 - - [20/Nov/2026:03:28:22 +0000] \"GET /api/v1/status HTTP/1.1\" 200 182 \"-\" \"container-ctl-agent\"",
+				"127.0.0.1 - - [20/Nov/2026:03:28:30 +0000] \"POST /api/v1/metrics HTTP/1.1\" 204 0 \"-\" \"container-ctl-collector\"",
 				"127.0.0.1 - - [20/Nov/2026:03:29:00 +0000] \"GET /health HTTP/1.1\" 200 24 \"-\" \"HealthChecker/1.0\"",
 			}
 		}

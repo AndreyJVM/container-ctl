@@ -3,7 +3,7 @@ package views
 import (
 	"fmt"
 
-	"github.com/AndreyJVM/dockpulse/internal/tui/theme"
+	"github.com/AndreyJVM/container-ctl/internal/tui/theme"
 	"github.com/charmbracelet/lipgloss"
 )
 

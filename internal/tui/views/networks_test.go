@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
-	"github.com/AndreyJVM/dockpulse/internal/testutil"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/testutil"
 )
 
 func TestRenderNetworksView(t *testing.T) {

@@ -343,7 +343,7 @@ func TestRun_Version(t *testing.T) {
 			t.Fatalf("expected nil error for %s, got: %v", flag, err)
 		}
 		output := stdout.String()
-		if !strings.Contains(output, "dockpulse") || !strings.Contains(output, version) {
+		if !strings.Contains(output, "container-ctl") || !strings.Contains(output, version) {
 			t.Errorf("expected version info in stdout for %s, got: %s", flag, output)
 		}
 	}
@@ -432,7 +432,7 @@ func TestRun_PrintConfig(t *testing.T) {
 }
 
 func TestRun_InitConfig(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "dockpulse-main-init-*")
+	tempDir, err := os.MkdirTemp("", "container-ctl-main-init-*")
 	if err != nil {
 		t.Fatalf("temp dir error: %v", err)
 	}
@@ -466,7 +466,7 @@ ui:
   only_unused_images: true
   default_sort: mem
 `
-	tmpFile, err := os.CreateTemp("", "dockpulse-main-*.yaml")
+	tmpFile, err := os.CreateTemp("", "container-ctl-main-*.yaml")
 	if err != nil {
 		t.Fatalf("temp file error: %v", err)
 	}

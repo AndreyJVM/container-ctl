@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
-	"github.com/AndreyJVM/dockpulse/internal/testutil"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/testutil"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

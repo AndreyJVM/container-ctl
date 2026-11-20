@@ -3,7 +3,7 @@ package tui
 import (
 	"time"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 )
 
 // tickMsg signals a periodic refresh timer tick.

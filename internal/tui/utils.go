@@ -1,7 +1,7 @@
 package tui
 
 import (
-	"github.com/AndreyJVM/dockpulse/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 )
 
 func (m Model) formatDockerStatus(status string) string {

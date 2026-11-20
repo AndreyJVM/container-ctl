@@ -6,10 +6,10 @@ package monitor
 import (
 	"os/exec"
 
-	"github.com/AndreyJVM/dockpulse/internal/monitor/compose"
-	"github.com/AndreyJVM/dockpulse/internal/monitor/docker"
-	"github.com/AndreyJVM/dockpulse/internal/monitor/prune"
-	"github.com/AndreyJVM/dockpulse/internal/monitor/swarm"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/compose"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/prune"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/swarm"
 )
 
 // ---------------------------------------------------------------------------

@@ -2,14 +2,14 @@
 
 # Dockpulse
 
-[![CI](https://github.com/AndreyJVM/dockpulse/actions/workflows/ci.yml/badge.svg)](https://github.com/AndreyJVM/dockpulse/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/AndreyJVM/dockpulse/actions/workflows/codeql.yml/badge.svg)](https://github.com/AndreyJVM/dockpulse/actions/workflows/codeql.yml)
-[![Release](https://img.shields.io/github/v/release/AndreyJVM/dockpulse?color=blue&logo=github)](https://github.com/AndreyJVM/dockpulse/releases)
+[![CI](https://github.com/AndreyJVM/container-ctl/actions/workflows/ci.yml/badge.svg)](https://github.com/AndreyJVM/container-ctl/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/AndreyJVM/container-ctl/actions/workflows/codeql.yml/badge.svg)](https://github.com/AndreyJVM/container-ctl/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/AndreyJVM/container-ctl?color=blue&logo=github)](https://github.com/AndreyJVM/container-ctl/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.27.3+-00ADD8?logo=go)](https://golang.org)
-[![Go Report Card](https://goreportcard.com/badge/github.com/AndreyJVM/dockpulse)](https://goreportcard.com/report/github.com/AndreyJVM/dockpulse)
-[![Docker](https://img.shields.io/badge/Docker-GHCR-2496ED?logo=docker&logoColor=white)](https://github.com/AndreyJVM/dockpulse/pkgs/container/dockpulse)
+[![Go Report Card](https://goreportcard.com/badge/github.com/AndreyJVM/container-ctl)](https://goreportcard.com/report/github.com/AndreyJVM/container-ctl)
+[![Docker](https://img.shields.io/badge/Docker-GHCR-2496ED?logo=docker&logoColor=white)](https://github.com/AndreyJVM/container-ctl/pkgs/container/container-ctl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20FreeBSD-lightgrey)](https://github.com/AndreyJVM/dockpulse/releases)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20FreeBSD-lightgrey)](https://github.com/AndreyJVM/container-ctl/releases)
 
 **A fast, lightweight terminal TUI for Docker containers and resources.**<br>
 
@@ -59,10 +59,10 @@ Run Dockpulse directly without installing any local Go binaries:
 
 ```bash
 # Standard Docker daemon socket
-docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock ghcr.io/andreyjvm/dockpulse:latest
+docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock ghcr.io/andreyjvm/container-ctl:latest
 
 # Rootless Docker / Podman socket
-docker run --rm -it -v "$XDG_RUNTIME_DIR/podman/podman.sock:/var/run/docker.sock" ghcr.io/andreyjvm/dockpulse:latest
+docker run --rm -it -v "$XDG_RUNTIME_DIR/podman/podman.sock:/var/run/docker.sock" ghcr.io/andreyjvm/container-ctl:latest
 ```
 
 #### Go Install
@@ -70,55 +70,55 @@ docker run --rm -it -v "$XDG_RUNTIME_DIR/podman/podman.sock:/var/run/docker.sock
 Install the latest release directly via the Go toolchain (requires Go 1.24+):
 
 ```bash
-go install github.com/AndreyJVM/dockpulse/cmd/dockpulse@latest
+go install github.com/AndreyJVM/container-ctl/cmd/container-ctl@latest
 ```
 
 #### Linux Packages (.deb / .rpm / .apk)
 
-Pre-built packages for **amd64** and **arm64** are available on the [Releases](https://github.com/AndreyJVM/dockpulse/releases) page:
+Pre-built packages for **amd64** and **arm64** are available on the [Releases](https://github.com/AndreyJVM/container-ctl/releases) page:
 
 ```bash
 # Debian / Ubuntu / Linux Mint (.deb)
-sudo dpkg -i dockpulse_0.18.1_amd64.deb
+sudo dpkg -i container-ctl_0.18.1_amd64.deb
 
 # RHEL / Fedora / Rocky Linux (.rpm)
-sudo rpm -i dockpulse_0.18.1_amd64.rpm
+sudo rpm -i container-ctl_0.18.1_amd64.rpm
 
 # Alpine Linux (.apk)
-apk add --allow-untrusted dockpulse_0.18.1_amd64.apk
+apk add --allow-untrusted container-ctl_0.18.1_amd64.apk
 ```
 
 #### Pre-built Binaries (Linux, macOS, FreeBSD)
 
-Download the archive for your operating system and architecture from [Releases](https://github.com/AndreyJVM/dockpulse/releases):
+Download the archive for your operating system and architecture from [Releases](https://github.com/AndreyJVM/container-ctl/releases):
 
 ```bash
 # Example: Linux AMD64
-tar -xzf dockpulse_0.18.1_linux_amd64.tar.gz
-./dockpulse
+tar -xzf container-ctl_0.18.1_linux_amd64.tar.gz
+./container-ctl
 ```
 
 #### Build from Source
 
 ```bash
-git clone https://github.com/AndreyJVM/dockpulse.git
-cd dockpulse
+git clone https://github.com/AndreyJVM/container-ctl.git
+cd container-ctl
 make build
-./dockpulse
+./container-ctl
 ```
 
 ### Command-line Options
 
 ```text
 Usage:
-  dockpulse [options]
+  container-ctl [options]
 
 Options:
-  -c, --config <path>        Path to YAML config file (default: ~/.config/dockpulse/config.yaml)
+  -c, --config <path>        Path to YAML config file (default: ~/.config/container-ctl/config.yaml)
   -i, --interval <duration>  Auto-refresh interval (default: 2s, env: DOCKPULSE_INTERVAL)
   -t, --tab <1-6|name>       Initial active tab (1: Docker, 2: Images, 3: Compose, 4: Networks, 5: Volumes, 6: Swarm) (default: 1, env: DOCKPULSE_TAB)
       --show-swarm           Always display Swarm tab even if inactive (env: DOCKPULSE_SHOW_SWARM)
-      --init-config          Generate a sample config file in ~/.config/dockpulse/config.yaml
+      --init-config          Generate a sample config file in ~/.config/container-ctl/config.yaml
       --print-config         Print active configuration and exit
   -v, --version              Show version information
   -h, --help                 Show help message
@@ -127,19 +127,19 @@ Options:
 ### Configuration File (`config.yaml`)
 
 Dockpulse automatically detects and loads a configuration file from standard locations:
-- `$XDG_CONFIG_HOME/dockpulse/config.yaml` or `~/.config/dockpulse/config.yaml`
-- `~/.dockpulse.yaml`
-- `./dockpulse.yaml` (local workspace override)
+- `$XDG_CONFIG_HOME/container-ctl/config.yaml` or `~/.config/container-ctl/config.yaml`
+- `~/.container-ctl.yaml`
+- `./container-ctl.yaml` (local workspace override)
 - Or explicitly via `--config <path>`
 
 Generate a starter configuration file:
 ```bash
-dockpulse --init-config
+container-ctl --init-config
 ```
 
 Inspect the currently active configuration:
 ```bash
-dockpulse --print-config
+container-ctl --print-config
 ```
 
 Example `config.yaml`:

@@ -137,7 +137,7 @@ ui:
   only_unused_images: true
   default_sort: cpu
 `
-	tmpFile, err := os.CreateTemp("", "dockpulse-config-*.yaml")
+	tmpFile, err := os.CreateTemp("", "container-ctl-config-*.yaml")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
@@ -182,7 +182,7 @@ interval: 4
 initial_tab: 2
 show_swarm: false
 `
-	tmpFile, err := os.CreateTemp("", "dockpulse-config-*.yaml")
+	tmpFile, err := os.CreateTemp("", "container-ctl-config-*.yaml")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
@@ -217,7 +217,7 @@ ui:
   only_unused_images: false
   default_sort: name
 `
-	tmpFile, err := os.CreateTemp("", "dockpulse-config-*.yaml")
+	tmpFile, err := os.CreateTemp("", "container-ctl-config-*.yaml")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
@@ -331,7 +331,7 @@ func TestLoadConfig_Errors(t *testing.T) {
 }
 
 func TestInitConfigFile(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "dockpulse-init-test-*")
+	tempDir, err := os.MkdirTemp("", "container-ctl-init-test-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -376,7 +376,7 @@ func TestFindConfigFile(t *testing.T) {
 	}
 
 	// DOCKPULSE_CONFIG env var
-	tmpFile, err := os.CreateTemp("", "dockpulse-env-*.yaml")
+	tmpFile, err := os.CreateTemp("", "container-ctl-env-*.yaml")
 	if err != nil {
 		t.Fatalf("temp file error: %v", err)
 	}

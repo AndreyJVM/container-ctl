@@ -164,17 +164,17 @@ func FindConfigFile(explicitPath string) string {
 	var candidates []string
 
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
-		candidates = append(candidates, filepath.Join(xdg, "dockpulse", ConfigFileName))
+		candidates = append(candidates, filepath.Join(xdg, "container-ctl", ConfigFileName))
 	}
 
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
 		candidates = append(candidates,
-			filepath.Join(home, ".config", "dockpulse", ConfigFileName),
-			filepath.Join(home, ".dockpulse.yaml"),
+			filepath.Join(home, ".config", "container-ctl", ConfigFileName),
+			filepath.Join(home, ".container-ctl.yaml"),
 		)
 	}
 
-	candidates = append(candidates, filepath.Join(".", "dockpulse.yaml"))
+	candidates = append(candidates, filepath.Join(".", "container-ctl.yaml"))
 
 	for _, path := range candidates {
 		cleaned := filepath.Clean(path)
@@ -329,7 +329,7 @@ func Validate(cfg *Config) error {
 // GenerateDefaultConfig returns a well-commented sample YAML configuration string.
 func GenerateDefaultConfig() string {
 	return `# Dockpulse Configuration File
-# Save this file to ~/.config/dockpulse/config.yaml or ./dockpulse.yaml
+# Save this file to ~/.config/container-ctl/config.yaml or ./container-ctl.yaml
 
 # Metrics auto-refresh interval (for example: 1s, 2s, 500ms)
 interval: 2s
@@ -357,14 +357,14 @@ ui:
 }
 
 // InitConfigFile writes a default configuration file to destination path.
-// If destPath is empty, default ~/.config/dockpulse/config.yaml is used.
+// If destPath is empty, default ~/.config/container-ctl/config.yaml is used.
 func InitConfigFile(destPath string, overwrite bool) (string, error) {
 	if destPath == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "", fmt.Errorf("cannot resolve home directory: %w", err)
 		}
-		destPath = filepath.Join(home, ".config", "dockpulse", ConfigFileName)
+		destPath = filepath.Join(home, ".config", "container-ctl", ConfigFileName)
 	}
 
 	if _, err := os.Stat(destPath); err == nil && !overwrite {

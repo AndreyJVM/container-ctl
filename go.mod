@@ -1,4 +1,4 @@
-module github.com/AndreyJVM/dockpulse
+module github.com/AndreyJVM/container-ctl
 
 go 1.27.3
 
