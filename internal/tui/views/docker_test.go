@@ -400,3 +400,45 @@ func TestQuickActionsInDetailsCard(t *testing.T) {
 	})
 	testutil.AssertContainsAll(t, viewStopped, "Quick Actions:", "[S]", "Start", "[x]", "Remove", "[L]", "Logs")
 }
+
+func TestContainerDetailsCard_StreamlinedMetricsAndCapping(t *testing.T) {
+	// 1. Capping ports and mounts when exceeding 3 items
+	cMany := testutil.AContainer(
+		testutil.WithID("c999"),
+		testutil.WithName("multi-service"),
+		testutil.WithState("running", "Up 3 hours"),
+		testutil.WithPorts("80->80/tcp, 443->443/tcp, 8080->8080/tcp, 8443->8443/tcp, 9000->9000/tcp"),
+		testutil.WithMounts("/v1 -> /a", "/v2 -> /b", "/v3 -> /c", "/v4 -> /d", "/v5 -> /e"),
+		testutil.WithNetworkIO(1024, 2048),
+		testutil.WithBlockIO(512, 1024),
+	)
+	viewMany := RenderDocker(DockerContext{
+		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cMany}},
+		Containers: []monitor.ContainerItem{cMany},
+		CursorIdx:  0,
+		Width:      100,
+	})
+	testutil.AssertContainsAll(t, viewMany,
+		"... (+2 more)",
+		"(↓ rx / ↑ tx)",
+		"(read / write)",
+	)
+
+	// 2. Stopped container with 0 bytes has no Net I/O or Block I/O clutter
+	cZeroStopped := testutil.AContainer(
+		testutil.WithID("c000"),
+		testutil.WithName("clean-stopped"),
+		testutil.WithState("exited", "Exited (0)"),
+		testutil.WithNetworkIO(0, 0),
+		testutil.WithBlockIO(0, 0),
+	)
+	viewZeroStopped := RenderDocker(DockerContext{
+		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cZeroStopped}},
+		Containers: []monitor.ContainerItem{cZeroStopped},
+		CursorIdx:  0,
+		Width:      100,
+	})
+	if strings.Contains(viewZeroStopped, "Net I/O:") || strings.Contains(viewZeroStopped, "Block I/O:") {
+		t.Errorf("expected stopped container with 0 bytes to omit Net/Block I/O, got: %s", viewZeroStopped)
+	}
+}

@@ -51,7 +51,8 @@ func RenderCompose(ctx ComposeContext) string {
 				st = theme.GreenStyle.Render("● running")
 			}
 			portsLen := max(10, contentWidth-66)
-			portsTrunc := components.Truncate(svc.Ports, portsLen)
+			cleanPorts := CleanTablePorts(svc.Ports)
+			portsTrunc := components.Truncate(cleanPorts, portsLen)
 			s.WriteString(fmt.Sprintf("│   • %-16s %-20s %-22s %s\n",
 				theme.BoldStyle.Render(svc.Name), st, components.Truncate(svc.Image, 20), portsTrunc,
 			))

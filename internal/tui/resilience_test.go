@@ -12,8 +12,12 @@ import (
 )
 
 func createResilienceModel() Model {
-	m := NewModel(2*time.Second, 1, "v0.4.1")
-	m.SetShowSwarm(true)
+	m := Model{
+		version:         "v0.4.1",
+		activeTab:       TabDocker,
+		refreshInterval: 2 * time.Second,
+		showSwarm:       true,
+	}
 	m.dockerInfo = monitor.DockerSummary{
 		Status:            "running",
 		StatusDisplay:     "Running",

@@ -23,10 +23,24 @@ func TestRenderNetworksView(t *testing.T) {
 		Width:     100,
 	})
 
-	for _, expected := range []string{"frontend", "bridge", "172.20.0.0/16", "172.20.0.1", "shop"} {
+	for _, expected := range []string{"frontend", "bridge", "172.20.0.0/16", "172.20.0.1", "shop", "Driver / Scope:", "2 container(s) connected"} {
 		if !strings.Contains(view, expected) {
 			t.Errorf("expected %q in networks view, got: %s", expected, view)
 		}
+	}
+
+	// Unused network
+	unusedNet := testutil.ANetwork(func(n *monitor.DockerNetwork) {
+		n.Name = "custom-bridge"
+		n.Containers = 0
+	})
+	unusedView := RenderNetworks(NetworksContext{
+		Networks:  []monitor.DockerNetwork{unusedNet},
+		CursorIdx: 0,
+		Width:     100,
+	})
+	if !strings.Contains(unusedView, "0 containers connected (unused)") {
+		t.Errorf("expected 0 containers connected notice, got: %s", unusedView)
 	}
 
 	errorView := RenderNetworks(NetworksContext{Error: "daemon unavailable"})

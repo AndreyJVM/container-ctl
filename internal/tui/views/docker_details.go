@@ -200,7 +200,13 @@ func renderContainerDetailsCard(ctx *DockerContext, s *strings.Builder) {
 	} else if len(portItems) == 1 {
 		s.WriteString(renderDetailRow("Ports:", theme.CyanStyle.Render(portItems[0])))
 	} else {
+		const maxPorts = 3
 		for idx, port := range portItems {
+			if idx >= maxPorts {
+				remaining := len(portItems) - maxPorts
+				s.WriteString(renderDetailRow("", theme.DimStyle.Render(fmt.Sprintf("... (+%d more)", remaining))))
+				break
+			}
 			label := ""
 			if idx == 0 {
 				label = "Ports:"
@@ -217,7 +223,13 @@ func renderContainerDetailsCard(ctx *DockerContext, s *strings.Builder) {
 	if len(sel.Mounts) == 0 {
 		s.WriteString(renderDetailRow("Volumes / Mounts:", theme.DimStyle.Render("none")))
 	} else {
+		const maxMounts = 3
 		for idx, mnt := range sel.Mounts {
+			if idx >= maxMounts {
+				remaining := len(sel.Mounts) - maxMounts
+				s.WriteString(renderDetailRow("", theme.DimStyle.Render(fmt.Sprintf("... (+%d more)", remaining))))
+				break
+			}
 			label := ""
 			if idx == 0 {
 				label = "Volumes / Mounts:"
@@ -238,23 +250,23 @@ func renderContainerDetailsCard(ctx *DockerContext, s *strings.Builder) {
 			s.WriteString(renderDetailRow(label, theme.RedStyle.Render("✖ ")+theme.RedStyle.Render(components.Truncate(line, maxLen))))
 		}
 	} else {
-		netIODisplay := theme.DimStyle.Render("0 B / 0 B")
-		if sel.State == "running" {
-			netIODisplay = fmt.Sprintf("%s / %s",
+		if sel.State == "running" || sel.NetRxBytes > 0 || sel.NetTxBytes > 0 {
+			netIODisplay := fmt.Sprintf("%s / %s  %s",
 				theme.GreenStyle.Render(monitor.FormatUintBytes(sel.NetRxBytes)),
 				theme.CyanStyle.Render(monitor.FormatUintBytes(sel.NetTxBytes)),
+				theme.DimStyle.Render("(↓ rx / ↑ tx)"),
 			)
+			s.WriteString(renderDetailRow("Net I/O:", netIODisplay))
 		}
-		s.WriteString(renderDetailRow("Net I/O:", netIODisplay))
 
-		blockIODisplay := theme.DimStyle.Render("0 B / 0 B")
-		if sel.State == "running" {
-			blockIODisplay = fmt.Sprintf("%s / %s",
+		if sel.State == "running" || sel.BlockReadBytes > 0 || sel.BlockWriteBytes > 0 {
+			blockIODisplay := fmt.Sprintf("%s / %s  %s",
 				theme.GreenStyle.Render(monitor.FormatUintBytes(sel.BlockReadBytes)),
 				theme.YellowStyle.Render(monitor.FormatUintBytes(sel.BlockWriteBytes)),
+				theme.DimStyle.Render("(read / write)"),
 			)
+			s.WriteString(renderDetailRow("Block I/O:", blockIODisplay))
 		}
-		s.WriteString(renderDetailRow("Block I/O:", blockIODisplay))
 	}
 
 	// 8. Compose Info

@@ -168,7 +168,7 @@ type DockerContext struct {
 func RenderDocker(ctx DockerContext) string {
 	var s strings.Builder
 
-	renderDockerHeader(&s)
+	renderDockerHeader(&ctx, &s)
 
 	if len(ctx.DockerInfo.Containers) == 0 {
 		renderEmptyContainersNotice(&ctx, &s)
@@ -188,7 +188,43 @@ func RenderDocker(ctx DockerContext) string {
 	return s.String()
 }
 
-func renderDockerHeader(s *strings.Builder) {
+func renderDockerHeader(ctx *DockerContext, s *strings.Builder) {
+	total := len(ctx.Containers)
+	if ctx.TotalContainersCount > 0 {
+		total = ctx.TotalContainersCount
+	}
+
+	if total > 0 {
+		var runningCount, stoppedCount, failedCount int
+		for _, c := range ctx.DockerInfo.Containers {
+			if failed, _ := monitor.IsContainerFailed(c.State, c.Status); failed || c.Health == monitor.HealthStatusUnhealthy {
+				failedCount++
+			} else if c.State == "running" {
+				runningCount++
+			} else {
+				stoppedCount++
+			}
+		}
+
+		summaryLine := theme.TitleStyle.Render(fmt.Sprintf("DOCKER CONTAINERS (%d)", total))
+		var badges []string
+		if runningCount > 0 {
+			badges = append(badges, theme.GreenStyle.Render(fmt.Sprintf("● %d active", runningCount)))
+		}
+		if stoppedCount > 0 {
+			badges = append(badges, theme.DimStyle.Render(fmt.Sprintf("○ %d stopped", stoppedCount)))
+		}
+		if failedCount > 0 {
+			badges = append(badges, theme.RedStyle.Render(fmt.Sprintf("▲ %d attention", failedCount)))
+		}
+
+		if len(badges) > 0 {
+			summaryLine += "    " + strings.Join(badges, "   ")
+		}
+		s.WriteString(summaryLine + "\n\n")
+		return
+	}
+
 	s.WriteString(theme.TitleStyle.Render("DOCKER CONTAINERS") + "\n\n")
 }
 

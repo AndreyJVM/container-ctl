@@ -73,11 +73,32 @@ func RenderNetworks(ctx NetworksContext) string {
 		}
 		s.WriteString("  " + theme.CyanStyle.Render("┌─") + theme.BoldStyle.Render(title) + theme.CyanStyle.Render(strings.Repeat("─", topDashLen)+"┐") + "\n")
 
-		s.WriteString(renderDetailRow("Gateway:", valueOrDash(network.Gateway)))
-		s.WriteString(renderDetailRow("Scope:", valueOrDash(network.Scope)))
-		s.WriteString(renderDetailRow("Internal:", fmt.Sprintf("%t", network.Internal)))
-		s.WriteString(renderDetailRow("Attachable:", fmt.Sprintf("%t", network.Attachable)))
+		s.WriteString(renderDetailRow("Driver / Scope:", fmt.Sprintf("%s / %s", valueOrDash(network.Driver), valueOrDash(network.Scope))))
+		s.WriteString(renderDetailRow("Subnet / Gateway:", fmt.Sprintf("%s  •  Gateway: %s", valueOrDash(network.Subnet), valueOrDash(network.Gateway))))
+
+		var containersDisplay string
+		if network.Containers > 0 {
+			containersDisplay = theme.GreenStyle.Render(fmt.Sprintf("● %d container(s) connected", network.Containers))
+		} else {
+			containersDisplay = theme.DimStyle.Render("○ 0 containers connected (unused)")
+		}
+		s.WriteString(renderDetailRow("Containers:", containersDisplay))
+
+		var flags []string
+		if network.Internal {
+			flags = append(flags, theme.YellowStyle.Render("internal (isolated)"))
+		} else {
+			flags = append(flags, theme.DimStyle.Render("external"))
+		}
+		if network.Attachable {
+			flags = append(flags, theme.CyanStyle.Render("attachable"))
+		}
+		s.WriteString(renderDetailRow("Flags:", strings.Join(flags, " • ")))
+
 		s.WriteString(renderDetailRow("Compose project:", valueOrDash(network.ComposeProject)))
+
+		actions := []string{theme.BoldStyle.Render("[y]") + " Copy Name", theme.BoldStyle.Render("[C]") + " Prune Unused"}
+		s.WriteString(renderDetailRow("Quick Actions:", strings.Join(actions, "  ")))
 
 		s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")
 	}

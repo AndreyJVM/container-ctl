@@ -22,10 +22,24 @@ func TestRenderVolumesView(t *testing.T) {
 		Width:     100,
 	})
 
-	for _, expected := range []string{"shop_data", "4.0 KB", "/var/lib/docker/volumes/shop_data/_data", "shop"} {
+	for _, expected := range []string{"shop_data", "4.0 KB", "/var/lib/docker/volumes/shop_data/_data", "shop", "In Use", "Driver / Scope:"} {
 		if !strings.Contains(view, expected) {
 			t.Errorf("expected %q in volumes view, got: %s", expected, view)
 		}
+	}
+
+	// Reclaimable volume (refcount == 0)
+	unusedVol := testutil.AVolume(func(v *monitor.DockerVolume) {
+		v.Name = "old_backup"
+		v.RefCount = 0
+	})
+	unusedView := RenderVolumes(VolumesContext{
+		Volumes:   []monitor.DockerVolume{unusedVol},
+		CursorIdx: 0,
+		Width:     100,
+	})
+	if !strings.Contains(unusedView, "Unused (reclaimable)") || !strings.Contains(unusedView, "Prune") {
+		t.Errorf("expected reclaimable volume notice and prune hint, got: %s", unusedView)
 	}
 
 	errorView := RenderVolumes(VolumesContext{Error: "daemon unavailable"})

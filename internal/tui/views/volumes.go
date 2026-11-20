@@ -80,8 +80,34 @@ func RenderVolumes(ctx VolumesContext) string {
 		}
 		s.WriteString("  " + theme.CyanStyle.Render("┌─") + theme.BoldStyle.Render(title) + theme.CyanStyle.Render(strings.Repeat("─", topDashLen)+"┐") + "\n")
 
+		s.WriteString(renderDetailRow("Driver / Scope:", fmt.Sprintf("%s / %s", valueOrDash(volume.Driver), valueOrDash(volume.Scope))))
+
+		sizeDisplay := "-"
+		if volume.Size >= 0 {
+			sizeDisplay = monitor.FormatBytes(volume.Size)
+		}
+		s.WriteString(renderDetailRow("Size:", sizeDisplay))
+
+		var statusDisplay string
+		if volume.RefCount > 0 {
+			statusDisplay = theme.GreenStyle.Render(fmt.Sprintf("● In Use (%d container reference(s))", volume.RefCount))
+		} else if volume.RefCount == 0 {
+			statusDisplay = theme.YellowStyle.Render("○ Unused (reclaimable) — Press 'C' to prune")
+		} else {
+			statusDisplay = theme.DimStyle.Render("Unknown")
+		}
+		s.WriteString(renderDetailRow("Status / Usage:", statusDisplay))
+
 		s.WriteString(renderDetailRow("Mountpoint:", valueOrDash(volume.Mountpoint)))
 		s.WriteString(renderDetailRow("Compose project:", valueOrDash(volume.ComposeProject)))
+
+		var actions []string
+		if volume.RefCount == 0 {
+			actions = append(actions, theme.BoldStyle.Render("[C]")+" Prune", theme.BoldStyle.Render("[y]")+" Copy Name")
+		} else {
+			actions = append(actions, theme.BoldStyle.Render("[y]")+" Copy Name")
+		}
+		s.WriteString(renderDetailRow("Quick Actions:", strings.Join(actions, "  ")))
 
 		s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")
 	}

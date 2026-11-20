@@ -22,7 +22,7 @@ func TestRenderComposeView(t *testing.T) {
 			TotalServices:   1,
 			RunningServices: 1,
 			Services: []monitor.ComposeService{
-				{Name: "web", State: "running", Image: "nginx:alpine", Ports: "80:80"},
+				{Name: "web", State: "running", Image: "nginx:alpine", Ports: "0.0.0.0:8080->80/tcp, [::]:8080->80/tcp"},
 			},
 		},
 	}
@@ -34,5 +34,8 @@ func TestRenderComposeView(t *testing.T) {
 	})
 	if !strings.Contains(view, "web-stack") || !strings.Contains(view, "nginx:alpine") {
 		t.Errorf("expected project details in compose view, got: %s", view)
+	}
+	if !strings.Contains(view, "8080->80/tcp") || strings.Contains(view, "0.0.0.0:") {
+		t.Errorf("expected cleaned port without 0.0.0.0 in compose view, got: %s", view)
 	}
 }
