@@ -53,17 +53,6 @@ nfpms:
       - apk
     bindir: /usr/bin
 
-dockers_v2:
-  - id: container-ctl
-    images:
-      - "ghcr.io/andreyjvm/container-ctl"
-    tags:
-      - "{{ .Version }}"
-      - "latest"
-    dockerfile: Dockerfile
-    platforms:
-      - linux/amd64
-      - linux/arm64
 
 checksum:
   name_template: "checksums.txt"

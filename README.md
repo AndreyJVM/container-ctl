@@ -1,13 +1,12 @@
 <div align="center">
 
-# Dockpulse
+# container-ctl
 
 [![CI](https://github.com/AndreyJVM/container-ctl/actions/workflows/ci.yml/badge.svg)](https://github.com/AndreyJVM/container-ctl/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/AndreyJVM/container-ctl/actions/workflows/codeql.yml/badge.svg)](https://github.com/AndreyJVM/container-ctl/actions/workflows/codeql.yml)
 [![Release](https://img.shields.io/github/v/release/AndreyJVM/container-ctl?color=blue&logo=github)](https://github.com/AndreyJVM/container-ctl/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.27.3+-00ADD8?logo=go)](https://golang.org)
 [![Go Report Card](https://goreportcard.com/badge/github.com/AndreyJVM/container-ctl)](https://goreportcard.com/report/github.com/AndreyJVM/container-ctl)
-[![Docker](https://img.shields.io/badge/Docker-GHCR-2496ED?logo=docker&logoColor=white)](https://github.com/AndreyJVM/container-ctl/pkgs/container/container-ctl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20FreeBSD-lightgrey)](https://github.com/AndreyJVM/container-ctl/releases)
 
@@ -18,7 +17,7 @@
 ---
 
 <p align="center">
-  <img src="docs/screenshots/docker.png" alt="Dockpulse Terminal UI" width="850">
+  <img src="docs/screenshots/docker.png" alt="container-ctl Terminal UI" width="850">
 </p>
 
 </div>
@@ -33,7 +32,7 @@
   - Search & filter by name, image, ID, or health status (`/`).
   - Logs viewer with scroll support (`L`).
   - Detailed container inspection modal (`Enter` / `I`).
-  - Embedded interactive terminal (`E` — `/bin/bash` or `/bin/sh`) without leaving Dockpulse, plus a full-screen fallback.
+  - Embedded interactive terminal (`E` — `/bin/bash` or `/bin/sh`) without leaving container-ctl, plus a full-screen fallback.
   - Power control: Start / Stop (`S`), Restart (`P`), Force Kill (`K` — `SIGKILL`).
   - Safe container removal with confirmation (`x`, `d`).
   - Docker System Prune modal (`C`) with disk reclaim estimates and confirmation.
@@ -52,18 +51,6 @@
 - **Zero Dependencies**: Standalone binary (<12 MB) with zero external runtime dependencies. Runs on Linux, macOS, and FreeBSD.
 
 ### Installation
-
-#### Docker (Zero Installation via GHCR)
-
-Run Dockpulse directly without installing any local Go binaries:
-
-```bash
-# Standard Docker daemon socket
-docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock ghcr.io/andreyjvm/container-ctl:latest
-
-# Rootless Docker / Podman socket
-docker run --rm -it -v "$XDG_RUNTIME_DIR/podman/podman.sock:/var/run/docker.sock" ghcr.io/andreyjvm/container-ctl:latest
-```
 
 #### Go Install
 
