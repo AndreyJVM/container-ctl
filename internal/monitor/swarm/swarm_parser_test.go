@@ -1,6 +1,5 @@
 package swarm
 
-
 import (
 	"testing"
 )

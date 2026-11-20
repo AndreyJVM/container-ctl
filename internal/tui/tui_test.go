@@ -410,4 +410,3 @@ func TestDynamicSwarmTabLifecycle(t *testing.T) {
 		t.Fatalf("expected toast on deactivation fallback, got %q", m.actionMessage)
 	}
 }
-

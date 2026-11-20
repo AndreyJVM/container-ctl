@@ -129,9 +129,9 @@ type Model struct {
 	removeContainerTargetName string
 
 	// Remove image modal.
-	removeImageTargetID     string
-	removeImageTargetName   string
-	removeImageTargetInUse  bool
+	removeImageTargetID    string
+	removeImageTargetName  string
+	removeImageTargetInUse bool
 
 	// Prune modal.
 	pruneUsage    monitor.DockerDiskUsage

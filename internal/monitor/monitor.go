@@ -88,28 +88,28 @@ const (
 // docker functions
 // ---------------------------------------------------------------------------
 
-func GetDockerSummary() DockerSummary                { return docker.GetDockerSummary() }
+func GetDockerSummary() DockerSummary { return docker.GetDockerSummary() }
 func GetContainerDetail(id string) (ContainerDetail, error) {
 	return docker.GetContainerDetail(id)
 }
 func GetContainerLogs(id string, tail int) (string, error) {
 	return docker.GetContainerLogs(id, tail)
 }
-func GetDockerImages() ([]DockerImage, error)              { return docker.GetDockerImages() }
-func RemoveDockerImage(id string, force bool) error        { return docker.RemoveDockerImage(id, force) }
-func GetDockerNetworks() ([]DockerNetwork, error)          { return docker.GetDockerNetworks() }
-func GetDockerVolumes() ([]DockerVolume, error)            { return docker.GetDockerVolumes() }
-func GetDockerDiskUsage() (DockerDiskUsage, error)         { return docker.GetDockerDiskUsage() }
-func ParseHealthStatus(val string) string                  { return docker.ParseHealthStatus(val) }
-func FormatBytes(b int64) string                           { return docker.FormatBytes(b) }
-func FormatUintBytes(b uint64) string                      { return docker.FormatUintBytes(b) }
-func FindDockerSocket() string                             { return docker.FindDockerSocket() }
-func IsDockerCLIAvailable() bool                           { return docker.IsDockerCLIAvailable() }
-func StartContainer(id string) error                       { return docker.StartContainer(id) }
-func StopContainer(id string) error                        { return docker.StopContainer(id) }
-func RestartContainer(id string) error                     { return docker.RestartContainer(id) }
-func KillContainer(id string) error                        { return docker.KillContainer(id) }
-func RemoveContainer(id string) error                      { return docker.RemoveContainer(id) }
+func GetDockerImages() ([]DockerImage, error)       { return docker.GetDockerImages() }
+func RemoveDockerImage(id string, force bool) error { return docker.RemoveDockerImage(id, force) }
+func GetDockerNetworks() ([]DockerNetwork, error)   { return docker.GetDockerNetworks() }
+func GetDockerVolumes() ([]DockerVolume, error)     { return docker.GetDockerVolumes() }
+func GetDockerDiskUsage() (DockerDiskUsage, error)  { return docker.GetDockerDiskUsage() }
+func ParseHealthStatus(val string) string           { return docker.ParseHealthStatus(val) }
+func FormatBytes(b int64) string                    { return docker.FormatBytes(b) }
+func FormatUintBytes(b uint64) string               { return docker.FormatUintBytes(b) }
+func FindDockerSocket() string                      { return docker.FindDockerSocket() }
+func IsDockerCLIAvailable() bool                    { return docker.IsDockerCLIAvailable() }
+func StartContainer(id string) error                { return docker.StartContainer(id) }
+func StopContainer(id string) error                 { return docker.StopContainer(id) }
+func RestartContainer(id string) error              { return docker.RestartContainer(id) }
+func KillContainer(id string) error                 { return docker.KillContainer(id) }
+func RemoveContainer(id string) error               { return docker.RemoveContainer(id) }
 
 func GetContainerExecCommand(id string) *exec.Cmd {
 	return docker.GetContainerExecCommand(id)
@@ -157,9 +157,9 @@ func GetSwarmServiceLogs(serviceID string, tailLines int) (string, error) {
 // system functions
 // ---------------------------------------------------------------------------
 
-func GetSystemInfo() SystemInfo   { return system.GetSystemInfo() }
-func GetCPUInfo() CPUInfo         { return system.GetCPUInfo() }
-func GetMemoryInfo() MemoryInfo   { return system.GetMemoryInfo() }
+func GetSystemInfo() SystemInfo { return system.GetSystemInfo() }
+func GetCPUInfo() CPUInfo       { return system.GetCPUInfo() }
+func GetMemoryInfo() MemoryInfo { return system.GetMemoryInfo() }
 
 // ---------------------------------------------------------------------------
 // prune functions

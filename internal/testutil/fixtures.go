@@ -146,7 +146,6 @@ func WithCreated(created string) ContainerOption {
 	}
 }
 
-
 // ImageOption defines a functional option to customize a test DockerImage.
 type ImageOption func(*monitor.DockerImage)
 

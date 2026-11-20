@@ -8,7 +8,6 @@ on:
       - 'images/**'
       - '.gitignore'
       - 'commit-template.txt'
-      - 'release-notes-template.md'
       - 'debian/**'
       - 'update-changelog.sh'
   pull_request:
@@ -18,7 +17,6 @@ on:
       - 'images/**'
       - '.gitignore'
       - 'commit-template.txt'
-      - 'release-notes-template.md'
       - 'debian/**'
       - 'update-changelog.sh'
   workflow_dispatch:
@@ -31,8 +29,61 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    name: Lint & Style
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Check code formatting (gofmt)
+        run: |
+          diffs=$(gofmt -l .)
+          if [ -n "$diffs" ]; then
+            echo "::error::The following files are not formatted with gofmt:"
+            echo "$diffs"
+            exit 1
+          fi
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Install revive linter
+        run: go install github.com/mgechev/revive@latest
+
+      - name: Run revive linter
+        run: revive -config revive.toml ./...
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-file: 'go.mod'
+
   test:
     name: Test & Build (${{ matrix.os }})
+    needs: [lint]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -54,18 +105,6 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
           cache-dependency-path: go.sum
-
-      - name: Verify dependencies
-        run: go mod verify
-
-      - name: Run go vet
-        run: go vet ./...
-
-      - name: Install revive linter
-        run: go install github.com/mgechev/revive@latest
-
-      - name: Run revive linter
-        run: revive -config revive.toml ./...
 
       - name: Run unit tests with race detector
         run: go test -v -race -coverprofile=coverage.txt ./...

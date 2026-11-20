@@ -2,7 +2,7 @@ PACKAGE_NAME = dockpulse
 VERSION = $(shell cat VERSION)
 BINARY = dockpulse
 
-.PHONY: all clean clean-all build install reinstall remove purge check test lint info files run help version version-patch version-minor version-major update-changelog release release-check release-help release-tag release-patch release-minor release-major snapshot
+.PHONY: all clean clean-all build install reinstall remove purge check test lint fmt info files run help version version-patch version-minor version-major update-changelog release release-check release-help release-tag release-patch release-minor release-major snapshot
 
 all: build
 
@@ -31,9 +31,19 @@ test:
 	@echo "Running Go tests..."
 	go test -v ./...
 
+# Format Go source code.
+fmt:
+	@echo "Formatting Go source code..."
+	gofmt -w -s .
+
 # Run style and quality checks.
 lint:
 	@echo "Running code style and quality checks..."
+	@DIFF=$$(gofmt -l .); if [ -n "$$DIFF" ]; then \
+		echo "Files need formatting (run 'make fmt'):"; \
+		echo "$$DIFF"; \
+		exit 1; \
+	fi
 	go vet ./...
 	@if command -v revive >/dev/null 2>&1; then \
 		revive -config revive.toml ./...; \
