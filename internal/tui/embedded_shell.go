@@ -5,13 +5,15 @@ import (
 	"os/exec"
 
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/tui/shell"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+
 const (
-	embeddedShellWideLayoutMin = 110
-	embeddedShellMinWidth      = 20
-	embeddedShellMinHeight     = 6
+	embeddedShellWideLayoutMin = shell.WideLayoutMin
+	embeddedShellMinWidth      = shell.MinWidth
+	embeddedShellMinHeight     = shell.MinHeight
 )
 
 func readEmbeddedShellCmd(session embeddedShellSession) tea.Cmd {
@@ -120,56 +122,9 @@ func (m Model) handleEmbeddedShellKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func shellKeyBytes(msg tea.KeyMsg) []byte {
-	if msg.Type == tea.KeyRunes {
-		data := []byte(string(msg.Runes))
-		if msg.Alt {
-			return append([]byte{0x1b}, data...)
-		}
-		return data
-	}
-
-	if msg.Type >= 0 && msg.Type <= 31 {
-		data := []byte{byte(msg.Type)} // #nosec G115 -- bounded by msg.Type >= 0 && msg.Type <= 31
-		if msg.Alt {
-			return append([]byte{0x1b}, data...)
-		}
-		return data
-	}
-	if msg.Type == 127 {
-		data := []byte{127}
-		if msg.Alt {
-			return append([]byte{0x1b}, data...)
-		}
-		return data
-	}
-
-	sequences := map[tea.KeyType]string{
-		tea.KeyUp:       "\x1b[A",
-		tea.KeyDown:     "\x1b[B",
-		tea.KeyRight:    "\x1b[C",
-		tea.KeyLeft:     "\x1b[D",
-		tea.KeyHome:     "\x1b[H",
-		tea.KeyEnd:      "\x1b[F",
-		tea.KeyPgUp:     "\x1b[5~",
-		tea.KeyPgDown:   "\x1b[6~",
-		tea.KeyDelete:   "\x1b[3~",
-		tea.KeyInsert:   "\x1b[2~",
-		tea.KeyShiftTab: "\x1b[Z",
-	}
-	sequence := sequences[msg.Type]
-	if sequence == "" {
-		return nil
-	}
-	if msg.Alt {
-		sequence = "\x1b" + sequence
-	}
-	return []byte(sequence)
+	return shell.KeyBytes(msg)
 }
 
 func embeddedShellSize(width, height int) (int, int) {
-	panelWidth := width
-	if width >= embeddedShellWideLayoutMin {
-		panelWidth = width / 2
-	}
-	return max(embeddedShellMinWidth, panelWidth-4), max(embeddedShellMinHeight, height-12)
+	return shell.PanelSize(width, height)
 }
