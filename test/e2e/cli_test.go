@@ -441,5 +441,3 @@ func TestE2E_InteractivePTY_FilterAndPrune(t *testing.T) {
 		t.Fatalf("timed out waiting for container-ctl to exit cleanly")
 	}
 }
-
-

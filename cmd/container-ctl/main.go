@@ -10,7 +10,7 @@ import (
 	"time"
 
 	configPkg "github.com/AndreyJVM/container-ctl/internal/config"
-	"github.com/AndreyJVM/container-ctl/internal/monitor/docker"
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	"github.com/AndreyJVM/container-ctl/internal/tui"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/term"
@@ -229,7 +229,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	}
 
 	if cfg.appConfig != nil && cfg.appConfig.Docker.SocketPath != "" {
-		docker.SetCustomSocketPath(cfg.appConfig.Docker.SocketPath)
+		monitor.SetCustomSocketPath(cfg.appConfig.Docker.SocketPath)
 	}
 
 	model := tui.NewModel(cfg.interval, cfg.initialTab, version, cfg.showSwarm)

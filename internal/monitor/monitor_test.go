@@ -60,7 +60,14 @@ func TestFacadeExports(t *testing.T) {
 		t.Errorf("expected '2.0 MB', got %s", formatted)
 	}
 
-	// Verify socket & CLI checker
+	// Verify socket & CLI checker and custom path
+	if monitor.SocketDialTimeout <= 0 || monitor.SocketClientTimeout <= 0 {
+		t.Errorf("expected positive socket timeouts")
+	}
+	monitor.SetCustomSocketPath("/tmp/custom.sock")
+	monitor.ResetSocketClientsPool()
+	monitor.SetCustomSocketPath("")
+
 	_ = monitor.FindDockerSocket()
 	restore := monitor.SetDockerCLIAvailableCheckerForTesting(func() bool { return true })
 	if !monitor.IsDockerCLIAvailable() {

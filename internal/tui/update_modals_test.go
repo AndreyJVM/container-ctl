@@ -479,4 +479,3 @@ func TestPruneModalAndWorkflow(t *testing.T) {
 		t.Errorf("expected [C] hint in help view, got: %s", helpView)
 	}
 }
-

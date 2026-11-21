@@ -320,4 +320,3 @@ func TestFormatSwarmServicePorts(t *testing.T) {
 		t.Errorf("expected 8080:80/tcp, 53/udp, got %q", got)
 	}
 }
-

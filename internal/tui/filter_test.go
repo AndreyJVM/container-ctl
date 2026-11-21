@@ -288,4 +288,3 @@ func TestComposeNetworksVolumesSearchFilter(t *testing.T) {
 		t.Errorf("expected filterQuery reset after Esc")
 	}
 }
-

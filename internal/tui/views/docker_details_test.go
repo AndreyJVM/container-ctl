@@ -250,4 +250,3 @@ func FuzzFormatPortDisplay(f *testing.F) {
 		_ = FormatPortDisplay(portsStr)
 	})
 }
-

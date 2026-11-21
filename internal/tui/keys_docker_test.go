@@ -504,4 +504,3 @@ func TestContainerCopyAndOpenURL(t *testing.T) {
 		t.Errorf("expected no mapped ports toast, got: %s", m.actionMessage)
 	}
 }
-

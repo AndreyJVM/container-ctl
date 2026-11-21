@@ -9,7 +9,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-
 const (
 	embeddedShellWideLayoutMin = shell.WideLayoutMin
 	embeddedShellMinWidth      = shell.MinWidth

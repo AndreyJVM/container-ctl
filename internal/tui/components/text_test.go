@@ -115,4 +115,3 @@ func FuzzPadRightAndLeft(f *testing.F) {
 		}
 	})
 }
-

@@ -316,4 +316,3 @@ func (m *Model) SetCursorForTesting(idx int) {
 	m.volumeCursorIdx = idx
 	m.swarmCursorIdx = idx
 }
-

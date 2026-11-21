@@ -266,4 +266,3 @@ func TestListNavigationHomeEndPgUpPgDown(t *testing.T) {
 		t.Errorf("expected cursor at 0 after 'pgup', got %d", m.cursorIdx)
 	}
 }
-

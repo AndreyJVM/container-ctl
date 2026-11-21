@@ -358,4 +358,3 @@ func mockStringResponse(statusCode int, body string) *http.Response {
 		Header:     make(http.Header),
 	}
 }
-

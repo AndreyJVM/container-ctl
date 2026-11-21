@@ -219,4 +219,3 @@ func FuzzMaskEnvVar(f *testing.F) {
 		_ = MaskEnvVar(entry)
 	})
 }
-

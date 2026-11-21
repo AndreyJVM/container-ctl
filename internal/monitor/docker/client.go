@@ -140,4 +140,3 @@ func SetDockerCLIAvailableCheckerForTesting(checker func() bool) func() {
 		dockerCLIAvailableChecker = orig
 	}
 }
-

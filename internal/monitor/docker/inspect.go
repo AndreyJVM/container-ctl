@@ -240,4 +240,3 @@ func GetContainerDetail(containerID string) (ContainerDetail, error) {
 
 	return getContainerDetailViaCLI(containerID)
 }
-

@@ -179,5 +179,3 @@ func TestRemoveContainer_CLIFallback(t *testing.T) {
 		t.Errorf("RemoveContainer CLI failed: %v", err)
 	}
 }
-
-

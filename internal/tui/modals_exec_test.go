@@ -197,4 +197,3 @@ func TestExecModalWorkflow(t *testing.T) {
 		t.Errorf("expected non-nil tea.Cmd for launching attach")
 	}
 }
-

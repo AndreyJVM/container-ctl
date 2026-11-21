@@ -320,4 +320,3 @@ func TestSwarmTabNavigationAndLogs(t *testing.T) {
 		t.Errorf("expected logs modal or actionMessage on pressing 'l'")
 	}
 }
-
