@@ -8,6 +8,130 @@ import (
 	"testing"
 )
 
+func TestGetContainerDetail_Socket(t *testing.T) {
+	origFinder := DockerSocketFinder
+	origFactory := SocketClientFactory
+	defer func() {
+		DockerSocketFinder = origFinder
+		SocketClientFactory = origFactory
+	}()
+
+	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	SocketClientFactory = func(_ string) *http.Client {
+		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
+			path := req.URL.Path
+			if strings.Contains(path, "/containers/detail-c/json") {
+				return mockStringResponse(http.StatusOK, `{
+					"Name": "/my-app",
+					"Created": "2026-01-01T00:00:00Z",
+					"State": {
+						"Status": "running",
+						"ExitCode": 0,
+						"Health": {"Status": "healthy"}
+					},
+					"Config": {
+						"Image": "my-app:v1",
+						"Cmd": ["app", "start"],
+						"Env": ["PORT=8080"]
+					},
+					"HostConfig": {
+						"RestartPolicy": {"Name": "unless-stopped"}
+					},
+					"NetworkSettings": {
+						"IPAddress": "172.17.0.2",
+						"Gateway": "172.17.0.1",
+						"MacAddress": "02:42:ac:11:00:02"
+					},
+					"Mounts": [
+						{"Source": "/host/data", "Destination": "/app/data", "Mode": "rw"}
+					]
+				}`), nil
+			}
+			if strings.Contains(path, "/stats") {
+				return mockStringResponse(http.StatusOK, `{}`), nil
+			}
+			return mockStringResponse(http.StatusNotFound, "not found"), nil
+		})
+	}
+
+	detail, err := GetContainerDetail("detail-c")
+	if err != nil {
+		t.Fatalf("GetContainerDetail failed: %v", err)
+	}
+	if detail.Name != "my-app" || detail.Image != "my-app:v1" || detail.Health != "healthy" {
+		t.Errorf("unexpected detail: %+v", detail)
+	}
+	if detail.IP != "172.17.0.2" || detail.Command != "app start" || detail.RestartPolicy != "unless-stopped" {
+		t.Errorf("unexpected network/cmd/restart: IP=%s Cmd=%s Restart=%s", detail.IP, detail.Command, detail.RestartPolicy)
+	}
+}
+
+func TestGetContainerDetail_NetworkFallback(t *testing.T) {
+	origFinder := DockerSocketFinder
+	origFactory := SocketClientFactory
+	defer func() {
+		DockerSocketFinder = origFinder
+		SocketClientFactory = origFactory
+	}()
+
+	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	SocketClientFactory = func(_ string) *http.Client {
+		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
+			if strings.Contains(req.URL.Path, "/containers/net-fallback/json") {
+				return mockStringResponse(http.StatusOK, `{
+					"Name": "/custom-net-app",
+					"State": {"Status": "running"},
+					"HostConfig": {"RestartPolicy": {"Name": "always"}},
+					"NetworkSettings": {
+						"IPAddress": "",
+						"Networks": {
+							"my-bridge": {
+								"IPAddress": "172.20.0.10",
+								"Gateway": "172.20.0.1",
+								"MacAddress": "02:42:ac:14:00:0a"
+							}
+						}
+					}
+				}`), nil
+			}
+			return mockStringResponse(http.StatusOK, `{}`), nil
+		})
+	}
+
+	detail, err := GetContainerDetail("net-fallback")
+	if err != nil {
+		t.Fatalf("GetContainerDetail failed: %v", err)
+	}
+	if detail.IP != "172.20.0.10" || detail.Gateway != "172.20.0.1" || detail.MACAddress != "02:42:ac:14:00:0a" {
+		t.Errorf("expected network fallback values, got: %+v", detail)
+	}
+	if detail.RestartPolicy != "always" {
+		t.Errorf("expected RestartPolicy always, got: %q", detail.RestartPolicy)
+	}
+}
+
+func TestGetContainerDetail_CLIFallback(t *testing.T) {
+	origFinder := DockerSocketFinder
+	origRunner := DockerCLIRunner
+	defer func() {
+		DockerSocketFinder = origFinder
+		DockerCLIRunner = origRunner
+	}()
+
+	DockerSocketFinder = func() string { return "" }
+	DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+		return []byte(`[{"Name":"/cli-app","State":{"Status":"running","Health":{"Status":"healthy"}}}]`), nil
+	}
+
+	detail, err := GetContainerDetail("cli-c")
+	if err != nil {
+		t.Fatalf("GetContainerDetail CLI failed: %v", err)
+	}
+	if detail.Name != "cli-app" || detail.State != "running" || detail.Health != "healthy" {
+		t.Errorf("unexpected CLI detail: %+v", detail)
+	}
+}
+
 func TestGetContainerDetail_Validation(t *testing.T) {
 	tests := []struct {
 		name string
