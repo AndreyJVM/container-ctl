@@ -269,3 +269,51 @@ func (m *Model) closeModal() {
 	m.logsFilterQuery = ""
 	m.inspectScroll = 0
 }
+
+// OpenModal activates the specified modal dialog.
+func (m *Model) OpenModal(modal ModalType) {
+	m.openModal(modal)
+}
+
+// CloseModal dismisses the active modal dialog.
+func (m *Model) CloseModal() {
+	m.closeModal()
+}
+
+// ActiveModal returns the current active modal dialog.
+func (m Model) ActiveModal() ModalType {
+	return m.activeModal
+}
+
+// ActiveTab returns the current active tab.
+func (m Model) ActiveTab() TabID {
+	return m.activeTab
+}
+
+// SetTab switches the active tab.
+func (m *Model) SetTab(tab TabID) {
+	m.setTab(tab)
+}
+
+// SetLogsForTesting sets logs content on the model for testing purposes.
+func (m *Model) SetLogsForTesting(targetName, targetID string, lines []string) {
+	m.logsTargetName = targetName
+	m.logsTargetID = targetID
+	m.logsLines = lines
+}
+
+// SetInspectForTesting sets inspect target on the model for testing purposes.
+func (m *Model) SetInspectForTesting(detail monitor.ContainerDetail) {
+	m.inspectTarget = detail
+}
+
+// SetCursorForTesting sets cursor indices across tabs for testing purposes.
+func (m *Model) SetCursorForTesting(idx int) {
+	m.cursorIdx = idx
+	m.imageCursorIdx = idx
+	m.composeCursorIdx = idx
+	m.networkCursorIdx = idx
+	m.volumeCursorIdx = idx
+	m.swarmCursorIdx = idx
+}
+
