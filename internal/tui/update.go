@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/AndreyJVM/container-ctl/internal/tui/actions"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -29,8 +30,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case actions.FinishedMsg:
+		if msg.Err != nil {
+			m.showToast(msg.Err.Error())
+		} else if msg.Message != "" {
+			m.showToast(msg.Message)
+		}
+		if msg.Refresh {
+			return m, fetchDataCmd()
+		}
+		return m, nil
+
 	case dataFetchedMsg:
 		m.applyFetchedData(msg)
+		return m, nil
+
+	case actions.DataFetchedMsg:
+		m.applyFetchedData(dataFetchedMsg{
+			dockerInfo: msg.DockerInfo,
+			images:     msg.Images,
+			compose:    msg.Compose,
+			networks:   msg.Networks,
+			volumes:    msg.Volumes,
+			swarm:      msg.Swarm,
+			imageErr:   msg.ImageErr,
+			networkErr: msg.NetworkErr,
+			volumeErr:  msg.VolumeErr,
+			timestamp:  msg.Timestamp,
+		})
 		return m, nil
 
 	case tea.WindowSizeMsg:
