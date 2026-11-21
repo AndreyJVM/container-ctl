@@ -11,60 +11,136 @@ import (
 )
 
 func TestFilterContainers(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.4.1")
-	m.dockerInfo.Containers = []monitor.ContainerItem{
+	t.Parallel()
+
+	containers := []monitor.ContainerItem{
 		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("web-gateway"), testutil.WithImage("nginx:alpine"), testutil.WithCompose("infra", "")),
 		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("db-postgres"), testutil.WithImage("postgres:16"), testutil.WithCompose("backend", "")),
 		testutil.AContainer(testutil.WithID("c3"), testutil.WithName("redis-cache"), testutil.WithImage("redis:7-alpine"), testutil.WithCompose("cache", "")),
 	}
 
-	// Empty query
-	m.filterQuery = ""
-	if len(m.getFilteredContainers()) != 3 {
-		t.Errorf("expected all 3 containers for empty filter query")
+	tests := []struct {
+		name          string
+		query         string
+		expectedCount int
+		expectedNames []string
+	}{
+		{
+			name:          "empty query returns all containers",
+			query:         "",
+			expectedCount: 3,
+			expectedNames: []string{"web-gateway", "db-postgres", "redis-cache"},
+		},
+		{
+			name:          "whitespace only query returns all containers",
+			query:         "   ",
+			expectedCount: 3,
+			expectedNames: []string{"web-gateway", "db-postgres", "redis-cache"},
+		},
+		{
+			name:          "filter by container name",
+			query:         "web",
+			expectedCount: 1,
+			expectedNames: []string{"web-gateway"},
+		},
+		{
+			name:          "case-insensitive match on image",
+			query:         "POSTGRES",
+			expectedCount: 1,
+			expectedNames: []string{"db-postgres"},
+		},
+		{
+			name:          "match by container ID",
+			query:         "c3",
+			expectedCount: 1,
+			expectedNames: []string{"redis-cache"},
+		},
+		{
+			name:          "match by compose project name",
+			query:         "infra",
+			expectedCount: 1,
+			expectedNames: []string{"web-gateway"},
+		},
+		{
+			name:          "no match returns empty slice",
+			query:         "non-existent-service",
+			expectedCount: 0,
+			expectedNames: nil,
+		},
 	}
 
-	// Filter by Name
-	m.filterQuery = "web"
-	filtered := m.getFilteredContainers()
-	if len(filtered) != 1 || filtered[0].Name != "web-gateway" {
-		t.Errorf("expected 1 result 'web-gateway', got %v", filtered)
-	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			m := newFastTestModel()
+			m.dockerInfo.Containers = containers
+			m.filterQuery = tc.query
 
-	// Case-insensitive match on Image
-	m.filterQuery = "POSTGRES"
-	filtered = m.getFilteredContainers()
-	if len(filtered) != 1 || filtered[0].Name != "db-postgres" {
-		t.Errorf("expected 1 result 'db-postgres', got %v", filtered)
-	}
-
-	// Match on ID
-	m.filterQuery = "c3"
-	filtered = m.getFilteredContainers()
-	if len(filtered) != 1 || filtered[0].Name != "redis-cache" {
-		t.Errorf("expected 1 result 'redis-cache', got %v", filtered)
-	}
-
-	// Match on ComposeProject
-	m.filterQuery = "infra"
-	filtered = m.getFilteredContainers()
-	if len(filtered) != 1 || filtered[0].Name != "web-gateway" {
-		t.Errorf("expected 1 result for compose project 'infra', got %v", filtered)
-	}
-
-	// No match
-	m.filterQuery = "non-existent"
-	if len(m.getFilteredContainers()) != 0 {
-		t.Errorf("expected 0 results for non-matching query")
+			filtered := m.getFilteredContainers()
+			if len(filtered) != tc.expectedCount {
+				t.Fatalf("expected %d containers, got %d", tc.expectedCount, len(filtered))
+			}
+			for i, name := range tc.expectedNames {
+				if filtered[i].Name != name {
+					t.Errorf("expected container %d to be %q, got %q", i, name, filtered[i].Name)
+				}
+			}
+		})
 	}
 }
 
-func TestFilterModeKeys(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.4.1")
+func TestFilterContainersByHealth(t *testing.T) {
+	t.Parallel()
+
+	m := newFastTestModel()
 	m.dockerInfo.Containers = []monitor.ContainerItem{
-		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("web"), testutil.WithImage("nginx")),
-		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("worker"), testutil.WithImage("app")),
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("web"), testutil.WithImage("nginx"), testutil.WithHealth("healthy")),
+		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("db"), testutil.WithImage("postgres"), testutil.WithHealth("unhealthy")),
+		testutil.AContainer(testutil.WithID("c3"), testutil.WithName("cache"), testutil.WithImage("redis"), testutil.WithHealth("starting")),
 	}
+
+	t.Run("filter by unhealthy", func(t *testing.T) {
+		t.Parallel()
+		subM := m
+		subM.filterQuery = "unhealthy"
+		filtered := subM.getFilteredContainers()
+		if len(filtered) != 1 || filtered[0].Name != "db" {
+			t.Errorf("expected 1 result matching 'unhealthy' (db), got %v", filtered)
+		}
+	})
+
+	t.Run("filter by healthy matches substring in unhealthy too", func(t *testing.T) {
+		t.Parallel()
+		subM := m
+		subM.filterQuery = "healthy"
+		filtered := subM.getFilteredContainers()
+		if len(filtered) != 2 {
+			t.Errorf("expected 2 results matching 'healthy', got %d", len(filtered))
+		}
+	})
+
+	t.Run("filter by starting", func(t *testing.T) {
+		t.Parallel()
+		subM := m
+		subM.filterQuery = "starting"
+		filtered := subM.getFilteredContainers()
+		if len(filtered) != 1 || filtered[0].Name != "cache" {
+			t.Errorf("expected 1 result matching 'starting', got %v", filtered)
+		}
+	})
+}
+
+func TestFilterModeKeys(t *testing.T) {
+	t.Parallel()
+
+	m := newFastTestModel()
+	m.dockerInfo.Containers = []monitor.ContainerItem{
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("web server"), testutil.WithImage("nginx")),
+		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("worker"), testutil.WithImage("app")),
+		testutil.AContainer(testutil.WithID("c3"), testutil.WithName("database"), testutil.WithImage("postgres")),
+	}
+	m.cursorIdx = 2 // Point to last container
 
 	// 1. Activate search mode with '/'
 	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("/")})
@@ -73,33 +149,41 @@ func TestFilterModeKeys(t *testing.T) {
 		t.Fatalf("expected isFiltering=true after '/'")
 	}
 
-	// 2. Type "w", "e", "b"
-	for _, r := range []rune("web") {
-		res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+	// 2. Type "web" with Space and "server"
+	for _, r := range []rune("web server") {
+		if r == ' ' {
+			res, _ = m.Update(tea.KeyMsg{Type: tea.KeySpace})
+		} else {
+			res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		}
 		m = res.(Model)
 	}
-	if m.filterQuery != "web" {
-		t.Errorf("expected filterQuery='web', got %q", m.filterQuery)
+	if m.filterQuery != "web server" {
+		t.Errorf("expected filterQuery='web server', got %q", m.filterQuery)
 	}
 	if len(m.getFilteredContainers()) != 1 {
-		t.Errorf("expected 1 container matching 'web', got %d", len(m.getFilteredContainers()))
+		t.Errorf("expected 1 container matching 'web server', got %d", len(m.getFilteredContainers()))
+	}
+	// Cursor must clamp to 0 since only 1 container matches
+	if m.cursorIdx != 0 {
+		t.Errorf("expected cursor clamped to 0, got %d", m.cursorIdx)
 	}
 
-	// 3. Backspace
+	// 3. Backspace deletes character
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
 	m = res.(Model)
-	if m.filterQuery != "we" {
-		t.Errorf("expected filterQuery='we' after backspace, got %q", m.filterQuery)
+	if m.filterQuery != "web serve" {
+		t.Errorf("expected filterQuery='web serve' after backspace, got %q", m.filterQuery)
 	}
 
-	// 4. Enter to apply filter and exit typing mode
+	// 4. Enter applies filter and exits typing mode
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = res.(Model)
 	if m.isFiltering {
 		t.Errorf("expected isFiltering=false after Enter")
 	}
-	if m.filterQuery != "we" {
-		t.Errorf("expected filterQuery to persist after Enter")
+	if m.filterQuery != "web serve" {
+		t.Errorf("expected filterQuery to persist after Enter, got %q", m.filterQuery)
 	}
 
 	// 5. Esc in normal mode clears filter
@@ -108,33 +192,34 @@ func TestFilterModeKeys(t *testing.T) {
 	if m.filterQuery != "" {
 		t.Errorf("expected filterQuery='' after Esc, got %q", m.filterQuery)
 	}
-}
 
-func TestFilterContainersByHealth(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.4.1")
-	m.dockerInfo.Containers = []monitor.ContainerItem{
-		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("web"), testutil.WithImage("nginx"), testutil.WithHealth("healthy")),
-		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("db"), testutil.WithImage("postgres"), testutil.WithHealth("unhealthy")),
-		testutil.AContainer(testutil.WithID("c3"), testutil.WithName("cache"), testutil.WithImage("redis"), testutil.WithHealth("starting")),
+	// 6. Backspace on empty filterQuery does not panic
+	res, _ = m.handleFilterInput(tea.KeyMsg{Type: tea.KeyBackspace})
+	m = res.(Model)
+	if m.filterQuery != "" {
+		t.Errorf("expected filterQuery to remain empty after backspace on empty string")
 	}
 
-	m.filterQuery = "unhealthy"
-	filtered := m.getFilteredContainers()
-	if len(filtered) != 1 || filtered[0].Name != "db" {
-		t.Errorf("expected 1 result matching health 'unhealthy', got %v", filtered)
-	}
-
-	m.filterQuery = "healthy"
-	filtered = m.getFilteredContainers()
-	// "healthy" is substring of "unhealthy" as well, so matches c1 and c2
-	if len(filtered) != 2 {
-		t.Errorf("expected 2 results matching 'healthy', got %d", len(filtered))
+	// 7. Esc during active typing clears query and exits filtering
+	m.isFiltering = true
+	m.filterQuery = "search"
+	res, _ = m.handleFilterInput(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.isFiltering || m.filterQuery != "" {
+		t.Errorf("expected isFiltering=false and filterQuery='' after Esc during typing")
 	}
 }
 
 func TestFilterModelDelegation(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.4.1")
+	t.Parallel()
 
+	m := newFastTestModel()
+
+	m.images = []monitor.DockerImage{
+		{ID: "img1", Repository: "nginx", Tag: "latest", InUse: true},
+		{ID: "img2", Repository: "redis", Tag: "alpine", InUse: false},
+		{ID: "img3", Repository: "<none>", Tag: "<none>", InUse: false, Dangling: true},
+	}
 	m.compose = []monitor.ComposeProject{
 		{Name: "app-prod"},
 		{Name: "app-dev"},
@@ -148,47 +233,114 @@ func TestFilterModelDelegation(t *testing.T) {
 		{Name: "cache-data", Driver: "local"},
 	}
 
+	// Compose delegation
 	m.filterQuery = "prod"
-	if len(m.getFilteredCompose()) != 1 {
+	if len(m.getFilteredCompose()) != 1 || m.getFilteredCompose()[0].Name != "app-prod" {
 		t.Errorf("expected 1 compose project matching 'prod'")
 	}
 
+	// Networks delegation
 	m.filterQuery = "overlay"
-	if len(m.getFilteredNetworks()) != 1 {
+	if len(m.getFilteredNetworks()) != 1 || m.getFilteredNetworks()[0].Name != "custom-net" {
 		t.Errorf("expected 1 network matching 'overlay'")
 	}
 
+	// Volumes delegation
 	m.filterQuery = "cache"
-	if len(m.getFilteredVolumes()) != 1 {
+	if len(m.getFilteredVolumes()) != 1 || m.getFilteredVolumes()[0].Name != "cache-data" {
 		t.Errorf("expected 1 volume matching 'cache'")
 	}
 
+	// Images delegation with query and onlyUnused
+	m.filterQuery = "redis"
+	if len(m.getFilteredImages()) != 1 || m.getFilteredImages()[0].Repository != "redis" {
+		t.Errorf("expected 1 image matching 'redis'")
+	}
+
+	m.filterQuery = ""
 	m.SetOnlyUnusedImages(true)
 	if !m.IsOnlyUnusedImages() {
 		t.Errorf("expected IsOnlyUnusedImages to be true")
 	}
+	if len(m.getFilteredImages()) != 2 {
+		t.Errorf("expected 2 unused images (redis and dangling), got %d", len(m.getFilteredImages()))
+	}
+
 	m.SetOnlyUnusedImages(false)
 	if m.IsOnlyUnusedImages() {
 		t.Errorf("expected IsOnlyUnusedImages to be false")
 	}
+	if len(m.getFilteredImages()) != 3 {
+		t.Errorf("expected all 3 images when onlyUnused is false")
+	}
 
+	// Sort mode setters and boundary checks
 	m.SetContainerSortMode(SortName)
 	if m.containerSortMode != SortName {
 		t.Errorf("expected sort mode SortName, got %d", m.containerSortMode)
 	}
-	// Invalid mode should be ignored
+	// Invalid modes out of range should be ignored
 	m.SetContainerSortMode(999)
 	if m.containerSortMode != SortName {
-		t.Errorf("expected sort mode to remain SortName, got %d", m.containerSortMode)
+		t.Errorf("expected sort mode to remain SortName when 999 passed, got %d", m.containerSortMode)
+	}
+	m.SetContainerSortMode(-1)
+	if m.containerSortMode != SortName {
+		t.Errorf("expected sort mode to remain SortName when -1 passed, got %d", m.containerSortMode)
 	}
 
-	score := containerStatusScore(monitor.ContainerItem{State: "running", Health: "healthy"})
-	if score == 0 {
-		t.Errorf("expected non-zero container status score")
+	// Container status score evaluation
+	runningHealthy := containerStatusScore(monitor.ContainerItem{State: "running", Health: "healthy"})
+	runningUnhealthy := containerStatusScore(monitor.ContainerItem{State: "running", Health: "unhealthy"})
+	if runningUnhealthy >= runningHealthy {
+		t.Errorf("expected unhealthy containers to have higher priority (lower score) than healthy")
 	}
 }
 
+func TestContainerSortingViaModel(t *testing.T) {
+	t.Parallel()
+
+	m := newFastTestModel()
+	m.dockerInfo.Containers = []monitor.ContainerItem{
+		testutil.AContainer(testutil.WithName("beta"), testutil.WithMetrics(10.0, 500.0, 1024.0)),
+		testutil.AContainer(testutil.WithName("alpha"), testutil.WithMetrics(85.0, 100.0, 1024.0)),
+		testutil.AContainer(testutil.WithName("gamma"), testutil.WithMetrics(45.0, 900.0, 1024.0)),
+	}
+
+	t.Run("sort by CPU descending", func(t *testing.T) {
+		t.Parallel()
+		subM := m
+		subM.SetContainerSortMode(SortCPU)
+		sorted := subM.getFilteredContainers()
+		if sorted[0].Name != "alpha" || sorted[1].Name != "gamma" || sorted[2].Name != "beta" {
+			t.Errorf("unexpected CPU sort order: %v, %v, %v", sorted[0].Name, sorted[1].Name, sorted[2].Name)
+		}
+	})
+
+	t.Run("sort by memory descending", func(t *testing.T) {
+		t.Parallel()
+		subM := m
+		subM.SetContainerSortMode(SortMem)
+		sorted := subM.getFilteredContainers()
+		if sorted[0].Name != "gamma" || sorted[1].Name != "beta" || sorted[2].Name != "alpha" {
+			t.Errorf("unexpected memory sort order: %v, %v, %v", sorted[0].Name, sorted[1].Name, sorted[2].Name)
+		}
+	})
+
+	t.Run("sort by name ascending", func(t *testing.T) {
+		t.Parallel()
+		subM := m
+		subM.SetContainerSortMode(SortName)
+		sorted := subM.getFilteredContainers()
+		if sorted[0].Name != "alpha" || sorted[1].Name != "beta" || sorted[2].Name != "gamma" {
+			t.Errorf("unexpected name sort order: %v, %v, %v", sorted[0].Name, sorted[1].Name, sorted[2].Name)
+		}
+	})
+}
+
 func TestComposeNetworksVolumesSearchFilter(t *testing.T) {
+	t.Parallel()
+
 	m := Model{
 		version:         "v0.18.1",
 		activeTab:       TabCompose,

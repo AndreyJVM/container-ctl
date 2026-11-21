@@ -2,17 +2,25 @@ package tui
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/AndreyJVM/container-ctl/internal/clipboard"
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type errWriter struct{}
+
+func (errWriter) Write([]byte) (int, error) {
+	return 0, errors.New("write failed")
+}
+
 func TestModalLogsSearch(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.16.0")
+	t.Parallel()
+
+	m := newFastTestModel()
 	m.activeModal = ModalLogs
 	m.logsTargetName = "test-app"
 	m.logsTargetID = "c123"
@@ -89,7 +97,7 @@ func TestModalInspectScrollingAndCopy(t *testing.T) {
 	clipboard.OutputWriter = &buf
 	defer func() { clipboard.OutputWriter = origWriter }()
 
-	m := NewModel(2*time.Second, 1, "v0.4.1")
+	m := newFastTestModel()
 
 	// Set inspect target with enough env vars to allow scrolling
 	m.inspectTarget = monitor.ContainerDetail{
@@ -157,6 +165,15 @@ func TestModalInspectScrollingAndCopy(t *testing.T) {
 		t.Errorf("expected toast with container ID on 'y', got: %q", m.actionMessage)
 	}
 
+	// Test clipboard error handling
+	clipboard.OutputWriter = errWriter{}
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
+	m = res.(Model)
+	if !strings.Contains(m.actionMessage, "Clipboard error") {
+		t.Errorf("expected clipboard error toast, got: %q", m.actionMessage)
+	}
+	clipboard.OutputWriter = &buf
+
 	// Verify view rendering includes pagination info
 	v := m.View()
 	if !strings.Contains(v, "worker-pool") || !strings.Contains(v, "[Lines") {
@@ -172,69 +189,126 @@ func TestModalInspectScrollingAndCopy(t *testing.T) {
 }
 
 func TestModalConfirmDialogs(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v1.0.0")
+	t.Parallel()
 
-	// 1. ModalComposeDown cancel
-	m.activeModal = ModalComposeDown
-	m.composeDownTarget = "my-stack"
-	res, cmd := m.handleModalInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})
-	m = res.(Model)
-	if m.activeModal != "" || m.composeDownTarget != "" || cmd != nil {
-		t.Errorf("expected ModalComposeDown cancelled cleanly")
-	}
+	t.Run("ModalComposeDown cancel variants and confirm", func(t *testing.T) {
+		cancelKeys := []string{"esc", "q", "n", "N"}
+		for _, k := range cancelKeys {
+			m := newFastTestModel()
+			m.activeModal = ModalComposeDown
+			m.composeDownTarget = "my-stack"
 
-	// ModalComposeDown confirm
-	m.activeModal = ModalComposeDown
-	m.composeDownTarget = "my-stack"
-	res, cmd = m.handleModalInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
-	m = res.(Model)
-	if m.activeModal != "" || cmd == nil {
-		t.Errorf("expected ModalComposeDown confirmed and returned cmd")
-	}
+			var msg tea.KeyMsg
+			if k == "esc" {
+				msg = tea.KeyMsg{Type: tea.KeyEsc}
+			} else {
+				msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)}
+			}
+			res, cmd := m.handleModalInput(msg)
+			m = res.(Model)
+			if m.activeModal != "" || m.composeDownTarget != "" || cmd != nil {
+				t.Errorf("key %q: expected ModalComposeDown cancelled cleanly", k)
+			}
+		}
 
-	// 2. ModalRemoveContainer cancel
-	m.activeModal = ModalRemoveContainer
-	m.removeContainerTargetID = "c1"
-	m.removeContainerTargetName = "web"
-	res, cmd = m.handleModalInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("q")})
-	m = res.(Model)
-	if m.activeModal != "" || m.removeContainerTargetID != "" || cmd != nil {
-		t.Errorf("expected ModalRemoveContainer cancelled cleanly")
-	}
+		// Confirm with y and Y
+		for _, k := range []string{"y", "Y"} {
+			m := newFastTestModel()
+			m.activeModal = ModalComposeDown
+			m.composeDownTarget = "my-stack"
+			res, cmd := m.handleModalInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
+			m = res.(Model)
+			if m.activeModal != "" || cmd == nil {
+				t.Errorf("key %q: expected ModalComposeDown confirmed and returned cmd", k)
+			}
+			if !strings.Contains(m.actionMessage, "Downing Compose project my-stack") {
+				t.Errorf("expected toast for downing compose project, got %q", m.actionMessage)
+			}
+		}
+	})
 
-	// ModalRemoveContainer confirm
-	m.activeModal = ModalRemoveContainer
-	m.removeContainerTargetID = "c1"
-	m.removeContainerTargetName = "web"
-	res, cmd = m.handleModalInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("Y")})
-	m = res.(Model)
-	if m.activeModal != "" || cmd == nil {
-		t.Errorf("expected ModalRemoveContainer confirmed and returned cmd")
-	}
+	t.Run("ModalRemoveContainer cancel variants and confirm", func(t *testing.T) {
+		cancelKeys := []string{"esc", "q", "n", "N"}
+		for _, k := range cancelKeys {
+			m := newFastTestModel()
+			m.activeModal = ModalRemoveContainer
+			m.removeContainerTargetID = "c1"
+			m.removeContainerTargetName = "web"
 
-	// 3. ModalRemoveImage cancel
-	m.activeModal = ModalRemoveImage
-	m.removeImageTargetID = "img1"
-	m.removeImageTargetName = "nginx:latest"
-	res, cmd = m.handleModalInput(tea.KeyMsg{Type: tea.KeyEsc})
-	m = res.(Model)
-	if m.activeModal != "" || m.removeImageTargetID != "" || cmd != nil {
-		t.Errorf("expected ModalRemoveImage cancelled cleanly")
-	}
+			var msg tea.KeyMsg
+			if k == "esc" {
+				msg = tea.KeyMsg{Type: tea.KeyEsc}
+			} else {
+				msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)}
+			}
+			res, cmd := m.handleModalInput(msg)
+			m = res.(Model)
+			if m.activeModal != "" || m.removeContainerTargetID != "" || cmd != nil {
+				t.Errorf("key %q: expected ModalRemoveContainer cancelled cleanly", k)
+			}
+		}
 
-	// ModalRemoveImage confirm
-	m.activeModal = ModalRemoveImage
-	m.removeImageTargetID = "img1"
-	m.removeImageTargetName = "nginx:latest"
-	res, cmd = m.handleModalInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
-	m = res.(Model)
-	if m.activeModal != "" || cmd == nil {
-		t.Errorf("expected ModalRemoveImage confirmed and returned cmd")
-	}
+		// Confirm with y and Y
+		for _, k := range []string{"y", "Y"} {
+			m := newFastTestModel()
+			m.activeModal = ModalRemoveContainer
+			m.removeContainerTargetID = "c1"
+			m.removeContainerTargetName = "web"
+			res, cmd := m.handleModalInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
+			m = res.(Model)
+			if m.activeModal != "" || cmd == nil {
+				t.Errorf("key %q: expected ModalRemoveContainer confirmed and returned cmd", k)
+			}
+			if !strings.Contains(m.actionMessage, "Removing container web") {
+				t.Errorf("expected toast for removing container, got %q", m.actionMessage)
+			}
+		}
+	})
+
+	t.Run("ModalRemoveImage cancel variants and confirm", func(t *testing.T) {
+		cancelKeys := []string{"esc", "q", "n", "N"}
+		for _, k := range cancelKeys {
+			m := newFastTestModel()
+			m.activeModal = ModalRemoveImage
+			m.removeImageTargetID = "img1"
+			m.removeImageTargetName = "nginx:latest"
+			m.removeImageTargetInUse = true
+
+			var msg tea.KeyMsg
+			if k == "esc" {
+				msg = tea.KeyMsg{Type: tea.KeyEsc}
+			} else {
+				msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)}
+			}
+			res, cmd := m.handleModalInput(msg)
+			m = res.(Model)
+			if m.activeModal != "" || m.removeImageTargetID != "" || m.removeImageTargetInUse || cmd != nil {
+				t.Errorf("key %q: expected ModalRemoveImage cancelled cleanly", k)
+			}
+		}
+
+		// Confirm with y and Y
+		for _, k := range []string{"y", "Y"} {
+			m := newFastTestModel()
+			m.activeModal = ModalRemoveImage
+			m.removeImageTargetID = "img1"
+			m.removeImageTargetName = "nginx:latest"
+			res, cmd := m.handleModalInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
+			m = res.(Model)
+			if m.activeModal != "" || cmd == nil {
+				t.Errorf("key %q: expected ModalRemoveImage confirmed and returned cmd", k)
+			}
+			if !strings.Contains(m.actionMessage, "Removing image nginx:latest") {
+				t.Errorf("expected toast for removing image, got %q", m.actionMessage)
+			}
+		}
+	})
 }
 
 func TestModalPrune(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v1.0.0")
+	t.Parallel()
+
+	m := newFastTestModel()
 	m.activeModal = ModalPrune
 
 	// Select prune option 1
@@ -278,10 +352,21 @@ func TestModalPrune(t *testing.T) {
 	if m.activeModal != "" || cmd == nil {
 		t.Errorf("expected prune executed and modal closed")
 	}
+
+	// Close with 'q'
+	m.activeModal = ModalPrune
+	m.pruneConfirm = 2
+	res, _ = m.handleModalInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("q")})
+	m = res.(Model)
+	if m.activeModal != "" || m.pruneConfirm != 0 {
+		t.Errorf("expected modal closed and pruneConfirm reset on 'q'")
+	}
 }
 
 func TestModalLogsNavigation(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v1.0.0")
+	t.Parallel()
+
+	m := newFastTestModel()
 	m.activeModal = ModalLogs
 	m.logsLines = make([]string, 50)
 	for i := range m.logsLines {
@@ -319,25 +404,30 @@ func TestModalLogsNavigation(t *testing.T) {
 }
 
 func TestModalHelp(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v1.0.0")
-	m.showHelp = true
+	t.Parallel()
 
-	res, _ := m.handleHelpInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")})
-	m = res.(Model)
-	if m.showHelp {
-		t.Errorf("expected showHelp=false after '?'")
-	}
+	for _, k := range []string{"?", "esc", "q"} {
+		m := newFastTestModel()
+		m.showHelp = true
 
-	m.showHelp = true
-	res, _ = m.handleHelpInput(tea.KeyMsg{Type: tea.KeyEsc})
-	m = res.(Model)
-	if m.showHelp {
-		t.Errorf("expected showHelp=false after 'esc'")
+		var msg tea.KeyMsg
+		if k == "esc" {
+			msg = tea.KeyMsg{Type: tea.KeyEsc}
+		} else {
+			msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)}
+		}
+		res, _ := m.handleHelpInput(msg)
+		m = res.(Model)
+		if m.showHelp {
+			t.Errorf("key %q: expected showHelp=false after pressing", k)
+		}
 	}
 }
 
 func TestInspectModalHealthBadge(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.4.1")
+	t.Parallel()
+
+	m := newFastTestModel()
 	m.activeModal = "inspect"
 	m.inspectTarget = monitor.ContainerDetail{
 		ID:     "c1",
@@ -374,8 +464,47 @@ func TestInspectModalHealthBadge(t *testing.T) {
 	}
 }
 
+func TestInspectModalCustomLinesAndCounts(t *testing.T) {
+	t.Parallel()
+
+	m := newFastTestModel()
+	m.inspectCustomLines = []string{"header", "entry 1", "entry 2", "entry 3"}
+	if count := m.countInspectLines(); count != 4 {
+		t.Errorf("expected countInspectLines=4 for custom lines, got %d", count)
+	}
+
+	m.inspectCustomLines = nil
+	m.inspectTarget = monitor.ContainerDetail{ID: "c1", Name: "app"}
+	if count := m.countInspectLines(); count == 0 {
+		t.Errorf("expected countInspectLines > 0 for ContainerDetail target")
+	}
+
+	// countFilteredLogs
+	m.logsLines = []string{
+		"DEBUG initialized",
+		"INFO server started",
+		"WARN memory high",
+		"ERROR connection reset",
+		"error database down",
+	}
+	if count := m.countFilteredLogs(); count != 5 {
+		t.Errorf("expected 5 lines with empty filter, got %d", count)
+	}
+
+	m.logsFilterQuery = "ERROR"
+	if count := m.countFilteredLogs(); count != 2 {
+		t.Errorf("expected 2 lines matching 'ERROR' (case-insensitive), got %d", count)
+	}
+}
+
 func TestPruneModalAndWorkflow(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.5.0")
+	origDiskUsage := getDockerDiskUsage
+	getDockerDiskUsage = func() (monitor.DockerDiskUsage, error) {
+		return monitor.DockerDiskUsage{TotalSize: 1024 * 1024}, nil
+	}
+	defer func() { getDockerDiskUsage = origDiskUsage }()
+
+	m := newFastTestModel()
 	m.width = 100
 	m.height = 30
 

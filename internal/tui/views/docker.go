@@ -24,14 +24,33 @@ type containerTableLayout struct {
 	cpuWidth     int
 	memWidth     int
 	portsWidth   int
+	showGauges   bool
 }
 
 func computeContainerTableLayout(termWidth int) containerTableLayout {
 	contentWidth := max(termWidth-4, minCardWidth)
 
 	var idWidth, statusWidth, cpuWidth, memWidth, nameWidth, imageWidth int
+	showGauges := false
 
-	if contentWidth >= 110 {
+	if contentWidth >= 120 {
+		showGauges = true
+		idWidth = 8
+		statusWidth = 15
+		cpuWidth = 14
+		memWidth = 20
+		nameWidth = 18
+		imageWidth = 18
+
+		baseUsed := 14 + idWidth + statusWidth + cpuWidth + memWidth + nameWidth + imageWidth
+		extra := contentWidth - baseUsed - 16 // reserve at least 16 for ports
+		if extra > 0 {
+			nameBonus := extra * 25 / 100
+			imgBonus := extra * 25 / 100
+			nameWidth += nameBonus
+			imageWidth += imgBonus
+		}
+	} else if contentWidth >= 110 {
 		idWidth = 8
 		statusWidth = 15
 		cpuWidth = 6
@@ -81,6 +100,7 @@ func computeContainerTableLayout(termWidth int) containerTableLayout {
 		cpuWidth:     cpuWidth,
 		memWidth:     memWidth,
 		portsWidth:   portsWidth,
+		showGauges:   showGauges,
 	}
 }
 
@@ -262,15 +282,28 @@ func renderNoContainersFoundNotice(ctx *DockerContext, s *strings.Builder) {
 func renderContainerTable(ctx *DockerContext, s *strings.Builder) {
 	layout := computeContainerTableLayout(ctx.Width)
 
-	headerText := fmt.Sprintf("  %-*s  %-*s  %-*s  %-*s  %*s  %-*s  %-*s",
-		layout.idWidth, "ID",
-		layout.nameWidth, "NAME",
-		layout.imageWidth, "IMAGE",
-		layout.statusWidth, "STATUS",
-		layout.cpuWidth, "CPU",
-		layout.memWidth, "MEM USAGE",
-		layout.portsWidth, "PORTS",
-	)
+	var headerText string
+	if layout.showGauges {
+		headerText = fmt.Sprintf("  %-*s  %-*s  %-*s  %-*s  %-*s  %-*s  %-*s",
+			layout.idWidth, "ID",
+			layout.nameWidth, "NAME",
+			layout.imageWidth, "IMAGE",
+			layout.statusWidth, "STATUS",
+			layout.cpuWidth, "CPU",
+			layout.memWidth, "MEM USAGE",
+			layout.portsWidth, "PORTS",
+		)
+	} else {
+		headerText = fmt.Sprintf("  %-*s  %-*s  %-*s  %-*s  %*s  %-*s  %-*s",
+			layout.idWidth, "ID",
+			layout.nameWidth, "NAME",
+			layout.imageWidth, "IMAGE",
+			layout.statusWidth, "STATUS",
+			layout.cpuWidth, "CPU",
+			layout.memWidth, "MEM USAGE",
+			layout.portsWidth, "PORTS",
+		)
+	}
 	s.WriteString(theme.DimStyle.Render(headerText) + "\n")
 	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", layout.contentWidth)) + "\n")
 
@@ -309,23 +342,62 @@ func renderContainerRow(c monitor.ContainerItem, isSelected bool, layout contain
 	statusPadded := padRightVisual(components.Truncate(statusText, layout.statusWidth), layout.statusWidth)
 
 	cpuRaw, memRaw := formatContainerMetrics(c)
-	cpuPadded := padLeftVisual(cpuRaw, layout.cpuWidth)
-	memPadded := padRightVisual(components.Truncate(memRaw, layout.memWidth), layout.memWidth)
+
+	var cpuColPlain, memColPlain string
+	var cpuStyled, memStyled string
+
+	if layout.showGauges {
+		if c.State == "running" {
+			cpuColPlain = fmt.Sprintf("%s %5.1f%%", components.RenderPlainGauge(c.CPUPerc, 5, true), c.CPUPerc)
+			memColPlain = padRightVisual(components.Truncate(fmt.Sprintf("%s %s", components.RenderPlainGauge(c.MemPerc, 5, true), memRaw), layout.memWidth), layout.memWidth)
+
+			cpuGauge := components.RenderGauge(c.CPUPerc, 5, true)
+			cpuVal := styleCPU(c.CPUPerc, c.State, fmt.Sprintf("%5.1f%%", c.CPUPerc))
+			cpuStyled = fmt.Sprintf("%s %s", cpuGauge, cpuVal)
+
+			memGauge := components.RenderGauge(c.MemPerc, 5, true)
+			memVal := theme.DimStyle.Render(components.Truncate(memRaw, layout.memWidth-8))
+			memStyled = padRightVisual(fmt.Sprintf("%s %s", memGauge, memVal), layout.memWidth)
+		} else {
+			cpuColPlain = padLeftVisual("-", layout.cpuWidth)
+			memColPlain = padRightVisual("-", layout.memWidth)
+			cpuStyled = padLeftVisual(theme.DimStyle.Render("-"), layout.cpuWidth)
+			memStyled = padRightVisual(theme.DimStyle.Render("-"), layout.memWidth)
+		}
+	} else {
+		cpuColPlain = padLeftVisual(cpuRaw, layout.cpuWidth)
+		memColPlain = padRightVisual(components.Truncate(memRaw, layout.memWidth), layout.memWidth)
+		cpuStyled = styleCPU(c.CPUPerc, c.State, cpuColPlain)
+		memStyled = theme.DimStyle.Render(memColPlain)
+	}
 
 	portsClean := CleanTablePorts(c.Ports)
 	portsTrunc := components.Truncate(portsClean, layout.portsWidth)
 	portsPadded := padRightVisual(portsTrunc, layout.portsWidth)
 
 	if isSelected {
-		plainRow := fmt.Sprintf("%-*s  %-*s  %-*s  %-*s  %*s  %-*s  %-*s",
-			layout.idWidth, cID,
-			layout.nameWidth, cName,
-			layout.imageWidth, cImg,
-			layout.statusWidth, statusPadded,
-			layout.cpuWidth, cpuPadded,
-			layout.memWidth, memPadded,
-			layout.portsWidth, portsPadded,
-		)
+		var plainRow string
+		if layout.showGauges {
+			plainRow = fmt.Sprintf("%-*s  %-*s  %-*s  %-*s  %-*s  %-*s  %-*s",
+				layout.idWidth, cID,
+				layout.nameWidth, cName,
+				layout.imageWidth, cImg,
+				layout.statusWidth, statusPadded,
+				layout.cpuWidth, cpuColPlain,
+				layout.memWidth, memColPlain,
+				layout.portsWidth, portsPadded,
+			)
+		} else {
+			plainRow = fmt.Sprintf("%-*s  %-*s  %-*s  %-*s  %*s  %-*s  %-*s",
+				layout.idWidth, cID,
+				layout.nameWidth, cName,
+				layout.imageWidth, cImg,
+				layout.statusWidth, statusPadded,
+				layout.cpuWidth, cpuColPlain,
+				layout.memWidth, memColPlain,
+				layout.portsWidth, portsPadded,
+			)
+		}
 		return fmt.Sprintf("%s%s\n", prefix, theme.SelectedRowStyle.Render(plainRow))
 	}
 
@@ -339,8 +411,8 @@ func renderContainerRow(c monitor.ContainerItem, isSelected bool, layout contain
 		theme.BoldStyle.Render(cName),
 		theme.DimStyle.Render(cImg),
 		statusStyle.Render(statusPadded),
-		styleCPU(c.CPUPerc, c.State, cpuPadded),
-		theme.DimStyle.Render(memPadded),
+		cpuStyled,
+		memStyled,
 		portsStyled,
 	)
 	return fmt.Sprintf("%s%s\n", prefix, row)

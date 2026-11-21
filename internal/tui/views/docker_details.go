@@ -175,6 +175,44 @@ func renderContainerDetailsCard(ctx *DockerContext, s *strings.Builder) {
 	}
 	s.WriteString(renderDetailRow("Uptime / Started:", uptimeDisplay))
 
+	// 2a. Resource Gauges (CPU & Memory)
+	gaugeWidth := 20
+	if cardWidth < 95 {
+		gaugeWidth = 14
+	}
+
+	var cpuGaugeDisplay string
+	var memGaugeDisplay string
+	if sel.State == "running" {
+		cpuGauge := components.RenderGauge(sel.CPUPerc, gaugeWidth, true)
+		cpuGaugeDisplay = fmt.Sprintf("%s  %s", cpuGauge, styleCPU(sel.CPUPerc, sel.State, fmt.Sprintf("%5.1f%%", sel.CPUPerc)))
+
+		memGauge := components.RenderGauge(sel.MemPerc, gaugeWidth, true)
+		if sel.MemLimitMB > 0 {
+			memGaugeDisplay = fmt.Sprintf("%s  %s  %s",
+				memGauge,
+				theme.BoldStyle.Render(fmt.Sprintf("%5.1f%%", sel.MemPerc)),
+				theme.DimStyle.Render(fmt.Sprintf("(%s / %s)", components.FormatMB(sel.MemUsageMB), components.FormatMB(sel.MemLimitMB))),
+			)
+		} else if sel.MemPerc > 0 {
+			memGaugeDisplay = fmt.Sprintf("%s  %s  %s",
+				memGauge,
+				theme.BoldStyle.Render(components.FormatMB(sel.MemUsageMB)),
+				theme.DimStyle.Render(fmt.Sprintf("(%.1f%% host)", sel.MemPerc)),
+			)
+		} else {
+			memGaugeDisplay = fmt.Sprintf("%s  %s",
+				memGauge,
+				theme.BoldStyle.Render(components.FormatMB(sel.MemUsageMB)),
+			)
+		}
+	} else {
+		cpuGaugeDisplay = components.RenderGauge(0, gaugeWidth, false) + "  " + theme.DimStyle.Render("- (stopped)")
+		memGaugeDisplay = components.RenderGauge(0, gaugeWidth, false) + "  " + theme.DimStyle.Render("- (stopped)")
+	}
+	s.WriteString(renderDetailRow("CPU Usage:", cpuGaugeDisplay))
+	s.WriteString(renderDetailRow("Memory Usage:", memGaugeDisplay))
+
 	// 3. Restart Policy
 	restartDisplay := sel.RestartPolicy
 	if restartDisplay == "" {

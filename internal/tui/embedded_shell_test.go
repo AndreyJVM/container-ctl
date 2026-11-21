@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -18,23 +17,40 @@ type fakeEmbeddedShell struct {
 	resizeHeight int
 	closeCount   int
 	render       string
+	feedErr      error
+	writeErr     error
+	resizeErr    error
+	readData     []byte
+	readErr      error
+	waitErr      error
 }
 
-func (s *fakeEmbeddedShell) Read() ([]byte, error) { return nil, io.EOF }
+func (s *fakeEmbeddedShell) Read() ([]byte, error) {
+	if s.readErr != nil || len(s.readData) > 0 {
+		return s.readData, s.readErr
+	}
+	return nil, io.EOF
+}
+
 func (s *fakeEmbeddedShell) Write(data []byte) error {
 	s.writes = append(s.writes, append([]byte(nil), data...))
-	return nil
+	return s.writeErr
 }
+
 func (s *fakeEmbeddedShell) Feed(data []byte) error {
 	s.feed = append(s.feed, data...)
-	return nil
+	return s.feedErr
 }
+
 func (s *fakeEmbeddedShell) Render() string { return s.render }
+
 func (s *fakeEmbeddedShell) Resize(width, height int) error {
 	s.resizeWidth, s.resizeHeight = width, height
-	return nil
+	return s.resizeErr
 }
-func (s *fakeEmbeddedShell) Wait() error { return nil }
+
+func (s *fakeEmbeddedShell) Wait() error { return s.waitErr }
+
 func (s *fakeEmbeddedShell) Close() error {
 	s.closeCount++
 	return nil
@@ -51,7 +67,7 @@ func TestEmbeddedShellLifecycleAndFocus(t *testing.T) {
 		return fake, nil
 	}
 
-	m := NewModel(2*time.Second, int(TabDocker), "v0.9.0")
+	m := newFastTestModel()
 	m.width, m.height = 140, 40
 	m.activeModal = ModalExec
 	m.execTargetID = "container-id"
@@ -100,8 +116,10 @@ func TestEmbeddedShellLifecycleAndFocus(t *testing.T) {
 }
 
 func TestEmbeddedShell_UnfocusedDoesNotInterceptKeysInFilterOrModal(t *testing.T) {
+	t.Parallel()
+
 	fake := &fakeEmbeddedShell{}
-	m := NewModel(2*time.Second, int(TabDocker), "v0.9.0")
+	m := newFastTestModel()
 	m.embeddedShell = fake
 	m.shellFocused = false
 	m.isFiltering = true
@@ -139,7 +157,7 @@ func TestEmbeddedShellStartFailureDoesNotLaunchFallback(t *testing.T) {
 	startEmbeddedShell = func(_ *exec.Cmd, _, _ int) (embeddedShellSession, error) {
 		return nil, errors.New("PTY unavailable")
 	}
-	m := NewModel(2*time.Second, int(TabDocker), "v0.9.0")
+	m := newFastTestModel()
 	m.activeModal = ModalExec
 	m.execTargetID = "container-id"
 	m.execTargetName = "api"
@@ -155,6 +173,8 @@ func TestEmbeddedShellStartFailureDoesNotLaunchFallback(t *testing.T) {
 }
 
 func TestShellKeyBytes(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		key  tea.KeyMsg
@@ -163,12 +183,22 @@ func TestShellKeyBytes(t *testing.T) {
 		{name: "runes", key: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("ls")}, want: "ls"},
 		{name: "enter", key: tea.KeyMsg{Type: tea.KeyEnter}, want: "\r"},
 		{name: "ctrl c", key: tea.KeyMsg{Type: tea.KeyCtrlC}, want: "\x03"},
+		{name: "ctrl d", key: tea.KeyMsg{Type: tea.KeyCtrlD}, want: "\x04"},
+		{name: "backspace", key: tea.KeyMsg{Type: tea.KeyBackspace}, want: "\x7f"},
+		{name: "tab", key: tea.KeyMsg{Type: tea.KeyTab}, want: "\t"},
+		{name: "esc", key: tea.KeyMsg{Type: tea.KeyEsc}, want: "\x1b"},
 		{name: "up", key: tea.KeyMsg{Type: tea.KeyUp}, want: "\x1b[A"},
+		{name: "down", key: tea.KeyMsg{Type: tea.KeyDown}, want: "\x1b[B"},
+		{name: "right", key: tea.KeyMsg{Type: tea.KeyRight}, want: "\x1b[C"},
+		{name: "left", key: tea.KeyMsg{Type: tea.KeyLeft}, want: "\x1b[D"},
 		{name: "shift tab", key: tea.KeyMsg{Type: tea.KeyShiftTab}, want: "\x1b[Z"},
+		{name: "alt key", key: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("b"), Alt: true}, want: "\x1bb"},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if got := string(shellKeyBytes(tt.key)); got != tt.want {
 				t.Fatalf("shellKeyBytes(%s) = %q, want %q", tt.key.String(), got, tt.want)
 			}
@@ -177,9 +207,11 @@ func TestShellKeyBytes(t *testing.T) {
 }
 
 func TestEmbeddedShellOutputAndExitMessagesIgnoreStaleSessions(t *testing.T) {
+	t.Parallel()
+
 	active := &fakeEmbeddedShell{}
 	stale := &fakeEmbeddedShell{}
-	m := NewModel(2*time.Second, int(TabDocker), "v0.9.0")
+	m := newFastTestModel()
 	m.embeddedShell = active
 	m.shellContainerName = "api"
 
@@ -208,24 +240,296 @@ func TestEmbeddedShellOutputAndExitMessagesIgnoreStaleSessions(t *testing.T) {
 	}
 }
 
-func TestViewRendersEmbeddedShellAndFocusHelp(t *testing.T) {
-	m := NewModel(2*time.Second, int(TabDocker), "v0.9.0")
-	m.width, m.height = 140, 40
-	m.embeddedShell = &fakeEmbeddedShell{render: "root@api:/app# pwd"}
-	m.shellContainerName = "api"
-	m.shellFocused = true
+func TestEmbeddedShell_WindowSizeMsgAndResize(t *testing.T) {
+	t.Parallel()
 
-	view := m.View()
-	for _, want := range []string{
-		"TERMINAL: api",
-		"root@api:/app# pwd",
-		"Ctrl+]",
-		"Return to Dockpulse",
-		"Ctrl+D",
-		"Exit shell",
-	} {
-		if !strings.Contains(view, want) {
-			t.Fatalf("expected embedded shell view to contain %q, got:\n%s", want, view)
+	t.Run("successful resize propagates dimensions", func(t *testing.T) {
+		t.Parallel()
+		fake := &fakeEmbeddedShell{}
+		m := newFastTestModel()
+		m.embeddedShell = fake
+		m.shellContainerName = "api"
+
+		res, cmd := m.Update(tea.WindowSizeMsg{Width: 160, Height: 50})
+		updated := res.(Model)
+		if cmd != nil {
+			t.Errorf("expected nil cmd on window resize")
 		}
+		expectedW, expectedH := embeddedShellSize(160, 50)
+		if fake.resizeWidth != expectedW || fake.resizeHeight != expectedH {
+			t.Errorf("expected shell resized to (%d, %d), got (%d, %d)",
+				expectedW, expectedH, fake.resizeWidth, fake.resizeHeight)
+		}
+		if updated.width != 160 || updated.height != 50 {
+			t.Errorf("expected model dimensions updated to 160x50, got %dx%d", updated.width, updated.height)
+		}
+	})
+
+	t.Run("resize failure closes shell with toast error", func(t *testing.T) {
+		t.Parallel()
+		fake := &fakeEmbeddedShell{resizeErr: errors.New("PTY resize failed")}
+		m := newFastTestModel()
+		m.embeddedShell = fake
+		m.shellContainerName = "api"
+
+		res, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
+		updated := res.(Model)
+
+		if updated.embeddedShell != nil {
+			t.Errorf("expected embedded shell to be closed on resize error")
+		}
+		if !strings.Contains(updated.actionMessage, "Shell error in api: PTY resize failed") {
+			t.Errorf("expected error toast, got: %q", updated.actionMessage)
+		}
+	})
+}
+
+func TestEmbeddedShell_FeedErrorHandling(t *testing.T) {
+	t.Parallel()
+
+	fake := &fakeEmbeddedShell{feedErr: errors.New("terminal feed failed")}
+	m := newFastTestModel()
+	m.embeddedShell = fake
+	m.shellContainerName = "web"
+
+	res, cmd := m.Update(embeddedShellOutputMsg{session: fake, data: []byte("broken vt sequence")})
+	updated := res.(Model)
+
+	if cmd != nil {
+		t.Errorf("expected nil cmd when feed fails")
 	}
+	if updated.embeddedShell != nil {
+		t.Errorf("expected shell closed after feed error")
+	}
+	if !strings.Contains(updated.actionMessage, "Shell error in web: terminal feed failed") {
+		t.Errorf("expected toast error message, got: %q", updated.actionMessage)
+	}
+}
+
+func TestEmbeddedShell_ReadCmdAndErrorHandling(t *testing.T) {
+	t.Parallel()
+
+	fake := &fakeEmbeddedShell{readData: []byte("output line\n"), readErr: nil}
+	cmd := readEmbeddedShellCmd(fake)
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd from readEmbeddedShellCmd")
+	}
+	msg := cmd()
+	outMsg, ok := msg.(embeddedShellOutputMsg)
+	if !ok {
+		t.Fatalf("expected embeddedShellOutputMsg, got %T", msg)
+	}
+	if string(outMsg.data) != "output line\n" || outMsg.session != fake {
+		t.Errorf("unexpected outMsg: %+v", outMsg)
+	}
+
+	// Output msg with err stops reading loop
+	m := newFastTestModel()
+	m.embeddedShell = fake
+	res, nextCmd := m.Update(embeddedShellOutputMsg{session: fake, data: nil, err: io.EOF})
+	_ = res.(Model)
+	if nextCmd != nil {
+		t.Errorf("expected read loop to stop (cmd == nil) when msg.err is non-nil")
+	}
+}
+
+func TestEmbeddedShell_WaitCmdAndExitCodeVariants(t *testing.T) {
+	t.Parallel()
+
+	fake := &fakeEmbeddedShell{}
+	cmd := waitEmbeddedShellCmd(fake)
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd from waitEmbeddedShellCmd")
+	}
+	msg := cmd()
+	exitMsg, ok := msg.(embeddedShellExitedMsg)
+	if !ok {
+		t.Fatalf("expected embeddedShellExitedMsg, got %T", msg)
+	}
+	if exitMsg.session != fake {
+		t.Errorf("unexpected session in exitMsg")
+	}
+
+	t.Run("exit code 0 (clean exit)", func(t *testing.T) {
+		t.Parallel()
+		m := newFastTestModel()
+		m.embeddedShell = fake
+		m.shellContainerName = "api"
+
+		res, nextCmd := m.Update(embeddedShellExitedMsg{session: fake, err: nil})
+		updated := res.(Model)
+
+		if updated.embeddedShell != nil {
+			t.Errorf("expected shell closed")
+		}
+		if !strings.Contains(updated.actionMessage, "Shell session in api ended") {
+			t.Errorf("expected clean exit toast, got %q", updated.actionMessage)
+		}
+		if nextCmd == nil {
+			t.Errorf("expected fetchDataCmd to refresh dashboard")
+		}
+	})
+
+	t.Run("exit code 130 (SIGINT / Ctrl+C)", func(t *testing.T) {
+		t.Parallel()
+		exit130 := exec.Command("bash", "-c", "exit 130").Run()
+		if exit130 == nil {
+			t.Skip("unable to produce exit code 130")
+		}
+
+		m := newFastTestModel()
+		m.embeddedShell = fake
+		m.shellContainerName = "api"
+
+		res, _ := m.Update(embeddedShellExitedMsg{session: fake, err: exit130})
+		updated := res.(Model)
+
+		if !strings.Contains(updated.actionMessage, "Shell session in api ended") ||
+			strings.Contains(updated.actionMessage, "code") {
+			t.Errorf("expected clean exit toast without code for 130, got: %q", updated.actionMessage)
+		}
+	})
+
+	t.Run("exit code 1 (general error exit)", func(t *testing.T) {
+		t.Parallel()
+		exit1 := exec.Command("bash", "-c", "exit 1").Run()
+		if exit1 == nil {
+			t.Skip("unable to produce exit code 1")
+		}
+
+		m := newFastTestModel()
+		m.embeddedShell = fake
+		m.shellContainerName = "api"
+
+		res, _ := m.Update(embeddedShellExitedMsg{session: fake, err: exit1})
+		updated := res.(Model)
+
+		if !strings.Contains(updated.actionMessage, "Shell session in api ended (code 1)") {
+			t.Errorf("expected code 1 toast, got: %q", updated.actionMessage)
+		}
+	})
+
+	t.Run("generic non-ExitError error", func(t *testing.T) {
+		t.Parallel()
+		m := newFastTestModel()
+		m.embeddedShell = fake
+		m.shellContainerName = "api"
+
+		res, _ := m.Update(embeddedShellExitedMsg{session: fake, err: errors.New("PTY read error")})
+		updated := res.(Model)
+
+		if !strings.Contains(updated.actionMessage, "Shell error in api: PTY read error") {
+			t.Errorf("expected error toast, got: %q", updated.actionMessage)
+		}
+	})
+}
+
+func TestEmbeddedShell_KeyHandlingEdgeCases(t *testing.T) {
+	t.Parallel()
+
+	t.Run("write error closes shell with toast", func(t *testing.T) {
+		t.Parallel()
+		fake := &fakeEmbeddedShell{writeErr: errors.New("PTY write broken")}
+		m := newFastTestModel()
+		m.embeddedShell = fake
+		m.shellFocused = true
+		m.shellContainerName = "web"
+
+		res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("a")})
+		updated := res.(Model)
+
+		if updated.embeddedShell != nil {
+			t.Errorf("expected shell closed after write error")
+		}
+		if !strings.Contains(updated.actionMessage, "Shell error in web: PTY write broken") {
+			t.Errorf("expected write error toast, got %q", updated.actionMessage)
+		}
+	})
+
+	t.Run("unhandled key does not write to shell", func(t *testing.T) {
+		t.Parallel()
+		fake := &fakeEmbeddedShell{}
+		m := newFastTestModel()
+		m.embeddedShell = fake
+		m.shellFocused = true
+
+		// KeyF12 is unmapped in shellKeyBytes
+		res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyF12})
+		_ = res.(Model)
+		if cmd != nil {
+			t.Errorf("expected nil cmd for unhandled key")
+		}
+		if len(fake.writes) != 0 {
+			t.Errorf("expected no writes for unhandled key, got: %v", fake.writes)
+		}
+	})
+
+	t.Run("capital 'E' focuses shell when unfocused", func(t *testing.T) {
+		t.Parallel()
+		fake := &fakeEmbeddedShell{}
+		m := newFastTestModel()
+		m.embeddedShell = fake
+		m.shellFocused = false
+
+		res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("E")})
+		updated := res.(Model)
+		if !updated.shellFocused {
+			t.Errorf("expected shell focused after pressing 'E'")
+		}
+	})
+}
+
+func TestViewRendersEmbeddedShellAndFocusHelp(t *testing.T) {
+	t.Parallel()
+
+	t.Run("wide layout with focused shell", func(t *testing.T) {
+		t.Parallel()
+		m := newFastTestModel()
+		m.width, m.height = 140, 40
+		m.embeddedShell = &fakeEmbeddedShell{render: "root@api:/app# pwd"}
+		m.shellContainerName = "api"
+		m.shellFocused = true
+
+		view := m.View()
+		for _, want := range []string{
+			"TERMINAL: api",
+			"root@api:/app# pwd",
+			"Ctrl+]",
+			"Return to Dockpulse",
+			"Ctrl+D",
+			"Exit shell",
+		} {
+			if !strings.Contains(view, want) {
+				t.Fatalf("expected embedded shell view to contain %q, got:\n%s", want, view)
+			}
+		}
+	})
+
+	t.Run("narrow layout renders terminal panel", func(t *testing.T) {
+		t.Parallel()
+		m := newFastTestModel()
+		m.width, m.height = 90, 30
+		m.embeddedShell = &fakeEmbeddedShell{render: "compact terminal"}
+		m.shellContainerName = "db"
+		m.shellFocused = true
+
+		view := m.View()
+		if !strings.Contains(view, "compact terminal") {
+			t.Errorf("expected compact terminal output in narrow view")
+		}
+	})
+
+	t.Run("unfocused shell renders focus hint in footer", func(t *testing.T) {
+		t.Parallel()
+		m := newFastTestModel()
+		m.width, m.height = 120, 35
+		m.embeddedShell = &fakeEmbeddedShell{render: "idle shell"}
+		m.shellContainerName = "web"
+		m.shellFocused = false
+
+		view := m.View()
+		if !strings.Contains(view, "Focus terminal") {
+			t.Errorf("expected 'Focus terminal' hint in footer when unfocused")
+		}
+	})
 }

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -10,8 +11,8 @@ import (
 )
 
 func TestNewModel(t *testing.T) {
-	// Defaults when invalid arguments are passed
-	m := NewModel(0, 99, "v1.0.0")
+	// Defaults when invalid arguments are passed, along with showSwarm variadic flag
+	m := NewModel(0, 99, "v1.0.0", true)
 	if m.activeTab != TabDocker {
 		t.Errorf("expected activeTab to default to Docker, got %d", m.activeTab)
 	}
@@ -20,6 +21,9 @@ func TestNewModel(t *testing.T) {
 	}
 	if m.version != "v1.0.0" {
 		t.Errorf("expected version 'v1.0.0', got %q", m.version)
+	}
+	if !m.showSwarm {
+		t.Errorf("expected showSwarm=true via variadic flag")
 	}
 
 	// Init command
@@ -30,7 +34,9 @@ func TestNewModel(t *testing.T) {
 }
 
 func TestDockerIsFirstTabAndStatusRemainsVisibleAcrossTabs(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v1.0.0")
+	t.Parallel()
+
+	m := newFastTestModel()
 	m.width = 120
 	m.dockerInfo = monitor.DockerSummary{
 		Status:            "running",
@@ -59,7 +65,9 @@ func TestDockerIsFirstTabAndStatusRemainsVisibleAcrossTabs(t *testing.T) {
 }
 
 func TestViewIncludesNetworksAndVolumesTabs(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v1.0.0")
+	t.Parallel()
+
+	m := newFastTestModel()
 	m.width = 120
 	view := m.View()
 
@@ -81,7 +89,9 @@ func TestViewIncludesNetworksAndVolumesTabs(t *testing.T) {
 }
 
 func TestModelNavigationAndUpdates(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.4.1")
+	t.Parallel()
+
+	m := newFastTestModel()
 	m.SetShowSwarm(true)
 
 	// Resize
@@ -145,7 +155,11 @@ func TestModelNavigationAndUpdates(t *testing.T) {
 }
 
 func TestRenderAllTabs(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.4.1")
+	t.Parallel()
+
+	m := newFastTestModel()
+	m.width = 120
+	m.height = 40
 
 	// Render Tab 1: Docker
 	m.activeTab = TabDocker
@@ -198,7 +212,9 @@ func TestRenderAllTabs(t *testing.T) {
 }
 
 func TestNavigationMethods(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.7.4")
+	t.Parallel()
+
+	m := newFastTestModel()
 
 	// Inactive Swarm tab wrapping: 1 -> 5
 	m.prevTab()
@@ -324,21 +340,24 @@ func TestNavigationMethods(t *testing.T) {
 }
 
 func TestModalLifecycle(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.7.4")
-	if m.activeModal != ModalNone {
-		t.Errorf("expected initial activeModal to be ModalNone, got %v", m.activeModal)
+	t.Parallel()
+
+	m := newFastTestModel()
+	if m.ActiveModal() != ModalNone {
+		t.Errorf("expected initial ActiveModal to be ModalNone, got %v", m.ActiveModal())
 	}
 
-	m.openModal(ModalExec)
+	// Test ModalExec
+	m.OpenModal(ModalExec)
 	m.execIsCustomInput = true
 	m.execCustomCmd = "top"
-	if m.activeModal != ModalExec {
-		t.Errorf("expected ModalExec, got %v", m.activeModal)
+	if m.ActiveModal() != ModalExec {
+		t.Errorf("expected ModalExec, got %v", m.ActiveModal())
 	}
 
-	m.closeModal()
-	if m.activeModal != ModalNone {
-		t.Errorf("expected ModalNone after closeModal, got %v", m.activeModal)
+	m.CloseModal()
+	if m.ActiveModal() != ModalNone {
+		t.Errorf("expected ModalNone after CloseModal, got %v", m.ActiveModal())
 	}
 	if m.execIsCustomInput {
 		t.Errorf("expected execIsCustomInput to be reset to false")
@@ -346,9 +365,70 @@ func TestModalLifecycle(t *testing.T) {
 	if m.execCustomCmd != "" {
 		t.Errorf("expected execCustomCmd to be reset to empty")
 	}
+
+	// Test ModalLogs resets log filtering
+	m.logsFiltering = true
+	m.logsFilterQuery = "error"
+	m.openModal(ModalLogs)
+	if m.logsFiltering || m.logsFilterQuery != "" {
+		t.Errorf("expected logs filtering state reset on openModal(ModalLogs)")
+	}
+
+	// Test ModalInspect resets inspect scroll
+	m.inspectScroll = 15
+	m.openModal(ModalInspect)
+	if m.inspectScroll != 0 {
+		t.Errorf("expected inspectScroll reset to 0 on openModal(ModalInspect)")
+	}
+}
+
+func TestExportedHelpers(t *testing.T) {
+	t.Parallel()
+
+	m := newFastTestModel()
+
+	// Tab helpers
+	m.SetTab(TabNetworks)
+	if m.ActiveTab() != TabNetworks {
+		t.Errorf("expected ActiveTab=TabNetworks, got %d", m.ActiveTab())
+	}
+
+	// Cursor helper
+	m.SetCursorForTesting(4)
+	if m.cursorIdx != 4 || m.imageCursorIdx != 4 || m.composeCursorIdx != 4 ||
+		m.networkCursorIdx != 4 || m.volumeCursorIdx != 4 || m.swarmCursorIdx != 4 {
+		t.Errorf("SetCursorForTesting failed to set all tab cursor indices")
+	}
+
+	// Logs helper
+	m.SetLogsForTesting("web-app", "c123", []string{"line 1", "line 2"})
+	if m.logsTargetName != "web-app" || m.logsTargetID != "c123" || len(m.logsLines) != 2 {
+		t.Errorf("SetLogsForTesting failed")
+	}
+
+	// Inspect helper
+	m.SetInspectForTesting(monitor.ContainerDetail{ID: "c123", Name: "web-app"})
+	if m.inspectTarget.ID != "c123" || m.inspectTarget.Name != "web-app" {
+		t.Errorf("SetInspectForTesting failed")
+	}
+}
+
+func TestFormatFetchError(t *testing.T) {
+	t.Parallel()
+
+	if errStr := formatFetchError(nil); errStr != "" {
+		t.Errorf("expected empty string for nil error, got %q", errStr)
+	}
+
+	expected := "connection refused"
+	if errStr := formatFetchError(errors.New(expected)); errStr != expected {
+		t.Errorf("expected %q, got %q", expected, errStr)
+	}
 }
 
 func TestContainerStatusScore(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		state  string
 		health string
@@ -382,7 +462,9 @@ func TestContainerStatusScore(t *testing.T) {
 }
 
 func TestDynamicSwarmTabLifecycle(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v1.0.0")
+	t.Parallel()
+
+	m := newFastTestModel()
 	m.swarm.IsActive = false
 	m.showSwarm = false
 

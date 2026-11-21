@@ -7,92 +7,231 @@ import (
 )
 
 func TestFormatDockerStatus(t *testing.T) {
-	m := Model{}
+	t.Parallel()
 
-	// Direct status matches
-	if res := m.formatDockerStatus(monitor.DockerStatusRunning); res != "Running" {
-		t.Errorf("expected Running, got %s", res)
-	}
-	if res := m.formatDockerStatus(monitor.DockerStatusStopped); res != "Stopped" {
-		t.Errorf("expected Stopped, got %s", res)
-	}
-	if res := m.formatDockerStatus(monitor.DockerStatusNotInstalled); res != "Not Installed" {
-		t.Errorf("expected Not Installed, got %s", res)
+	tests := []struct {
+		name          string
+		status        string
+		statusDisplay string
+		expected      string
+	}{
+		// Direct status matches
+		{
+			name:     "monitor.DockerStatusRunning constant",
+			status:   monitor.DockerStatusRunning,
+			expected: "Running",
+		},
+		{
+			name:     "monitor.DockerStatusStopped constant",
+			status:   monitor.DockerStatusStopped,
+			expected: "Stopped",
+		},
+		{
+			name:     "monitor.DockerStatusNotInstalled constant",
+			status:   monitor.DockerStatusNotInstalled,
+			expected: "Not Installed",
+		},
+
+		// StatusDisplay matches when status is unmapped
+		{
+			name:          "StatusDisplay constant running",
+			status:        "other",
+			statusDisplay: monitor.DockerStatusDisplayRunning,
+			expected:      "Running",
+		},
+		{
+			name:          "StatusDisplay lowercase running",
+			status:        "other",
+			statusDisplay: "running",
+			expected:      "Running",
+		},
+		{
+			name:          "StatusDisplay constant stopped",
+			status:        "other",
+			statusDisplay: monitor.DockerStatusDisplayStopped,
+			expected:      "Stopped",
+		},
+		{
+			name:          "StatusDisplay lowercase stopped",
+			status:        "other",
+			statusDisplay: "stopped",
+			expected:      "Stopped",
+		},
+		{
+			name:          "StatusDisplay constant not installed",
+			status:        "other",
+			statusDisplay: monitor.DockerStatusDisplayNotInstalled,
+			expected:      "Not Installed",
+		},
+		{
+			name:          "StatusDisplay lowercase not_installed",
+			status:        "other",
+			statusDisplay: "not_installed",
+			expected:      "Not Installed",
+		},
+		{
+			name:          "StatusDisplay custom string",
+			status:        "other",
+			statusDisplay: "Degraded",
+			expected:      "Degraded",
+		},
+
+		// Empty status & empty display defaults to Stopped
+		{
+			name:          "empty status and empty display",
+			status:        "",
+			statusDisplay: "",
+			expected:      "Stopped",
+		},
+
+		// Empty status with valid display
+		{
+			name:          "empty status with display running",
+			status:        "",
+			statusDisplay: "running",
+			expected:      "Running",
+		},
+
+		// Raw status fallback when unmapped and display is empty
+		{
+			name:          "raw status fallback",
+			status:        "starting",
+			statusDisplay: "",
+			expected:      "starting",
+		},
 	}
 
-	// StatusDisplay matches when status is other
-	m.dockerInfo.StatusDisplay = monitor.DockerStatusDisplayRunning
-	if res := m.formatDockerStatus("other"); res != "Running" {
-		t.Errorf("expected Running from display, got %s", res)
-	}
-	m.dockerInfo.StatusDisplay = monitor.DockerStatusDisplayStopped
-	if res := m.formatDockerStatus("other"); res != "Stopped" {
-		t.Errorf("expected Stopped from display, got %s", res)
-	}
-	m.dockerInfo.StatusDisplay = monitor.DockerStatusDisplayNotInstalled
-	if res := m.formatDockerStatus("other"); res != "Not Installed" {
-		t.Errorf("expected Not Installed from display, got %s", res)
-	}
-
-	// Custom display
-	m.dockerInfo.StatusDisplay = "Degraded"
-	if res := m.formatDockerStatus("other"); res != "Degraded" {
-		t.Errorf("expected Degraded, got %s", res)
-	}
-
-	// Empty status & empty display -> Stopped
-	m.dockerInfo.StatusDisplay = ""
-	if res := m.formatDockerStatus(""); res != "Stopped" {
-		t.Errorf("expected Stopped for empty status, got %s", res)
-	}
-
-	// Fallback to raw status
-	if res := m.formatDockerStatus("starting"); res != "starting" {
-		t.Errorf("expected starting, got %s", res)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			m := Model{
+				dockerInfo: monitor.DockerSummary{
+					StatusDisplay: tt.statusDisplay,
+				},
+			}
+			if res := m.formatDockerStatus(tt.status); res != tt.expected {
+				t.Errorf("status=%q display=%q: expected %q, got %q", tt.status, tt.statusDisplay, tt.expected, res)
+			}
+		})
 	}
 }
 
 func TestFormatComposeStatus(t *testing.T) {
-	m := Model{}
+	t.Parallel()
 
-	// Direct statuses
-	if res := m.formatComposeStatus(monitor.StatusRunning, ""); res != "Running" {
-		t.Errorf("expected Running, got %s", res)
-	}
-	if res := m.formatComposeStatus(monitor.StatusPartial, ""); res != "Partial" {
-		t.Errorf("expected Partial, got %s", res)
-	}
-	if res := m.formatComposeStatus(monitor.StatusStopped, ""); res != "Stopped" {
-		t.Errorf("expected Stopped, got %s", res)
+	tests := []struct {
+		name          string
+		status        string
+		statusDisplay string
+		expected      string
+	}{
+		// Direct statuses
+		{
+			name:     "monitor.StatusRunning constant",
+			status:   monitor.StatusRunning,
+			expected: "Running",
+		},
+		{
+			name:     "monitor.StatusPartial constant",
+			status:   monitor.StatusPartial,
+			expected: "Partial",
+		},
+		{
+			name:     "monitor.StatusStopped constant",
+			status:   monitor.StatusStopped,
+			expected: "Stopped",
+		},
+
+		// StatusDisplay fallbacks
+		{
+			name:          "StatusDisplay constant running",
+			status:        "unknown",
+			statusDisplay: monitor.StatusDisplayRunning,
+			expected:      "Running",
+		},
+		{
+			name:          "StatusDisplay lowercase running",
+			status:        "unknown",
+			statusDisplay: "running",
+			expected:      "Running",
+		},
+		{
+			name:          "StatusDisplay constant partial",
+			status:        "unknown",
+			statusDisplay: monitor.StatusDisplayPartial,
+			expected:      "Partial",
+		},
+		{
+			name:          "StatusDisplay lowercase partial",
+			status:        "unknown",
+			statusDisplay: "partial",
+			expected:      "Partial",
+		},
+		{
+			name:          "StatusDisplay constant stopped",
+			status:        "unknown",
+			statusDisplay: monitor.StatusDisplayStopped,
+			expected:      "Stopped",
+		},
+		{
+			name:          "StatusDisplay lowercase stopped",
+			status:        "unknown",
+			statusDisplay: "stopped",
+			expected:      "Stopped",
+		},
+		{
+			name:          "custom display string",
+			status:        "unknown",
+			statusDisplay: "CustomStatus",
+			expected:      "CustomStatus",
+		},
+		{
+			name:          "empty status and empty display",
+			status:        "",
+			statusDisplay: "",
+			expected:      "Stopped",
+		},
+		{
+			name:          "raw status fallback",
+			status:        "raw-status",
+			statusDisplay: "",
+			expected:      "raw-status",
+		},
 	}
 
-	// StatusDisplay fallbacks
-	if res := m.formatComposeStatus("unknown", monitor.StatusDisplayRunning); res != "Running" {
-		t.Errorf("expected Running, got %s", res)
-	}
-	if res := m.formatComposeStatus("unknown", monitor.StatusDisplayPartial); res != "Partial" {
-		t.Errorf("expected Partial, got %s", res)
-	}
-	if res := m.formatComposeStatus("unknown", monitor.StatusDisplayStopped); res != "Stopped" {
-		t.Errorf("expected Stopped, got %s", res)
-	}
-	if res := m.formatComposeStatus("unknown", "CustomStatus"); res != "CustomStatus" {
-		t.Errorf("expected CustomStatus, got %s", res)
-	}
-	if res := m.formatComposeStatus("", ""); res != "Stopped" {
-		t.Errorf("expected Stopped, got %s", res)
-	}
-	if res := m.formatComposeStatus("raw-status", ""); res != "raw-status" {
-		t.Errorf("expected raw-status, got %s", res)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			m := Model{}
+			if res := m.formatComposeStatus(tt.status, tt.statusDisplay); res != tt.expected {
+				t.Errorf("status=%q display=%q: expected %q, got %q", tt.status, tt.statusDisplay, tt.expected, res)
+			}
+		})
 	}
 }
 
 func TestFormatSwarmStatus(t *testing.T) {
-	m := Model{}
-	if res := m.formatSwarmStatus(true); res != "Active" {
-		t.Errorf("expected Active, got %s", res)
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		isActive bool
+		expected string
+	}{
+		{name: "active cluster", isActive: true, expected: "Active"},
+		{name: "inactive cluster", isActive: false, expected: "Inactive"},
 	}
-	if res := m.formatSwarmStatus(false); res != "Inactive" {
-		t.Errorf("expected Inactive, got %s", res)
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			m := Model{}
+			if res := m.formatSwarmStatus(tt.isActive); res != tt.expected {
+				t.Errorf("isActive=%v: expected %q, got %q", tt.isActive, tt.expected, res)
+			}
+		})
 	}
 }

@@ -166,6 +166,15 @@ func RenderImages(ctx ImagesContext) string {
 		s.WriteString(renderDetailRow("Full ID:", valueOrDash(img.FullID)))
 		s.WriteString(renderDetailRow("Digest:", valueOrDash(img.Digest)))
 
+		sizeDisplay := monitor.FormatBytes(img.Size)
+		totalSize := inUseSize + unusedSize
+		if totalSize > 0 && img.Size > 0 {
+			sharePerc := float64(img.Size) / float64(totalSize) * 100.0
+			gauge := components.RenderGauge(sharePerc, 14, true)
+			sizeDisplay = fmt.Sprintf("%s  %s  %s", gauge, theme.BoldStyle.Render(monitor.FormatBytes(img.Size)), theme.DimStyle.Render(fmt.Sprintf("(%.1f%% of local images)", sharePerc)))
+		}
+		s.WriteString(renderDetailRow("Image Size:", sizeDisplay))
+
 		tagsStr := "<none>"
 		if len(img.AllTags) > 0 {
 			tagsStr = strings.Join(img.AllTags, ", ")

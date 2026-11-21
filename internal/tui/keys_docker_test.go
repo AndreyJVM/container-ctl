@@ -5,15 +5,22 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	"github.com/AndreyJVM/container-ctl/internal/testutil"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+func newFastDockerTestModel() Model {
+	m := newFastTestModel()
+	m.activeTab = TabDocker
+	return m
+}
+
 func TestContainerCursorAndModals(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.4.1")
+	t.Parallel()
+
+	m := newFastDockerTestModel()
 
 	// Populate dummy containers using fixture builder
 	m.dockerInfo.Containers = []monitor.ContainerItem{
@@ -45,6 +52,13 @@ func TestContainerCursorAndModals(t *testing.T) {
 		t.Errorf("expected cursorIdx=0 after up, got %d", m.cursorIdx)
 	}
 
+	// Down wrap around
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	m = res.(Model)
+	if m.cursorIdx != 1 {
+		t.Errorf("expected cursorIdx=1 after up wrap, got %d", m.cursorIdx)
+	}
+
 	// Open inspect modal
 	m.inspectTarget = monitor.ContainerDetail{
 		ID:         "c1",
@@ -54,7 +68,7 @@ func TestContainerCursorAndModals(t *testing.T) {
 		CPUPerc:    5.2,
 		MemUsageMB: 45.0,
 	}
-	m.activeModal = "inspect"
+	m.activeModal = ModalInspect
 
 	view := m.View()
 	if !strings.Contains(view, "CONTAINER INSPECTION") {
@@ -69,7 +83,7 @@ func TestContainerCursorAndModals(t *testing.T) {
 	}
 
 	// Open logs modal and test scrolling
-	m.activeModal = "logs"
+	m.activeModal = ModalLogs
 	m.logsLines = []string{
 		"line 1", "line 2", "line 3", "line 4", "line 5",
 		"line 6", "line 7", "line 8", "line 9", "line 10",
@@ -96,6 +110,13 @@ func TestContainerCursorAndModals(t *testing.T) {
 		t.Errorf("expected logsScroll to increase on PgDown")
 	}
 
+	// Page up
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgUp})
+	m = res.(Model)
+	if m.logsScroll != 0 {
+		t.Errorf("expected logsScroll to return to 0 on PgUp, got %d", m.logsScroll)
+	}
+
 	// Close logs modal
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	m = res.(Model)
@@ -105,8 +126,9 @@ func TestContainerCursorAndModals(t *testing.T) {
 }
 
 func TestRenderDockerTabFilteringView(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.4.1")
-	m.activeTab = 1
+	t.Parallel()
+
+	m := newFastDockerTestModel()
 	m.dockerInfo.Containers = []monitor.ContainerItem{
 		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("alpha"), testutil.WithImage("alpine")),
 	}
@@ -135,8 +157,9 @@ func TestRenderDockerTabFilteringView(t *testing.T) {
 }
 
 func TestDockerTabHealthBadges(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.4.1")
-	m.activeTab = 1
+	t.Parallel()
+
+	m := newFastDockerTestModel()
 	m.dockerInfo.Containers = []monitor.ContainerItem{
 		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("healthy-app"), testutil.WithImage("nginx"), testutil.WithState("running", "Up"), testutil.WithHealth("healthy")),
 		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("broken-app"), testutil.WithImage("postgres"), testutil.WithState("running", "Up"), testutil.WithHealth("unhealthy")),
@@ -160,8 +183,9 @@ func TestDockerTabHealthBadges(t *testing.T) {
 }
 
 func TestDockerTabSelectedContainerDetails(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.6.2")
-	m.activeTab = 1
+	t.Parallel()
+
+	m := newFastDockerTestModel()
 	m.dockerInfo.Containers = []monitor.ContainerItem{
 		testutil.AContainer(
 			testutil.WithID("abcdef123456"),
@@ -218,7 +242,7 @@ func TestContainerExecHotkeysAndMessages(t *testing.T) {
 
 	// Test when Docker CLI is not available
 	restoreUnavailable := monitor.SetDockerCLIAvailableCheckerForTesting(func() bool { return false })
-	mUnavailable := NewModel(2*time.Second, 1, "v0.5.0")
+	mUnavailable := newFastDockerTestModel()
 	mUnavailable.dockerInfo = monitor.DockerSummary{
 		Status:        "running",
 		StatusDisplay: "Running",
@@ -238,7 +262,7 @@ func TestContainerExecHotkeysAndMessages(t *testing.T) {
 	restoreAvailable := monitor.SetDockerCLIAvailableCheckerForTesting(func() bool { return true })
 	defer restoreAvailable()
 
-	m := NewModel(2*time.Second, 1, "v0.5.0")
+	m := newFastDockerTestModel()
 	m.dockerInfo = monitor.DockerSummary{
 		Status:        "running",
 		StatusDisplay: "Running",
@@ -252,7 +276,7 @@ func TestContainerExecHotkeysAndMessages(t *testing.T) {
 	// 1. Press 'e' on running container opens exec modal
 	res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("e")})
 	m = res.(Model)
-	if m.activeModal != "exec" {
+	if m.activeModal != ModalExec {
 		t.Fatalf("expected activeModal 'exec', got %q", m.activeModal)
 	}
 	if m.execTargetID != "c1" {
@@ -299,7 +323,7 @@ func TestContainerExecHotkeysAndMessages(t *testing.T) {
 	m.activeModal = ""
 	view := m.View()
 	if !strings.Contains(view, "[E]") || !strings.Contains(view, "Shell") {
-		t.Errorf("expected '[E] Shell' in tab 2 footer view, got: %s", view)
+		t.Errorf("expected '[E] Shell' in tab footer view, got: %s", view)
 	}
 
 	m.showHelp = true
@@ -310,8 +334,9 @@ func TestContainerExecHotkeysAndMessages(t *testing.T) {
 }
 
 func TestContainerSorting(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.6.3")
-	m.activeTab = 1
+	t.Parallel()
+
+	m := newFastDockerTestModel()
 	m.dockerInfo.Containers = []monitor.ContainerItem{
 		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("zeta-app"), testutil.WithState("running", "Up"), testutil.WithMetrics(10.0, 200.0, 1024.0), testutil.WithHealth("healthy")),
 		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("alpha-app"), testutil.WithState("running", "Up"), testutil.WithMetrics(50.0, 50.0, 1024.0), testutil.WithHealth("unhealthy")),
@@ -388,9 +413,67 @@ func TestContainerSorting(t *testing.T) {
 	}
 }
 
+func TestContainerStartStopAndRestartHotkeys(t *testing.T) {
+	t.Parallel()
+
+	m := newFastDockerTestModel()
+	m.dockerInfo.Containers = []monitor.ContainerItem{
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("api-srv"), testutil.WithState("running", "Up")),
+		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("db-srv"), testutil.WithState("exited", "Exited")),
+	}
+
+	// 1. 's' on running container -> stops
+	m.cursorIdx = 0
+	res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("s")})
+	mStop := res.(Model)
+	if cmd == nil {
+		t.Errorf("expected non-nil cmd on 's' for running container")
+	}
+	if !strings.Contains(mStop.actionMessage, "Stopping container api-srv") {
+		t.Errorf("expected stopping toast, got: %q", mStop.actionMessage)
+	}
+
+	// 2. 's' on stopped container -> starts
+	m.cursorIdx = 1
+	res, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("s")})
+	mStart := res.(Model)
+	if cmd == nil {
+		t.Errorf("expected non-nil cmd on 's' for stopped container")
+	}
+	if !strings.Contains(mStart.actionMessage, "Starting container db-srv") {
+		t.Errorf("expected starting toast, got: %q", mStart.actionMessage)
+	}
+
+	// 3. 'p' on container -> restarts
+	m.cursorIdx = 0
+	res, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("p")})
+	mRestart := res.(Model)
+	if cmd == nil {
+		t.Errorf("expected non-nil cmd on 'p'")
+	}
+	if !strings.Contains(mRestart.actionMessage, "Restarting api-srv") {
+		t.Errorf("expected restarting toast, got: %q", mRestart.actionMessage)
+	}
+
+	// 4. 'i' and 'l' hotkeys invoke inspect and logs without panic
+	m.cursorIdx = 0
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("i")})
+	mInspect := res.(Model)
+	if mInspect.activeModal != ModalInspect && !strings.Contains(mInspect.actionMessage, "Inspect error") {
+		t.Errorf("expected inspect modal or toast error, got: %q", mInspect.actionMessage)
+	}
+
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("l")})
+	mLogs := res.(Model)
+	if mLogs.activeModal != ModalLogs && !strings.Contains(mLogs.actionMessage, "Logs error") {
+		t.Errorf("expected logs modal or toast error, got: %q", mLogs.actionMessage)
+	}
+}
+
 func TestContainerKillAndRemoveWorkflow(t *testing.T) {
-	m := NewModel(2*time.Second, 1, "v0.6.3")
-	m.activeTab = 1
+	t.Parallel()
+
+	m := newFastDockerTestModel()
 	m.dockerInfo.Containers = []monitor.ContainerItem{
 		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("app-run"), testutil.WithState("running", "Up")),
 		testutil.AContainer(testutil.WithID("c2"), testutil.WithName("app-stop"), testutil.WithState("stopped", "Exited")),
@@ -422,7 +505,7 @@ func TestContainerKillAndRemoveWorkflow(t *testing.T) {
 	m.cursorIdx = 1
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}})
 	m = res.(Model)
-	if m.activeModal != "remove_container" {
+	if m.activeModal != ModalRemoveContainer {
 		t.Fatalf("expected activeModal 'remove_container', got: %s", m.activeModal)
 	}
 	if m.removeContainerTargetID != "c2" || m.removeContainerTargetName != "app-stop" {
@@ -442,10 +525,28 @@ func TestContainerKillAndRemoveWorkflow(t *testing.T) {
 		t.Errorf("expected activeModal closed after 'n', got: %s", m.activeModal)
 	}
 
-	// 6. Press d on container opens remove modal and confirm with y
+	// 6. Cancel removal with esc
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}})
+	m = res.(Model)
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.activeModal != "" {
+		t.Errorf("expected activeModal closed after 'esc', got: %s", m.activeModal)
+	}
+
+	// 7. Cancel removal with q
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}})
+	m = res.(Model)
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	m = res.(Model)
+	if m.activeModal != "" {
+		t.Errorf("expected activeModal closed after 'q', got: %s", m.activeModal)
+	}
+
+	// 8. Press d on container opens remove modal and confirm with y
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
 	m = res.(Model)
-	if m.activeModal != "remove_container" {
+	if m.activeModal != ModalRemoveContainer {
 		t.Fatalf("expected activeModal 'remove_container' after 'd', got: %s", m.activeModal)
 	}
 
@@ -465,9 +566,8 @@ func TestContainerKillAndRemoveWorkflow(t *testing.T) {
 func TestContainerCopyAndOpenURL(t *testing.T) {
 	origOpener := browserOpener
 	defer func() { browserOpener = origOpener }()
-	browserOpener = func(url string) bool { return true }
 
-	m := NewModel(2*time.Second, 1, "v0.16.0")
+	m := newFastDockerTestModel()
 	m.dockerInfo.Status = "running"
 	m.dockerInfo.Containers = []monitor.ContainerItem{
 		testutil.AContainer(
@@ -489,18 +589,50 @@ func TestContainerCopyAndOpenURL(t *testing.T) {
 		t.Errorf("expected copy toast, got: %s", m.actionMessage)
 	}
 
-	// 2. Press 'w' on container with ports -> tries to open URL & copies it
+	// 2. Press 'w' when browser opener succeeds
+	browserOpener = func(url string) bool { return true }
+	m.cursorIdx = 0
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
 	m = res.(Model)
-	if !strings.Contains(m.actionMessage, "http://localhost:3000") {
-		t.Errorf("expected URL toast, got: %s", m.actionMessage)
+	if !strings.Contains(m.actionMessage, "Opened http://localhost:3000 (copied to clipboard)") {
+		t.Errorf("expected opened toast, got: %s", m.actionMessage)
 	}
 
-	// 3. Move cursor down to container without ports and press 'w'
+	// 3. Press 'w' when browser opener fails (fallback to copied URL)
+	browserOpener = func(url string) bool { return false }
+	m.cursorIdx = 0
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
+	m = res.(Model)
+	if !strings.Contains(m.actionMessage, "Copied URL: http://localhost:3000") {
+		t.Errorf("expected copied URL toast when browser open fails, got: %s", m.actionMessage)
+	}
+
+	// 4. Move cursor down to container without ports and press 'w'
 	m.cursorIdx = 1
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
 	m = res.(Model)
 	if !strings.Contains(m.actionMessage, "No mapped ports for headless-worker") {
 		t.Errorf("expected no mapped ports toast, got: %s", m.actionMessage)
+	}
+}
+
+func TestDockerActions_EmptyListSafety(t *testing.T) {
+	t.Parallel()
+
+	m := newFastDockerTestModel()
+	m.dockerInfo.Containers = nil
+	m.cursorIdx = 0
+
+	// None of the container action keys should panic when list is empty
+	keys := []string{"s", "S", "p", "P", "K", "e", "E", "x", "X", "d", "D", "y", "Y", "w", "W", "i", "I", "l", "L"}
+	for _, k := range keys {
+		res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
+		updated := res.(Model)
+		if cmd != nil {
+			t.Errorf("expected nil cmd for key %q on empty container list", k)
+		}
+		if updated.activeModal != "" {
+			t.Errorf("expected no modal opened for key %q on empty list", k)
+		}
 	}
 }

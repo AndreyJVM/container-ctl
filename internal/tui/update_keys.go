@@ -7,6 +7,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+var getDockerDiskUsage = monitor.GetDockerDiskUsage
+
 func (m Model) handleFilterInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
 	case tea.KeyEsc:
@@ -217,7 +219,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if (m.activeTab == TabDocker || m.activeTab == TabImages || m.activeTab == TabCompose || m.activeTab == TabNetworks || m.activeTab == TabVolumes) && !m.isFiltering {
 			m.openModal(ModalPrune)
 			m.pruneConfirm = 0
-			usage, err := monitor.GetDockerDiskUsage()
+			usage, err := getDockerDiskUsage()
 			m.pruneUsage = usage
 			if err != nil {
 				m.pruneUsageErr = err.Error()

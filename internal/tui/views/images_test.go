@@ -34,8 +34,8 @@ func TestRenderImagesView(t *testing.T) {
 	}
 
 	// Details card for selected image
-	if !strings.Contains(view, "SELECTED IMAGE DETAILS") || !strings.Contains(view, "sambryx-web:latest, sambryx-web:v1.0") {
-		t.Errorf("expected image details card in images view, got: %s", view)
+	if !strings.Contains(view, "SELECTED IMAGE DETAILS") || !strings.Contains(view, "sambryx-web:latest, sambryx-web:v1.0") || !strings.Contains(view, "Image Size:") {
+		t.Errorf("expected image details card with Image Size in images view, got: %s", view)
 	}
 
 	// In Use and Reclaimable summary in header

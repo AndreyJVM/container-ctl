@@ -213,23 +213,10 @@ func (m *Model) applyFetchedData(d dataFetchedMsg) {
 	}
 }
 
+var fetchDockerData = fetchAllData
+
 func (m *Model) fetchAllData() {
-	dockerInfo := monitor.GetDockerSummary()
-	images, imageErr := monitor.GetDockerImages()
-	networks, networkErr := monitor.GetDockerNetworks()
-	volumes, volumeErr := monitor.GetDockerVolumes()
-	m.applyFetchedData(dataFetchedMsg{
-		dockerInfo: dockerInfo,
-		images:     images,
-		compose:    monitor.GetComposeProjects(dockerInfo.Containers),
-		networks:   networks,
-		volumes:    volumes,
-		swarm:      monitor.GetSwarmSummary(),
-		imageErr:   formatFetchError(imageErr),
-		networkErr: formatFetchError(networkErr),
-		volumeErr:  formatFetchError(volumeErr),
-		timestamp:  time.Now().Format("15:04:05"),
-	})
+	m.applyFetchedData(fetchDockerData())
 }
 
 func (m Model) Init() tea.Cmd {

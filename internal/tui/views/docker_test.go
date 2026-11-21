@@ -236,3 +236,54 @@ func TestComputeContainerTableLayout(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderDockerView_WideWithGauges(t *testing.T) {
+	containers := []monitor.ContainerItem{
+		testutil.AContainer(
+			testutil.WithID("c12345678901"),
+			testutil.WithName("api-service"),
+			testutil.WithImage("golang:alpine"),
+			testutil.WithMetrics(45.5, 300.0, 1024.0),
+			testutil.WithPorts("8080->8080/tcp"),
+		),
+		testutil.AContainer(
+			testutil.WithID("cstopped0001"),
+			testutil.WithName("worker-idle"),
+			testutil.WithImage("alpine:latest"),
+			testutil.WithState("exited", "Exited (0)"),
+		),
+	}
+
+	// 1. Wide view (width 140, layout.showGauges == true)
+	viewWide := RenderDocker(DockerContext{
+		DockerInfo:           monitor.DockerSummary{Status: "running", Containers: containers},
+		Containers:           containers,
+		TotalContainersCount: 2,
+		CursorIdx:            0,
+		Width:                140,
+	})
+
+	testutil.AssertContainsAll(t, viewWide,
+		"api-service",
+		"worker-idle",
+		"45.5%",
+		"300.0M",
+		"CPU Usage:",
+		"Memory Usage:",
+	)
+
+	// 2. Cursor on stopped container
+	viewStoppedSelected := RenderDocker(DockerContext{
+		DockerInfo:           monitor.DockerSummary{Status: "running", Containers: containers},
+		Containers:           containers,
+		TotalContainersCount: 2,
+		CursorIdx:            1,
+		Width:                140,
+	})
+
+	testutil.AssertContainsAll(t, viewStoppedSelected,
+		"- (stopped)",
+		"CPU Usage:",
+		"Memory Usage:",
+	)
+}

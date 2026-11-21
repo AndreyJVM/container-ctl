@@ -214,6 +214,77 @@ func TestContainerDetailsCard_StreamlinedMetricsAndCapping(t *testing.T) {
 	}
 }
 
+func TestRenderContainerDetailsCard_ResourceGauges(t *testing.T) {
+	// 1. Running container with memory limit
+	cWithLimit := testutil.AContainer(
+		testutil.WithID("cgauge01"),
+		testutil.WithName("gauge-demo"),
+		testutil.WithState("running", "Up 10 minutes"),
+		testutil.WithMetrics(35.0, 512.0, 1024.0),
+	)
+
+	viewLimit := RenderDocker(DockerContext{
+		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cWithLimit}},
+		Containers: []monitor.ContainerItem{cWithLimit},
+		CursorIdx:  0,
+		Width:      100,
+	})
+
+	testutil.AssertContainsAll(t, viewLimit,
+		"CPU Usage:",
+		"35.0%",
+		"Memory Usage:",
+		"50.0%",
+		"512.0 MB / 1.00 GB",
+	)
+
+	// 2. Running container without memory limit
+	cNoLimit := testutil.AContainer(
+		testutil.WithID("cgauge02"),
+		testutil.WithName("gauge-nolimit"),
+		testutil.WithState("running", "Up 20 minutes"),
+	)
+	cNoLimit.CPUPerc = 85.0
+	cNoLimit.MemUsageMB = 256.0
+	cNoLimit.MemLimitMB = 0
+	cNoLimit.MemPerc = 12.5
+
+	viewNoLimit := RenderDocker(DockerContext{
+		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cNoLimit}},
+		Containers: []monitor.ContainerItem{cNoLimit},
+		CursorIdx:  0,
+		Width:      100,
+	})
+
+	testutil.AssertContainsAll(t, viewNoLimit,
+		"CPU Usage:",
+		"85.0%",
+		"Memory Usage:",
+		"256.0 MB",
+		"12.5% host",
+	)
+
+	// 3. Stopped container
+	cStopped := testutil.AContainer(
+		testutil.WithID("cgauge03"),
+		testutil.WithName("gauge-stopped"),
+		testutil.WithState("exited", "Exited (0)"),
+	)
+
+	viewStopped := RenderDocker(DockerContext{
+		DockerInfo: monitor.DockerSummary{Status: "running", Containers: []monitor.ContainerItem{cStopped}},
+		Containers: []monitor.ContainerItem{cStopped},
+		CursorIdx:  0,
+		Width:      100,
+	})
+
+	testutil.AssertContainsAll(t, viewStopped,
+		"CPU Usage:",
+		"- (stopped)",
+		"Memory Usage:",
+	)
+}
+
 func FuzzExtractPortURLs(f *testing.F) {
 	// Seed corpus
 	f.Add("0.0.0.0:80->80/tcp")
