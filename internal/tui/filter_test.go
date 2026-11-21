@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -186,3 +187,105 @@ func TestFilterModelDelegation(t *testing.T) {
 		t.Errorf("expected non-zero container status score")
 	}
 }
+
+func TestComposeNetworksVolumesSearchFilter(t *testing.T) {
+	m := Model{
+		version:         "v0.18.1",
+		activeTab:       TabCompose,
+		refreshInterval: 2 * time.Second,
+		compose: []monitor.ComposeProject{
+			{Name: "web-stack", Status: "running", Services: []monitor.ComposeService{{Name: "web-srv", Image: "nginx"}}},
+			{Name: "db-stack", Status: "running", Services: []monitor.ComposeService{{Name: "db-srv", Image: "postgres"}}},
+		},
+		networks: []monitor.DockerNetwork{
+			{ID: "n1", Name: "bridge-net", Driver: "bridge", Subnet: "172.18.0.0/16"},
+			{ID: "n2", Name: "custom-net", Driver: "overlay", Subnet: "10.0.0.0/24"},
+		},
+		volumes: []monitor.DockerVolume{
+			{Name: "db-data", Driver: "local"},
+			{Name: "cache-data", Driver: "local"},
+		},
+	}
+
+	// 1. Open search on TabCompose with "/"
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = res.(Model)
+	if !m.isFiltering {
+		t.Fatalf("expected isFiltering true on Compose tab")
+	}
+
+	// Type "db"
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	m = res.(Model)
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'b'}})
+	m = res.(Model)
+
+	filteredCompose := m.getFilteredCompose()
+	if len(filteredCompose) != 1 || filteredCompose[0].Name != "db-stack" {
+		t.Errorf("expected db-stack matching 'db', got %+v", filteredCompose)
+	}
+
+	// Apply filter with Enter
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = res.(Model)
+	if m.isFiltering {
+		t.Errorf("expected isFiltering false after Enter")
+	}
+
+	// View rendering contains filter badge
+	v := m.View()
+	if !strings.Contains(v, "Filter: db") {
+		t.Errorf("expected filter badge in compose view, got: %s", v)
+	}
+
+	// Reset with Esc
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.filterQuery != "" {
+		t.Errorf("expected filterQuery empty after Esc, got %q", m.filterQuery)
+	}
+	if len(m.getFilteredCompose()) != 2 {
+		t.Errorf("expected all compose projects restored")
+	}
+
+	// 2. Search on TabNetworks
+	m.activeTab = TabNetworks
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = res.(Model)
+	if !m.isFiltering {
+		t.Fatalf("expected isFiltering true on Networks tab")
+	}
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'o', 'v', 'e', 'r', 'l', 'a', 'y'}})
+	m = res.(Model)
+	filteredNets := m.getFilteredNetworks()
+	if len(filteredNets) != 1 || filteredNets[0].Name != "custom-net" {
+		t.Errorf("expected custom-net matching overlay driver, got %+v", filteredNets)
+	}
+
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.filterQuery != "" {
+		t.Errorf("expected filterQuery reset after Esc")
+	}
+
+	// 3. Search on TabVolumes
+	m.activeTab = TabVolumes
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = res.(Model)
+	if !m.isFiltering {
+		t.Fatalf("expected isFiltering true on Volumes tab")
+	}
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c', 'a', 'c', 'h', 'e'}})
+	m = res.(Model)
+	filteredVols := m.getFilteredVolumes()
+	if len(filteredVols) != 1 || filteredVols[0].Name != "cache-data" {
+		t.Errorf("expected cache-data matching 'cache', got %+v", filteredVols)
+	}
+
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+	if m.filterQuery != "" {
+		t.Errorf("expected filterQuery reset after Esc")
+	}
+}
+
