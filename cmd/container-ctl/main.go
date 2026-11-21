@@ -33,6 +33,7 @@ type config struct {
 	showSwarm   bool
 	configFile  string
 	initConfig  bool
+	forceInit   bool
 	printConfig bool
 	appConfig   *configPkg.Config
 }
@@ -65,6 +66,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintf(w, "  -t, --tab <1-6|name>       Initial tab: 1|docker, 2|images, 3|compose, 4|networks, 5|volumes, 6|swarm (default: %d, env: DOCKPULSE_TAB)\n", defaultTab)
 	fmt.Fprintf(w, "      --show-swarm           Always display Swarm tab even if inactive (env: DOCKPULSE_SHOW_SWARM)\n")
 	fmt.Fprintf(w, "      --init-config          Generate a sample config file in ~/.config/container-ctl/config.yaml\n")
+	fmt.Fprintf(w, "  -f, --force                Overwrite existing config file when using --init-config\n")
 	fmt.Fprintf(w, "      --print-config         Print active configuration and exit\n")
 	fmt.Fprintf(w, "  -v, --version              Show version\n")
 	fmt.Fprintf(w, "  -h, --help                 Show this help\n\n")
@@ -101,6 +103,8 @@ func parseFlags(args []string, stdout, stderr io.Writer) (*config, error) {
 	flags.StringVar(&tabFlag, "t", "", "Initial tab (short flag)")
 	flags.BoolVar(&showSwarmFlag, "show-swarm", false, "Always show Swarm tab even if cluster is inactive")
 	flags.BoolVar(&cfg.initConfig, "init-config", false, "Generate a default config file and exit")
+	flags.BoolVar(&cfg.forceInit, "force", false, "Overwrite existing configuration file when using --init-config")
+	flags.BoolVar(&cfg.forceInit, "f", false, "Overwrite existing configuration file (short flag)")
 	flags.BoolVar(&cfg.printConfig, "print-config", false, "Print active configuration and exit")
 	flags.BoolVar(&cfg.showVersion, "version", false, "Show version")
 	flags.BoolVar(&cfg.showVersion, "v", false, "Show version (short flag)")
@@ -191,7 +195,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	}
 
 	if cfg.initConfig {
-		path, initErr := configPkg.InitConfigFile(cfg.configFile, false)
+		path, initErr := configPkg.InitConfigFile(cfg.configFile, cfg.forceInit)
 		if initErr != nil {
 			return initErr
 		}

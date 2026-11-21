@@ -453,6 +453,30 @@ func TestRun_InitConfig(t *testing.T) {
 	if _, err := os.Stat(target); err != nil {
 		t.Errorf("expected config file to exist at %s, got error: %v", target, err)
 	}
+
+	// Repeat without --force should fail
+	stdout.Reset()
+	stderr.Reset()
+	err = run([]string{"--config", target, "--init-config"}, &stdout, &stderr)
+	if err == nil {
+		t.Fatalf("expected error when initializing over existing config without --force, got success")
+	}
+
+	// Repeat with --force should succeed
+	stdout.Reset()
+	stderr.Reset()
+	err = run([]string{"--config", target, "--init-config", "--force"}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("unexpected error initializing with --force: %v", err)
+	}
+
+	// Repeat with -f should succeed
+	stdout.Reset()
+	stderr.Reset()
+	err = run([]string{"-c", target, "--init-config", "-f"}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("unexpected error initializing with -f: %v", err)
+	}
 }
 
 func TestParseFlags_ConfigFileAndOverrides(t *testing.T) {
