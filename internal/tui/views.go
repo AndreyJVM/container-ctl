@@ -23,15 +23,10 @@ func (m Model) View() string {
 	}) + "\n\n")
 
 	// 2. Tabs
-	tabs := []string{
-		"1: Containers",
-		"2: Images",
-		"3: Compose",
-		"4: Networks",
-		"5: Volumes",
-	}
-	if m.IsSwarmVisible() {
-		tabs = append(tabs, "6: Swarm")
+	visible := m.Registry().VisibleModules(m.moduleContext())
+	tabs := make([]string, len(visible))
+	for i, v := range visible {
+		tabs[i] = v.TabLabel
 	}
 	b.WriteString(views.RenderTabs(tabs, int(m.activeTab), m.width) + "\n")
 

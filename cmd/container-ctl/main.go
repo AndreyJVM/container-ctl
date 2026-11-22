@@ -10,6 +10,7 @@ import (
 	"time"
 
 	configPkg "github.com/AndreyJVM/container-ctl/internal/config"
+	"github.com/AndreyJVM/container-ctl/internal/module"
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	"github.com/AndreyJVM/container-ctl/internal/tui"
 	tea "github.com/charmbracelet/bubbletea"
@@ -235,6 +236,11 @@ func run(args []string, stdout, stderr io.Writer) error {
 	model := tui.NewModel(cfg.interval, cfg.initialTab, version, cfg.showSwarm)
 
 	if cfg.appConfig != nil {
+		if len(cfg.appConfig.Modules) > 0 {
+			reg := module.DefaultRegistry()
+			reg.ApplyConfigs(cfg.appConfig.Modules)
+			model.SetRegistry(reg)
+		}
 		if cfg.appConfig.UI.OnlyUnusedImages {
 			model.SetOnlyUnusedImages(true)
 		}

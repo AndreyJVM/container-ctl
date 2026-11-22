@@ -1,5 +1,9 @@
 package tui
 
+import (
+	"github.com/AndreyJVM/container-ctl/internal/module"
+)
+
 // clampCursor ensures all tab cursor indices remain within bounds after updates or filtering.
 func (m *Model) clampCursor() {
 	containers := m.getFilteredContainers()
@@ -58,6 +62,9 @@ func (m *Model) clampCursor() {
 
 // IsSwarmVisible returns true if Swarm tab is explicitly enabled or active on the host.
 func (m *Model) IsSwarmVisible() bool {
+	if m.registry != nil {
+		return m.registry.IsModuleVisible(module.IDSwarm, m.moduleContext())
+	}
 	return m.showSwarm || m.swarm.IsActive
 }
 

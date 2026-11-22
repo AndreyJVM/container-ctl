@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AndreyJVM/container-ctl/internal/module"
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
 )
 
@@ -640,5 +641,32 @@ func TestViewModel_FooterVariations(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestView_ModuleRegistryCustomization(t *testing.T) {
+	t.Parallel()
+	m := newFastTestModel()
+
+	// Customize registry: disable images, rename containers to "Microservices", rename compose to "Stacks"
+	reg := module.DefaultRegistry()
+	disabled := false
+	reg.SetModuleConfig(module.IDImages, module.Config{Enabled: &disabled})
+	reg.SetModuleConfig(module.IDContainers, module.Config{Title: "Microservices", Order: 1})
+	reg.SetModuleConfig(module.IDCompose, module.Config{Title: "Stacks", Order: 2})
+	m.SetRegistry(reg)
+
+	view := m.View()
+
+	// 1: Microservices, 2: Stacks should appear
+	if !strings.Contains(view, "[1: Microservices]") && !strings.Contains(view, "1: Microservices") {
+		t.Errorf("expected '1: Microservices' in View, got:\n%s", view)
+	}
+	if !strings.Contains(view, "2: Stacks") {
+		t.Errorf("expected '2: Stacks' in View, got:\n%s", view)
+	}
+	// Images tab should NOT appear in the tab bar
+	if strings.Contains(view, ": Images") {
+		t.Errorf("expected Images tab to be hidden from tabs bar, got:\n%s", view)
 	}
 }

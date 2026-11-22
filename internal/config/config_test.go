@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/AndreyJVM/container-ctl/internal/module"
 )
 
 func TestDefaultConfig(t *testing.T) {
@@ -538,5 +540,71 @@ initial_tab: 2
 	}
 	if cfg.InitialTab != 2 {
 		t.Errorf("expected initial tab 2, got: %d", cfg.InitialTab)
+	}
+}
+
+func TestLoadConfig_Modules(t *testing.T) {
+	yamlContent := `
+interval: 3s
+modules:
+  containers:
+    enabled: true
+    order: 1
+    title: "Docker"
+  swarm:
+    enabled: true
+  images:
+    enabled: false
+`
+	tmpFile, err := os.CreateTemp("", "modules-config-*.yaml")
+	if err != nil {
+		t.Fatalf("temp file error: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.WriteString(yamlContent)
+	tmpFile.Close()
+
+	cfg, err := LoadConfig(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("unexpected error loading modules config: %v", err)
+	}
+
+	if len(cfg.Modules) != 3 {
+		t.Fatalf("expected 3 configured modules, got %d", len(cfg.Modules))
+	}
+
+	// Verify containers
+	cMod, ok := cfg.Modules["containers"]
+	if !ok || cMod.Enabled == nil || !*cMod.Enabled || cMod.Order != 1 || cMod.Title != "Docker" {
+		t.Errorf("unexpected containers module config: %+v", cMod)
+	}
+
+	// Verify swarm synced with ShowSwarm
+	sMod, ok := cfg.Modules["swarm"]
+	if !ok || sMod.Enabled == nil || !*sMod.Enabled {
+		t.Errorf("unexpected swarm module config: %+v", sMod)
+	}
+	if !cfg.ShowSwarm {
+		t.Errorf("expected cfg.ShowSwarm to be true due to swarm module enabled: true")
+	}
+
+	// Verify images disabled
+	iMod, ok := cfg.Modules["images"]
+	if !ok || iMod.Enabled == nil || *iMod.Enabled {
+		t.Errorf("unexpected images module config: %+v", iMod)
+	}
+
+	if err := Validate(cfg); err != nil {
+		t.Errorf("expected valid config, got error: %v", err)
+	}
+}
+
+func TestValidate_EmptyModuleName(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Modules = map[string]module.Config{
+		"  ": {},
+	}
+	if err := Validate(cfg); err == nil {
+		t.Errorf("expected error for empty module name in config, got nil")
 	}
 }

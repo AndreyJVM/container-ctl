@@ -153,6 +153,21 @@ ui:
 
   # Default container sort mode: default, cpu, mem, name, status
   default_sort: default
+
+# Optional module constructor configuration (customize enabled tabs, custom ordering, and titles)
+# modules:
+#   containers:
+#     enabled: true
+#   images:
+#     enabled: true
+#   compose:
+#     enabled: true
+#   networks:
+#     enabled: true
+#   volumes:
+#     enabled: true
+#   swarm:
+#     enabled: auto # auto: shown when active or show_swarm is true; true: force show; false: disable
 ```
 
 

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AndreyJVM/container-ctl/internal/module"
 	"gopkg.in/yaml.v3"
 )
 
@@ -32,11 +33,12 @@ const (
 
 // Config represents complete application configuration settings.
 type Config struct {
-	Interval   time.Duration `yaml:"interval"`
-	InitialTab int           `yaml:"initial_tab"`
-	ShowSwarm  bool          `yaml:"show_swarm"`
-	Docker     DockerConfig  `yaml:"docker"`
-	UI         UIConfig      `yaml:"ui"`
+	Interval   time.Duration            `yaml:"interval"`
+	InitialTab int                      `yaml:"initial_tab"`
+	ShowSwarm  bool                     `yaml:"show_swarm"`
+	Docker     DockerConfig             `yaml:"docker"`
+	UI         UIConfig                 `yaml:"ui"`
+	Modules    map[string]module.Config `yaml:"modules,omitempty"`
 
 	// LoadedFrom indicates the file path the configuration was read from, or empty if using defaults.
 	LoadedFrom string `yaml:"-"`
@@ -66,6 +68,7 @@ func DefaultConfig() *Config {
 			OnlyUnusedImages: false,
 			DefaultSort:      "default",
 		},
+		Modules: make(map[string]module.Config),
 	}
 }
 
@@ -187,11 +190,12 @@ func FindConfigFile(explicitPath string) string {
 }
 
 type rawConfigFile struct {
-	Interval   interface{}  `yaml:"interval"`
-	InitialTab interface{}  `yaml:"initial_tab"`
-	ShowSwarm  *bool        `yaml:"show_swarm"`
-	Docker     DockerConfig `yaml:"docker"`
-	UI         UIConfig     `yaml:"ui"`
+	Interval   interface{}              `yaml:"interval"`
+	InitialTab interface{}              `yaml:"initial_tab"`
+	ShowSwarm  *bool                    `yaml:"show_swarm"`
+	Docker     DockerConfig             `yaml:"docker"`
+	UI         UIConfig                 `yaml:"ui"`
+	Modules    map[string]module.Config `yaml:"modules"`
 }
 
 // LoadConfig loads configuration with priority: Defaults -> File -> Environment Variables.
@@ -267,6 +271,13 @@ func LoadConfig(explicitPath string) (*Config, error) {
 			}
 			cfg.UI.OnlyUnusedImages = raw.UI.OnlyUnusedImages
 
+			if len(raw.Modules) > 0 {
+				cfg.Modules = raw.Modules
+				if swarmCfg, ok := raw.Modules["swarm"]; ok && swarmCfg.Enabled != nil && raw.ShowSwarm == nil {
+					cfg.ShowSwarm = *swarmCfg.Enabled
+				}
+			}
+
 			cfg.LoadedFrom = targetFile
 		}
 	}
@@ -331,6 +342,11 @@ func Validate(cfg *Config) error {
 	if _, err := ParseSortMode(cfg.UI.DefaultSort); err != nil {
 		return err
 	}
+	for modName := range cfg.Modules {
+		if strings.TrimSpace(modName) == "" {
+			return errors.New("module name in configuration cannot be empty")
+		}
+	}
 	return nil
 }
 
@@ -361,6 +377,21 @@ ui:
 
   # Default container sort mode: default, cpu, mem, name, status
   default_sort: default
+
+# Module constructor configuration (customize enabled tabs, custom ordering, and titles)
+# modules:
+#   containers:
+#     enabled: true
+#   images:
+#     enabled: true
+#   compose:
+#     enabled: true
+#   networks:
+#     enabled: true
+#   volumes:
+#     enabled: true
+#   swarm:
+#     enabled: auto # auto: shown only when active or show_swarm is true; true: force show; false: disable
 `
 }
 

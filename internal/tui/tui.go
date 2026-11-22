@@ -4,6 +4,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/AndreyJVM/container-ctl/internal/module"
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	"github.com/AndreyJVM/container-ctl/internal/tui/shell"
 	tea "github.com/charmbracelet/bubbletea"
@@ -162,6 +163,31 @@ type Model struct {
 
 	// onlyUnusedImages filters the image list to only unreferenced/reclaimable images.
 	onlyUnusedImages bool
+
+	// registry manages active modules and custom tab ordering.
+	registry *module.Registry
+}
+
+// SetRegistry configures the module registry for the TUI model.
+func (m *Model) SetRegistry(r *module.Registry) {
+	if r != nil {
+		m.registry = r
+	}
+}
+
+// Registry returns the active module registry, initializing a default if nil.
+func (m *Model) Registry() *module.Registry {
+	if m.registry == nil {
+		m.registry = module.DefaultRegistry()
+	}
+	return m.registry
+}
+
+func (m Model) moduleContext() module.Context {
+	return module.Context{
+		ShowSwarm:     m.showSwarm,
+		IsSwarmActive: m.swarm.IsActive,
+	}
 }
 
 // NewModel creates a TUI model with a refresh interval and initial tab.
@@ -182,6 +208,7 @@ func NewModel(refreshInterval time.Duration, initialTab int, version string, sho
 		activeTab:       tab,
 		refreshInterval: refreshInterval,
 		showSwarm:       forceSwarm,
+		registry:        module.DefaultRegistry(),
 	}
 	m.fetchAllData()
 	return m
