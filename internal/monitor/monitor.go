@@ -153,6 +153,12 @@ func ResetSocketClientsPool() { docker.ResetSocketClientsPool() }
 // IsDockerCLIAvailable checks availability of the docker CLI in PATH.
 func IsDockerCLIAvailable() bool { return docker.IsDockerCLIAvailable() }
 
+// GetContainerCLI returns the active CLI binary ("docker" or "podman").
+func GetContainerCLI() string { return docker.GetContainerCLI() }
+
+// IsPodmanSocket returns true if the socket is associated with Podman.
+func IsPodmanSocket(sockPath string) bool { return docker.IsPodmanSocket(sockPath) }
+
 // StartContainer starts a container by ID.
 func StartContainer(id string) error { return docker.StartContainer(id) }
 

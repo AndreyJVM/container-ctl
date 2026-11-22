@@ -20,8 +20,10 @@ func GetContainerExecCommandWithOptions(containerID string, opts ExecOptions) *e
 		return nil
 	}
 
+	cli := GetContainerCLI()
+
 	if opts.Mode == "attach" {
-		return exec.Command("docker", "attach", "--sig-proxy=false", cleanID)
+		return exec.Command(cli, "attach", "--sig-proxy=false", cleanID)
 	}
 
 	args := []string{"exec", "-it"}
@@ -54,7 +56,7 @@ func GetContainerExecCommandWithOptions(containerID string, opts ExecOptions) *e
 		args = append(args, "sh", "-c", "if command -v bash >/dev/null 2>&1; then exec bash; else exec sh; fi")
 	}
 
-	return exec.Command("docker", args...)
+	return exec.Command(cli, args...)
 }
 
 // GetContainerExecCommand creates an exec.Cmd for an interactive container shell.

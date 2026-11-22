@@ -298,8 +298,6 @@ func TestHandleMainKeys_FilterActivationAndEsc(t *testing.T) {
 }
 
 func TestHandleMainKeys_ModalTriggers(t *testing.T) {
-	t.Parallel()
-
 	t.Run("remove modal triggers via 'd' and 'x'", func(t *testing.T) {
 		// 1. Docker tab -> ModalRemoveContainer
 		m := newFastTestModel()

@@ -26,10 +26,11 @@ var (
 	DockerSocketFinder  = FindDockerSocket
 	SocketClientFactory = getSocketHTTPClient
 	DockerCLIRunner     = func(ctx context.Context, args ...string) ([]byte, error) {
+		cli := GetContainerCLI()
 		if ctx == nil {
-			return exec.Command("docker", args...).CombinedOutput()
+			return exec.Command(cli, args...).CombinedOutput()
 		}
-		return exec.CommandContext(ctx, "docker", args...).CombinedOutput()
+		return exec.CommandContext(ctx, cli, args...).CombinedOutput()
 	}
 )
 
@@ -37,6 +38,23 @@ var (
 func SetCustomSocketPath(path string) {
 	customSocketPath = strings.TrimSpace(path)
 	ResetSocketClientsPool()
+}
+
+// GetContainerCLI returns the available CLI binary name ("docker" or "podman").
+// If "docker" is found in PATH, it is preferred; otherwise if "podman" is present, it is used.
+func GetContainerCLI() string {
+	if _, err := ExecLookPath("docker"); err == nil {
+		return "docker"
+	}
+	if _, err := ExecLookPath("podman"); err == nil {
+		return "podman"
+	}
+	return "docker"
+}
+
+// IsPodmanSocket returns true if the specified socket path indicates a Podman engine.
+func IsPodmanSocket(sockPath string) bool {
+	return strings.Contains(strings.ToLower(sockPath), "podman")
 }
 
 // FindDockerSocket finds an available Docker or Podman Unix socket.
@@ -48,32 +66,62 @@ func FindDockerSocket() string {
 		}
 	}
 
-	if dockerHost := os.Getenv("DOCKER_HOST"); strings.HasPrefix(dockerHost, "unix://") {
-		p := filepath.Clean(strings.TrimPrefix(dockerHost, "unix://"))
-		if filepath.IsAbs(p) {
-			if _, err := os.Stat(p); err == nil { // #nosec G703 - docker socket path is cleaned and checked
-				return p
+	// 1. DOCKER_HOST environment variable override
+	if dockerHost := os.Getenv("DOCKER_HOST"); dockerHost != "" {
+		p := strings.TrimPrefix(dockerHost, "unix://")
+		p = strings.TrimPrefix(p, "unix:")
+		cleaned := filepath.Clean(p)
+		if filepath.IsAbs(cleaned) {
+			if _, err := os.Stat(cleaned); err == nil { // #nosec G703
+				return cleaned
 			}
 		}
 	}
 
+	// 2. CONTAINER_HOST environment variable override (Podman standard)
+	if containerHost := os.Getenv("CONTAINER_HOST"); containerHost != "" {
+		p := strings.TrimPrefix(containerHost, "unix://")
+		p = strings.TrimPrefix(p, "unix:")
+		cleaned := filepath.Clean(p)
+		if filepath.IsAbs(cleaned) {
+			if _, err := os.Stat(cleaned); err == nil { // #nosec G703
+				return cleaned
+			}
+		}
+	}
+
+	// 3. Standard system Docker sockets
 	candidates := []string{
 		"/var/run/docker.sock",
 		"/run/docker.sock",
 	}
 
+	// 4. Rootless Podman and Docker sockets via XDG_RUNTIME_DIR and /run/user/$UID
+	if xdg := os.Getenv("XDG_RUNTIME_DIR"); xdg != "" {
+		candidates = append(candidates,
+			filepath.Join(xdg, "podman", "podman.sock"),
+			filepath.Join(xdg, "podman.sock"),
+			filepath.Join(xdg, "docker.sock"),
+		)
+	}
+
 	uid := os.Getuid()
 	candidates = append(candidates,
-		fmt.Sprintf("/run/user/%d/docker.sock", uid),
 		fmt.Sprintf("/run/user/%d/podman/podman.sock", uid),
+		fmt.Sprintf("/run/user/%d/podman.sock", uid),
+		fmt.Sprintf("/run/user/%d/docker.sock", uid),
 		"/run/podman/podman.sock",
+		"/var/run/podman/podman.sock",
 	)
 
+	// 5. User home directory machine sockets (Podman machine & Docker Desktop)
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
 		candidates = append(candidates,
+			filepath.Join(home, ".local/share/containers/podman/machine/podman.sock"),
+			filepath.Join(home, ".local/share/containers/podman/machine/qemu/podman.sock"),
+			filepath.Join(home, ".local/share/containers/podman/machine/applehv/podman.sock"),
 			filepath.Join(home, ".docker/run/docker.sock"),
 			filepath.Join(home, ".docker/desktop/docker.sock"),
-			filepath.Join(home, ".local/share/containers/podman/machine/podman.sock"),
 		)
 	}
 
@@ -123,11 +171,16 @@ func ResetSocketClientsPool() {
 }
 
 var dockerCLIAvailableChecker = func() bool {
-	_, err := ExecLookPath("docker")
-	return err == nil
+	if _, err := ExecLookPath("docker"); err == nil {
+		return true
+	}
+	if _, err := ExecLookPath("podman"); err == nil {
+		return true
+	}
+	return false
 }
 
-// IsDockerCLIAvailable checks availability of the docker CLI in PATH.
+// IsDockerCLIAvailable checks availability of the docker or podman CLI in PATH.
 func IsDockerCLIAvailable() bool {
 	return dockerCLIAvailableChecker()
 }

@@ -69,6 +69,10 @@ func TestFacadeExports(t *testing.T) {
 	monitor.SetCustomSocketPath("")
 
 	_ = monitor.FindDockerSocket()
+	_ = monitor.GetContainerCLI()
+	if !monitor.IsPodmanSocket("/run/user/1000/podman/podman.sock") {
+		t.Errorf("expected IsPodmanSocket to return true for podman socket")
+	}
 	restore := monitor.SetDockerCLIAvailableCheckerForTesting(func() bool { return true })
 	if !monitor.IsDockerCLIAvailable() {
 		t.Errorf("expected CLI to be available via mocked checker")
