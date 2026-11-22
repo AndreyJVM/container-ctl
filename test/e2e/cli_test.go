@@ -317,13 +317,13 @@ func TestE2E_InteractivePTY_FullSession(t *testing.T) {
 
 	// 6. Switch to Networks tab (4)
 	_, _ = ptmx.Write([]byte("4"))
-	if !waitForOutput("SELECTED NETWORK DETAILS", 2*time.Second) {
+	if !waitForOutput("DOCKER NETWORKS", 2*time.Second) {
 		t.Errorf("expected Networks tab to render upon '4' keypress")
 	}
 
 	// 7. Switch to Volumes tab (5)
 	_, _ = ptmx.Write([]byte("5"))
-	if !waitForOutput("SELECTED VOLUME DETAILS", 2*time.Second) {
+	if !waitForOutput("DOCKER VOLUMES", 2*time.Second) {
 		t.Errorf("expected Volumes tab to render upon '5' keypress")
 	}
 
@@ -396,7 +396,7 @@ func TestE2E_InteractivePTY_FilterAndPrune(t *testing.T) {
 
 	// 1. Wait for initial Networks tab
 	time.Sleep(500 * time.Millisecond)
-	if !waitForOutput("SELECTED NETWORK DETAILS", 3*time.Second) {
+	if !waitForOutput("DOCKER NETWORKS", 3*time.Second) {
 		t.Fatalf("timed out waiting for initial Networks tab frame")
 	}
 
