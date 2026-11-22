@@ -47,6 +47,7 @@
 - **Docker Networks**: Network driver, scope, connected container count, subnet, gateway, and Compose ownership.
 - **Docker Volumes**: Volume driver, scope, reference count, disk usage, mountpoint, and Compose ownership.
 - **Docker Swarm**: Cluster node roles (Leader, Manager, Worker), service listings, replica counts with degradation highlights, and live service logs (`L`). Dynamically shown when Swarm is active on the daemon (or forced with `--show-swarm`).
+- **Modular Architecture ("Constructor")**: Pluggable subsystem registry. Administrators can tailor the dashboard by enabling only necessary tabs, reordering them, or assigning custom tab labels in `config.yaml`.
 - **English Interface**: Consistent English UI, CLI help, diagnostics, and documentation.
 - **Zero Dependencies**: Standalone binary (<12 MB) with zero external runtime dependencies. Runs on Linux, macOS, and FreeBSD.
 
@@ -168,6 +169,40 @@ ui:
 #     enabled: true
 #   swarm:
 #     enabled: auto # auto: shown when active or show_swarm is true; true: force show; false: disable
+```
+
+#### Modular Constructor Setup
+
+Dockpulse can be tailored specifically to your server requirements. You can selectively enable or disable modules, change tab display order, or assign custom titles:
+
+| Module ID | Description | Default State |
+|---|---|---|
+| `containers` | Container metrics, health, power controls, and embedded terminal | Enabled (`order: 1`) |
+| `images` | Image inventory, sizes, digests, and disk cleanup | Enabled (`order: 2`) |
+| `compose` | Docker Compose stack management and grouped logs | Enabled (`order: 3`) |
+| `networks` | Network inspect, subnets, and connected endpoints | Enabled (`order: 4`) |
+| `volumes` | Storage volumes and disk usage metrics | Enabled (`order: 5`) |
+| `swarm` | Docker Swarm cluster topology, nodes, and replicas | Auto-detected (`order: 6`) |
+
+**Example:** production server setup focusing only on containers and Swarm cluster (disabling unused monitors to minimize API calls):
+```yaml
+modules:
+  containers:
+    enabled: true
+    title: "Services"
+    order: 1
+  swarm:
+    enabled: true
+    title: "Cluster"
+    order: 2
+  images:
+    enabled: false
+  networks:
+    enabled: false
+  volumes:
+    enabled: false
+  compose:
+    enabled: false
 ```
 
 
