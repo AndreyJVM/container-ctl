@@ -47,7 +47,7 @@ func RenderHelp(refreshInterval time.Duration, swarmVisible ...bool) string {
 			items: []helpItem{
 				{key: "[/]", desc: "Filter containers by name, image, or ID"},
 				{key: "[O]", desc: "Cycle container sorting (CPU, Memory, Name, Status)"},
-				{key: "[L]", desc: "View container logs (search with [/], scroll with arrows)"},
+				{key: "[L]", desc: "View container logs (regex search with [/], syntax highlighting)"},
 				{key: "[Enter] / [I]", desc: "Inspect detailed container metadata, mounts & env"},
 				{key: "[w]", desc: "Open port URL in browser / copy"},
 				{key: "[y]", desc: "Copy docker exec cmd / ID to clipboard"},

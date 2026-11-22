@@ -137,7 +137,7 @@ func TestRenderFooter_Modals(t *testing.T) {
 		{
 			name:         "generic logs modal scroll and close",
 			ctx:          FooterContext{ActiveModal: "logs", Width: 80},
-			wantContains: []string{"[Esc / Q]", "Close", "[↑ / ↓ / PgUp / PgDn]", "Scroll"},
+			wantContains: []string{"Search (Regex)", "[Esc / Q]", "Close", "[↑ / ↓ / PgUp / PgDn]", "Scroll"},
 		},
 		{
 			name:         "generic inspect modal scroll and close",

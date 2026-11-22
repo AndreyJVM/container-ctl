@@ -83,7 +83,28 @@ func TestModalLogsSearch(t *testing.T) {
 		t.Errorf("modal should remain open after clearing filter")
 	}
 
-	// 5. Press Esc again to close modal
+	// 5. Test regex search: type "error|healthy"
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = res.(Model)
+	for _, r := range "error|healthy" {
+		res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = res.(Model)
+	}
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = res.(Model)
+	if m.countFilteredLogs() != 2 {
+		t.Errorf("expected countFilteredLogs=2 for regex, got %d", m.countFilteredLogs())
+	}
+	viewRegex := m.View()
+	if !strings.Contains(viewRegex, "2 matches") || !strings.Contains(viewRegex, "[regex]") {
+		t.Errorf("expected 2 matches and [regex] badge in view, got: %s", viewRegex)
+	}
+
+	// Clear filter with Esc
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = res.(Model)
+
+	// 6. Press Esc again to close modal
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	m = res.(Model)
 	if m.activeModal != "" {

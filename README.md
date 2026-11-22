@@ -217,7 +217,7 @@ modules:
 | `o`, `O` | Cycle container sort mode (CPU, Memory, Name, Status) |
 | `w`, `W` | Open container localhost URL in browser / copy to clipboard |
 | `y`, `Y` | Copy `docker exec -it <name> sh` or ID to clipboard via terminal OSC 52 |
-| `L` | View logs (search with `/`, scroll with `↑`/`↓`/`PgUp`/`PgDn`) |
+| `L` | View logs (regex search with `/`, syntax highlighting, scroll with `↑`/`↓`/`PgUp`/`PgDn`) |
 | `Enter` / `I` | Inspect container (details, mounts, network, ports, health, masked env vars) |
 | `E` | Open or focus the embedded container terminal (`/bin/bash` or `/bin/sh`) |
 | `Ctrl+]` | Return focus from the embedded terminal to Dockpulse |

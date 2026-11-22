@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/AndreyJVM/container-ctl/internal/tui/modals"
 	tea "github.com/charmbracelet/bubbletea"
@@ -226,17 +225,7 @@ func (m Model) countInspectLines() int {
 }
 
 func (m Model) countFilteredLogs() int {
-	if m.logsFilterQuery == "" {
-		return len(m.logsLines)
-	}
-	q := strings.ToLower(m.logsFilterQuery)
-	cnt := 0
-	for _, l := range m.logsLines {
-		if strings.Contains(strings.ToLower(l), q) {
-			cnt++
-		}
-	}
-	return cnt
+	return modals.CountMatchingLogs(m.logsLines, m.logsFilterQuery)
 }
 
 func (m Model) handleSwarmScaleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {

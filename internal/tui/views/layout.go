@@ -93,6 +93,10 @@ func RenderFooter(ctx FooterContext) string {
 				content = theme.BoldStyle.Render("[1-4]") + " Select Action  |  " +
 					theme.BoldStyle.Render("[Esc / Q]") + " Close"
 			}
+		} else if ctx.ActiveModal == "logs" {
+			content = theme.BoldStyle.Render("[/]") + " Search (Regex)  |  " +
+				theme.BoldStyle.Render("[Esc / Q]") + " Close  |  " +
+				theme.BoldStyle.Render("[↑ / ↓ / PgUp / PgDn]") + " Scroll"
 		} else {
 			content = theme.BoldStyle.Render("[Esc / Q]") + " Close  |  " +
 				theme.BoldStyle.Render("[↑ / ↓ / PgUp / PgDn]") + " Scroll"

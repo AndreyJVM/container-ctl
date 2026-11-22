@@ -32,28 +32,38 @@ func RenderLogs(lines []string, scroll int, targetName, targetID string, width i
 		isInputActive = true
 	}
 
-	displayLines := lines
+	matcher, re, isRegex := CompileLogMatcher(filterQuery)
+
+	var displayLines []string
 	if filterQuery != "" {
-		lowerQ := strings.ToLower(filterQuery)
-		var matched []string
 		for _, l := range lines {
-			if strings.Contains(strings.ToLower(l), lowerQ) {
-				matched = append(matched, l)
+			if matcher(l) {
+				displayLines = append(displayLines, l)
 			}
 		}
-		displayLines = matched
+	} else {
+		displayLines = lines
 	}
 
 	if isInputActive {
+		modeHint := "(regex)"
+		if filterQuery != "" && !isRegex {
+			modeHint = "(literal)"
+		}
 		s.WriteString(fmt.Sprintf("  %s %s█  %s\n\n",
 			theme.BoldStyle.Render("Search:"),
 			theme.YellowStyle.Render(filterQuery),
-			theme.DimStyle.Render("(Enter: confirm, Esc: clear)"),
+			theme.DimStyle.Render(fmt.Sprintf("%s (Enter: confirm, Esc: clear)", modeHint)),
 		))
 	} else if filterQuery != "" {
-		s.WriteString(fmt.Sprintf("  %s %s (%d matches)  %s\n\n",
+		modeBadge := "[regex]"
+		if !isRegex {
+			modeBadge = "[literal]"
+		}
+		s.WriteString(fmt.Sprintf("  %s %s %s (%d matches)  %s\n\n",
 			theme.BoldStyle.Render("Filter:"),
 			theme.CyanStyle.Render(filterQuery),
+			theme.DimStyle.Render(modeBadge),
 			len(displayLines),
 			theme.DimStyle.Render("[/] to edit, [Esc] to clear"),
 		))
@@ -74,7 +84,9 @@ func RenderLogs(lines []string, scroll int, targetName, targetID string, width i
 	for i := start; i < end; i++ {
 		line := displayLines[i]
 		gutter := getLogGutterStyle(line).Render("│")
-		s.WriteString(fmt.Sprintf(" %s %s\n", gutter, components.Truncate(line, maxLineWidth)))
+		truncated := components.Truncate(line, maxLineWidth)
+		highlighted := HighlightLogLine(truncated, re, filterQuery)
+		s.WriteString(fmt.Sprintf(" %s %s\n", gutter, highlighted))
 	}
 
 	if filterQuery != "" {
@@ -113,4 +125,19 @@ func getLogGutterStyle(line string) lipgloss.Style {
 		return theme.YellowStyle
 	}
 	return theme.DimStyle
+}
+
+// CountMatchingLogs returns the number of log lines that match the search query (supporting regex).
+func CountMatchingLogs(lines []string, query string) int {
+	if query == "" {
+		return len(lines)
+	}
+	matcher, _, _ := CompileLogMatcher(query)
+	cnt := 0
+	for _, l := range lines {
+		if matcher(l) {
+			cnt++
+		}
+	}
+	return cnt
 }

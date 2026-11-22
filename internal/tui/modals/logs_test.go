@@ -117,4 +117,27 @@ func TestRenderLogs_Filter(t *testing.T) {
 	if !strings.Contains(noMatchView, "No log lines match filter") {
 		t.Errorf("expected no log lines match message, got: %s", noMatchView)
 	}
+
+	// Regex filter query (matching error OR warn)
+	regexView := RenderLogs(lines, 0, "api-srv", "c999", 80, "error|warn", "false")
+	if !strings.Contains(regexView, "2 matches") {
+		t.Errorf("expected 2 matches for regex 'error|warn', got: %s", regexView)
+	}
+	if !strings.Contains(regexView, "[regex]") {
+		t.Errorf("expected [regex] badge in view, got: %s", regexView)
+	}
+
+	// Invalid regex gracefully falls back to literal search
+	invalidRegexView := RenderLogs(lines, 0, "api-srv", "c999", 80, "[unclosed", "false")
+	if !strings.Contains(invalidRegexView, "[literal]") {
+		t.Errorf("expected [literal] fallback badge for invalid regex, got: %s", invalidRegexView)
+	}
+
+	// CountMatchingLogs
+	if cnt := CountMatchingLogs(lines, "error|warn"); cnt != 2 {
+		t.Errorf("expected CountMatchingLogs=2, got %d", cnt)
+	}
+	if cnt := CountMatchingLogs(lines, ""); cnt != len(lines) {
+		t.Errorf("expected CountMatchingLogs to return all lines on empty query, got %d", cnt)
+	}
 }
