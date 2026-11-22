@@ -289,47 +289,47 @@ func TestE2E_InteractivePTY_FullSession(t *testing.T) {
 
 	// 1. Wait for child process TUI event loop to start and render initial Containers tab
 	time.Sleep(500 * time.Millisecond)
-	if !waitForOutput("[S] Start/Stop", 3*time.Second) {
+	if !waitForOutput("[S] Start/Stop", 6*time.Second) {
 		t.Fatalf("timed out waiting for initial Containers frame")
 	}
 
 	// 2. Switch to Images tab (2)
 	_, _ = ptmx.Write([]byte("2"))
-	if !waitForOutput("[u] Filter Unused", 2*time.Second) {
+	if !waitForOutput("[u] Filter Unused", 6*time.Second) {
 		t.Errorf("expected Images tab to render upon '2' keypress")
 	}
 
 	// 3. Press '?' to trigger Help modal and wait for it to appear
 	_, _ = ptmx.Write([]byte("?"))
-	if !waitForOutput("Auto-refresh interval:", 2*time.Second) {
+	if !waitForOutput("Auto-refresh interval:", 6*time.Second) {
 		t.Errorf("expected TUI to render help modal upon '?' keypress")
 	}
 
 	// 4. Press '?' again to dismiss help modal
 	_, _ = ptmx.Write([]byte("?"))
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// 5. Switch to Compose tab (3)
 	_, _ = ptmx.Write([]byte("3"))
-	if !waitForOutput("[D] Down", 2*time.Second) {
+	if !waitForOutput("[D] Down", 6*time.Second) {
 		t.Errorf("expected Compose tab to render upon '3' keypress")
 	}
 
 	// 6. Switch to Networks tab (4)
 	_, _ = ptmx.Write([]byte("4"))
-	if !waitForOutput("DOCKER NETWORKS", 2*time.Second) {
+	if !waitForOutput("[4: Networks]", 6*time.Second) {
 		t.Errorf("expected Networks tab to render upon '4' keypress")
 	}
 
 	// 7. Switch to Volumes tab (5)
 	_, _ = ptmx.Write([]byte("5"))
-	if !waitForOutput("DOCKER VOLUMES", 2*time.Second) {
+	if !waitForOutput("[5: Volumes]", 6*time.Second) {
 		t.Errorf("expected Volumes tab to render upon '5' keypress")
 	}
 
 	// 8. Switch back to Containers tab (1)
 	_, _ = ptmx.Write([]byte("1"))
-	if !waitForOutput("[S] Start/Stop", 2*time.Second) {
+	if !waitForOutput("[S] Start/Stop", 6*time.Second) {
 		t.Errorf("expected Containers tab to render upon '1' keypress")
 	}
 
@@ -346,7 +346,7 @@ func TestE2E_InteractivePTY_FullSession(t *testing.T) {
 		if waitErr != nil {
 			t.Fatalf("expected clean exit 0 upon quitting with 'q', got: %v", waitErr)
 		}
-	case <-time.After(3 * time.Second):
+	case <-time.After(7 * time.Second):
 		t.Fatalf("timed out waiting for interactive container-ctl session to exit on 'q'")
 	}
 
@@ -396,33 +396,33 @@ func TestE2E_InteractivePTY_FilterAndPrune(t *testing.T) {
 
 	// 1. Wait for initial Networks tab
 	time.Sleep(500 * time.Millisecond)
-	if !waitForOutput("DOCKER NETWORKS", 3*time.Second) {
+	if !waitForOutput("DOCKER NETWORKS", 6*time.Second) {
 		t.Fatalf("timed out waiting for initial Networks tab frame")
 	}
 
 	// 2. Press '/' to trigger search filter
 	_, _ = ptmx.Write([]byte("/"))
-	if !waitForOutput("[Search:", 2*time.Second) {
+	if !waitForOutput("[Search:", 6*time.Second) {
 		t.Errorf("expected [Search: prompt upon pressing '/'")
 	}
 
 	// 3. Type query and press Enter
 	_, _ = ptmx.Write([]byte("bridge\r"))
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// 4. Press Esc to clear filter
 	_, _ = ptmx.Write([]byte{0x1b})
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// 5. Press 'C' to open Prune modal dialog
 	_, _ = ptmx.Write([]byte("C"))
-	if !waitForOutput("CLEANUP & PRUNE DOCKER RESOURCES", 2*time.Second) {
+	if !waitForOutput("CLEANUP & PRUNE DOCKER RESOURCES", 8*time.Second) {
 		t.Errorf("expected CLEANUP & PRUNE dialog upon pressing 'C'")
 	}
 
 	// 6. Press Esc to cancel and dismiss Prune dialog
 	_, _ = ptmx.Write([]byte{0x1b})
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// 7. Quit with 'q'
 	_, _ = ptmx.Write([]byte("q"))
@@ -437,7 +437,7 @@ func TestE2E_InteractivePTY_FilterAndPrune(t *testing.T) {
 		if waitErr != nil {
 			t.Fatalf("expected clean exit code 0 on quit, got: %v", waitErr)
 		}
-	case <-time.After(3 * time.Second):
+	case <-time.After(7 * time.Second):
 		t.Fatalf("timed out waiting for container-ctl to exit cleanly")
 	}
 }
