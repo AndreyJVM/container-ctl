@@ -98,6 +98,21 @@ func RenderHelp(refreshInterval time.Duration, swarmVisible ...bool) string {
 		},
 	}
 
+	if len(swarmVisible) == 0 || swarmVisible[0] {
+		sections = append(sections[:len(sections)-1],
+			helpSection{
+				title: "SWARM ACTIONS (Swarm Tab)",
+				items: []helpItem{
+					{key: "[s]", desc: "Scale service replicas (interactive dialog)"},
+					{key: "[+] / [-]", desc: "Quick increase / decrease service replicas (+1 / -1)"},
+					{key: "[L]", desc: "View Swarm service logs"},
+					{key: "[y]", desc: "Copy service name to clipboard"},
+				},
+			},
+			sections[len(sections)-1],
+		)
+	}
+
 	for _, sec := range sections {
 		s.WriteString(fmt.Sprintf("  %s\n", theme.CyanStyle.Render("• "+sec.title)))
 		for _, item := range sec.items {

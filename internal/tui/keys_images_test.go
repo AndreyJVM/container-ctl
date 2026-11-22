@@ -135,10 +135,10 @@ func TestFilterUnusedImages_ToggleAndSearch(t *testing.T) {
 }
 
 func TestImagesActions_RemoveModalAndCopy(t *testing.T) {
-	origWriter := clipboard.OutputWriter
+	origWriter := clipboard.GetOutputWriter()
 	var buf bytes.Buffer
-	clipboard.OutputWriter = &buf
-	defer func() { clipboard.OutputWriter = origWriter }()
+	clipboard.SetOutputWriter(&buf)
+	defer func() { clipboard.SetOutputWriter(origWriter) }()
 
 	m := newFastImagesTestModel()
 	m.images = []monitor.DockerImage{

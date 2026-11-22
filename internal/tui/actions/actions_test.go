@@ -86,6 +86,12 @@ func TestContainerAndComposeCommands(t *testing.T) {
 	if msg.Err == nil && !strings.Contains(msg.Message, "proj downed") {
 		t.Errorf("unexpected DownCompose msg: %+v", msg)
 	}
+
+	// ScaleSwarmService
+	msg = ScaleSwarmService("s1", "web", 5)().(FinishedMsg)
+	if msg.Err == nil && !strings.Contains(msg.Message, "scaled to 5 replicas") {
+		t.Errorf("unexpected ScaleSwarmService msg: %+v", msg)
+	}
 }
 
 func TestPruneActions(t *testing.T) {

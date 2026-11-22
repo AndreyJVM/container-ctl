@@ -67,6 +67,8 @@ const (
 	ModalRemoveImage ModalType = "remove_image"
 	// ModalExec displays the interactive container shell launcher.
 	ModalExec ModalType = "exec"
+	// ModalSwarmScale displays interactive service replica scaling.
+	ModalSwarmScale ModalType = "swarm_scale"
 )
 
 const (
@@ -142,6 +144,13 @@ type Model struct {
 	pruneUsage    monitor.DockerDiskUsage
 	pruneUsageErr string
 	pruneConfirm  int // 0 - menu, 1 - containers, 2 - images, 3 - volumes, 4 - all
+
+	// Swarm scaling modal.
+	swarmScaleTargetID   string
+	swarmScaleTargetName string
+	swarmScaleCurrent    int
+	swarmScaleDesired    int
+	swarmScaleTyped      bool
 
 	// Container sorting: default, CPU desc, memory desc, name asc, or status.
 	containerSortMode int
@@ -330,6 +339,11 @@ func (m *Model) closeModal() {
 	m.logsFiltering = false
 	m.logsFilterQuery = ""
 	m.inspectScroll = 0
+	m.swarmScaleTargetID = ""
+	m.swarmScaleTargetName = ""
+	m.swarmScaleCurrent = 0
+	m.swarmScaleDesired = 0
+	m.swarmScaleTyped = false
 }
 
 // OpenModal activates the specified modal dialog.

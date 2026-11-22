@@ -136,4 +136,5 @@ func TestFacadeExports(t *testing.T) {
 func TestInspectAndCustomSocketFacade(_ *testing.T) {
 	_, _ = monitor.GetNetworkInspectJSON("bridge")
 	_, _ = monitor.GetVolumeInspectJSON("my-vol")
+	_ = monitor.ScaleSwarmService("service-1", 3)
 }

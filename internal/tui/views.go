@@ -56,6 +56,8 @@ func (m Model) View() string {
 		content = m.renderExecModal()
 	case ModalPrune:
 		content = m.renderPruneModal()
+	case ModalSwarmScale:
+		content = m.renderSwarmScaleModal()
 	default:
 		if m.showHelp {
 			content = "\n" + m.renderHelpBox() + "\n"
@@ -249,6 +251,10 @@ func (m Model) renderExecModal() string {
 		IsCustomInput: m.execIsCustomInput,
 		CustomCmd:     m.execCustomCmd,
 	})
+}
+
+func (m Model) renderSwarmScaleModal() string {
+	return modals.RenderSwarmScale(m.swarmScaleTargetName, m.swarmScaleTargetID, m.swarmScaleCurrent, m.swarmScaleDesired)
 }
 
 func (m Model) renderHelpBox() string {

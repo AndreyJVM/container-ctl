@@ -97,6 +97,10 @@ func downComposeCmd(name string, containers []monitor.ContainerItem) tea.Cmd {
 	return wrapAction(actions.DownCompose(name, containers))
 }
 
+func scaleSwarmServiceCmd(id, name string, replicas int) tea.Cmd {
+	return wrapAction(actions.ScaleSwarmService(id, name, replicas))
+}
+
 func executePrune(option int) (string, error) {
 	return actions.ExecutePrune(option)
 }

@@ -80,6 +80,11 @@ func RenderFooter(ctx FooterContext) string {
 		} else if ctx.ActiveModal == "exec" {
 			content = theme.BoldStyle.Render("[1-7 / Enter]") + " Select Action  |  " +
 				theme.BoldStyle.Render("[Esc / Q]") + " Cancel"
+		} else if ctx.ActiveModal == "swarm_scale" {
+			content = theme.BoldStyle.Render("[+ / - / ↑ / ↓]") + " Adjust  |  " +
+				theme.BoldStyle.Render("[0-9]") + " Type  |  " +
+				theme.BoldStyle.Render("[Enter]") + " Apply  |  " +
+				theme.BoldStyle.Render("[Esc / Q]") + " Cancel"
 		} else if ctx.ActiveModal == "prune" {
 			if ctx.PruneConfirm > 0 {
 				content = theme.BoldStyle.Render("[Y]") + " Confirm Prune  |  " +
@@ -257,7 +262,10 @@ func RenderFooter(ctx FooterContext) string {
 		}
 	} else if ctx.ActiveTab == 6 {
 		content = theme.BoldStyle.Render("[↑ / ↓]") + " Select Service  |  " +
+			theme.BoldStyle.Render("[s]") + " Scale  |  " +
+			theme.BoldStyle.Render("[+ / -]") + " Replicas  |  " +
 			theme.BoldStyle.Render("[L]") + " Service Logs  |  " +
+			theme.BoldStyle.Render("[y]") + " Copy  |  " +
 			theme.BoldStyle.Render("[R]") + " Refresh  |  " +
 			theme.BoldStyle.Render("[?]") + " Help  |  " +
 			theme.BoldStyle.Render("[Q]") + " Quit"

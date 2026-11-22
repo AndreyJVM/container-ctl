@@ -235,6 +235,11 @@ func GetSwarmServiceLogs(serviceID string, tailLines int) (string, error) {
 	return swarm.GetSwarmServiceLogs(serviceID, tailLines)
 }
 
+// ScaleSwarmService updates the desired replica count for a Swarm service.
+func ScaleSwarmService(serviceID string, replicas int) error {
+	return swarm.ScaleSwarmService(serviceID, replicas)
+}
+
 // ---------------------------------------------------------------------------
 // prune functions
 // ---------------------------------------------------------------------------

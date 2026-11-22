@@ -7,8 +7,11 @@ import (
 )
 
 func TestClipboardWrite(t *testing.T) {
+	orig := GetOutputWriter()
+	defer SetOutputWriter(orig)
+
 	var buf bytes.Buffer
-	OutputWriter = &buf
+	SetOutputWriter(&buf)
 
 	err := Write("docker exec -it my-app sh")
 	if err != nil {

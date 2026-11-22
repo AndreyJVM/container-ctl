@@ -223,7 +223,8 @@ modules:
 | `Ctrl+]` | Return focus from the embedded terminal to Dockpulse |
 | `Ctrl+D` | Exit the current shell session while the terminal is focused |
 | `Ctrl+X` | Close an unfocused embedded terminal |
-| `S` | Start / Stop container or Compose stack |
+| `s`, `S` | Start / Stop container or Compose stack; Scale service replicas (on Swarm tab) |
+| `+`, `-` | Quick increase / decrease service replicas (+1 / -1 on Swarm tab) |
 | `P` | Restart container or Compose stack |
 | `K` | Force kill (`SIGKILL`) container |
 | `x`, `d` | Remove container or image (with confirmation) |
@@ -251,7 +252,7 @@ modules:
 | `3` | **Compose** | Service orchestration grouping, live project logs (`L`), and stack control (`U`/`S`/`D`) |
 | `4` | **Networks** | Network drivers, IPAM subnets, gateways, and attached container list |
 | `5` | **Volumes** | Volume drivers, disk usage, mount points, and container references |
-| `6` | **Swarm** *(adaptive)* | Cluster node inventory, roles, service replica distribution, and task logs |
+| `6` | **Swarm** *(adaptive)* | Cluster node inventory, roles, service replica distribution, interactive scaling (`s`, `+`/`-`), and task logs |
 
 > Detailed screenshots and visual guides are available in [docs/screenshots/](docs/screenshots/).
 

@@ -147,10 +147,10 @@ func TestComposeTabNavigationAndActions(t *testing.T) {
 	})
 
 	t.Run("clipboard copy project name with 'y'", func(t *testing.T) {
-		origWriter := clipboard.OutputWriter
+		origWriter := clipboard.GetOutputWriter()
 		var buf bytes.Buffer
-		clipboard.OutputWriter = &buf
-		defer func() { clipboard.OutputWriter = origWriter }()
+		clipboard.SetOutputWriter(&buf)
+		defer func() { clipboard.SetOutputWriter(origWriter) }()
 
 		m := newFastComposeTestModel()
 		m.composeCursorIdx = 0

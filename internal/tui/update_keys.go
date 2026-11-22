@@ -142,13 +142,26 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.handleVolumesInspect()
 		}
 
-	// Start or stop: Container, Compose project.
+	// Start or stop: Container, Compose project; Scale: Swarm service.
 	case "s", "S":
 		switch m.activeTab {
 		case TabDocker:
 			return m.handleDockerStartStop()
 		case TabCompose:
 			return m.handleComposeStop()
+		case TabSwarm:
+			return m.handleSwarmScaleModal()
+		}
+
+	// Quick replica scale: Swarm service.
+	case "+", "=":
+		if m.activeTab == TabSwarm {
+			return m.handleSwarmQuickScale(1)
+		}
+
+	case "-", "_":
+		if m.activeTab == TabSwarm {
+			return m.handleSwarmQuickScale(-1)
 		}
 
 	// Toggle unused images filter or Start Compose project.

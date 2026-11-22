@@ -92,10 +92,10 @@ func TestModalLogsSearch(t *testing.T) {
 }
 
 func TestModalInspectScrollingAndCopy(t *testing.T) {
-	origWriter := clipboard.OutputWriter
+	origWriter := clipboard.GetOutputWriter()
 	var buf bytes.Buffer
-	clipboard.OutputWriter = &buf
-	defer func() { clipboard.OutputWriter = origWriter }()
+	clipboard.SetOutputWriter(&buf)
+	defer func() { clipboard.SetOutputWriter(origWriter) }()
 
 	m := newFastTestModel()
 
@@ -166,13 +166,13 @@ func TestModalInspectScrollingAndCopy(t *testing.T) {
 	}
 
 	// Test clipboard error handling
-	clipboard.OutputWriter = errWriter{}
+	clipboard.SetOutputWriter(errWriter{})
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
 	m = res.(Model)
 	if !strings.Contains(m.actionMessage, "Clipboard error") {
 		t.Errorf("expected clipboard error toast, got: %q", m.actionMessage)
 	}
-	clipboard.OutputWriter = &buf
+	clipboard.SetOutputWriter(&buf)
 
 	// Verify view rendering includes pagination info
 	v := m.View()
@@ -606,5 +606,105 @@ func TestPruneModalAndWorkflow(t *testing.T) {
 	helpView := m.View()
 	if !strings.Contains(helpView, "[C]") || !strings.Contains(helpView, "Prune unused Docker resources") {
 		t.Errorf("expected [C] hint in help view, got: %s", helpView)
+	}
+}
+
+func TestModalSwarmScaleInteraction(t *testing.T) {
+	m := newFastTestModel()
+	m.activeModal = ModalSwarmScale
+	m.swarmScaleTargetID = "svc-web-id"
+	m.swarmScaleTargetName = "web-service"
+	m.swarmScaleCurrent = 3
+	m.swarmScaleDesired = 3
+
+	// 1. Verify View renders modal
+	v := m.View()
+	if !strings.Contains(v, "SCALE DOCKER SWARM SERVICE") || !strings.Contains(v, "web-service") {
+		t.Errorf("expected swarm scale modal in View(), got: %s", v)
+	}
+
+	// 2. Increment with '+'
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'+'}})
+	m = res.(Model)
+	if m.swarmScaleDesired != 4 {
+		t.Errorf("expected desired=4 after '+', got %d", m.swarmScaleDesired)
+	}
+
+	// Increment with 'up'
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	m = res.(Model)
+	if m.swarmScaleDesired != 5 {
+		t.Errorf("expected desired=5 after 'up', got %d", m.swarmScaleDesired)
+	}
+
+	// 3. Decrement with '-' and 'down'
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'-'}})
+	m = res.(Model)
+	if m.swarmScaleDesired != 4 {
+		t.Errorf("expected desired=4 after '-', got %d", m.swarmScaleDesired)
+	}
+
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = res.(Model)
+	if m.swarmScaleDesired != 3 {
+		t.Errorf("expected desired=3 after 'down', got %d", m.swarmScaleDesired)
+	}
+
+	// Decrement below 0 is clamped to 0
+	m.swarmScaleDesired = 0
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'-'}})
+	m = res.(Model)
+	if m.swarmScaleDesired != 0 {
+		t.Errorf("expected clamp at 0, got %d", m.swarmScaleDesired)
+	}
+
+	// 4. Direct digit typing: first digit replaces, next appends
+	m.swarmScaleTyped = false
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'2'}})
+	m = res.(Model)
+	if m.swarmScaleDesired != 2 {
+		t.Errorf("expected desired=2 after typing '2', got %d", m.swarmScaleDesired)
+	}
+
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'5'}})
+	m = res.(Model)
+	if m.swarmScaleDesired != 25 {
+		t.Errorf("expected desired=25 after typing '5', got %d", m.swarmScaleDesired)
+	}
+
+	// 5. Backspace removes last digit
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
+	m = res.(Model)
+	if m.swarmScaleDesired != 2 {
+		t.Errorf("expected desired=2 after backspace, got %d", m.swarmScaleDesired)
+	}
+
+	// 6. Escape cancels modal
+	mEsc := m
+	res, _ = mEsc.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	mEsc = res.(Model)
+	if mEsc.activeModal != "" {
+		t.Errorf("expected modal closed after Esc, got %s", mEsc.activeModal)
+	}
+
+	// 7. 'q' cancels modal
+	mQ := m
+	res, _ = mQ.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	mQ = res.(Model)
+	if mQ.activeModal != "" {
+		t.Errorf("expected modal closed after 'q', got %s", mQ.activeModal)
+	}
+
+	// 8. Enter applies scale and produces command
+	res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	mApplied := res.(Model)
+	if mApplied.activeModal != "" {
+		t.Errorf("expected modal closed after Enter, got %s", mApplied.activeModal)
+	}
+	if cmd == nil {
+		t.Errorf("expected non-nil cmd on Enter")
+	}
+	if !strings.Contains(mApplied.actionMessage, "Scaling service web-service to 2 replicas") {
+		t.Errorf("expected toast with scaling message, got %s", mApplied.actionMessage)
 	}
 }

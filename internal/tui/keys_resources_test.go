@@ -32,10 +32,10 @@ func newFastSwarmTestModel() Model {
 }
 
 func TestNetworksInspectAndCopy(t *testing.T) {
-	origWriter := clipboard.OutputWriter
+	origWriter := clipboard.GetOutputWriter()
 	var buf bytes.Buffer
-	clipboard.OutputWriter = &buf
-	defer func() { clipboard.OutputWriter = origWriter }()
+	clipboard.SetOutputWriter(&buf)
+	defer func() { clipboard.SetOutputWriter(origWriter) }()
 
 	m := newFastNetworksTestModel()
 	m.networks = []monitor.DockerNetwork{
@@ -78,10 +78,10 @@ func TestNetworksInspectAndCopy(t *testing.T) {
 }
 
 func TestVolumesInspectAndCopy(t *testing.T) {
-	origWriter := clipboard.OutputWriter
+	origWriter := clipboard.GetOutputWriter()
 	var buf bytes.Buffer
-	clipboard.OutputWriter = &buf
-	defer func() { clipboard.OutputWriter = origWriter }()
+	clipboard.SetOutputWriter(&buf)
+	defer func() { clipboard.SetOutputWriter(origWriter) }()
 
 	m := newFastVolumesTestModel()
 	m.volumes = []monitor.DockerVolume{
@@ -123,10 +123,10 @@ func TestVolumesInspectAndCopy(t *testing.T) {
 }
 
 func TestSwarmLogsAndCopy(t *testing.T) {
-	origWriter := clipboard.OutputWriter
+	origWriter := clipboard.GetOutputWriter()
 	var buf bytes.Buffer
-	clipboard.OutputWriter = &buf
-	defer func() { clipboard.OutputWriter = origWriter }()
+	clipboard.SetOutputWriter(&buf)
+	defer func() { clipboard.SetOutputWriter(origWriter) }()
 
 	m := newFastSwarmTestModel()
 	m.swarm = monitor.SwarmSummary{
@@ -162,6 +162,75 @@ func TestSwarmLogsAndCopy(t *testing.T) {
 	expectedB64 := base64.StdEncoding.EncodeToString([]byte("frontend-web"))
 	if !strings.Contains(buf.String(), expectedB64) {
 		t.Errorf("expected clipboard output to contain base64 %q, got: %q", expectedB64, buf.String())
+	}
+}
+
+func TestSwarmScalingKeys(t *testing.T) {
+	m := newFastSwarmTestModel()
+	m.swarm = monitor.SwarmSummary{
+		IsActive: true,
+		Services: []monitor.SwarmService{
+			{
+				ID:             "svc-rep",
+				Name:           "api-service",
+				Mode:           "replicated",
+				TargetReplicas: 3,
+			},
+			{
+				ID:             "svc-glob",
+				Name:           "node-exporter",
+				Mode:           "global",
+				TargetReplicas: 1,
+			},
+		},
+	}
+	m.swarmCursorIdx = 0
+
+	// 1. Pressing 's' opens ModalSwarmScale
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	mScale := res.(Model)
+	if mScale.activeModal != ModalSwarmScale {
+		t.Fatalf("expected activeModal %s, got %s", ModalSwarmScale, mScale.activeModal)
+	}
+	if mScale.swarmScaleTargetID != "svc-rep" || mScale.swarmScaleTargetName != "api-service" {
+		t.Errorf("unexpected target info: %s, %s", mScale.swarmScaleTargetID, mScale.swarmScaleTargetName)
+	}
+	if mScale.swarmScaleCurrent != 3 || mScale.swarmScaleDesired != 3 {
+		t.Errorf("expected replicas 3, got current=%d desired=%d", mScale.swarmScaleCurrent, mScale.swarmScaleDesired)
+	}
+
+	// 2. Pressing '+' triggers quick scale up command
+	res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'+'}})
+	_ = res.(Model)
+	if cmd == nil {
+		t.Errorf("expected non-nil cmd on '+' quick scale")
+	}
+
+	// 3. Pressing '-' triggers quick scale down command
+	res, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'-'}})
+	_ = res.(Model)
+	if cmd == nil {
+		t.Errorf("expected non-nil cmd on '-' quick scale")
+	}
+
+	// 4. Global service cannot be scaled
+	m.swarmCursorIdx = 1
+	res, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	mGlobal := res.(Model)
+	if mGlobal.activeModal == ModalSwarmScale {
+		t.Errorf("did not expect ModalSwarmScale on global service")
+	}
+	if !strings.Contains(mGlobal.actionMessage, "Cannot scale global") {
+		t.Errorf("expected global service error toast, got: %q", mGlobal.actionMessage)
+	}
+
+	res, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'+'}})
+	mGlobalQuick := res.(Model)
+	if cmd != nil {
+		t.Errorf("expected nil cmd when quick scaling global service")
+	}
+	if !strings.Contains(mGlobalQuick.actionMessage, "Cannot scale global") {
+		t.Errorf("expected global service error toast, got: %q", mGlobalQuick.actionMessage)
 	}
 }
 

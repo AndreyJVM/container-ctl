@@ -227,6 +227,15 @@ func DownCompose(name string, containers []monitor.ContainerItem) tea.Cmd {
 	)
 }
 
+// ScaleSwarmService returns a command to scale a Swarm service.
+func ScaleSwarmService(id, name string, replicas int) tea.Cmd {
+	return MakeActionCmd(
+		func() error { return monitor.ScaleSwarmService(id, replicas) },
+		"Error scaling service: ",
+		fmt.Sprintf("Service %s scaled to %d replicas", name, replicas),
+	)
+}
+
 // ExecutePrune runs the specified prune operation.
 func ExecutePrune(option int) (string, error) {
 	switch option {

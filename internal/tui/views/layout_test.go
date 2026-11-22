@@ -144,6 +144,11 @@ func TestRenderFooter_Modals(t *testing.T) {
 			ctx:          FooterContext{ActiveModal: "inspect", Width: 80},
 			wantContains: []string{"[Esc / Q]", "Close", "[↑ / ↓ / PgUp / PgDn]", "Scroll"},
 		},
+		{
+			name:         "swarm scale modal adjust and apply",
+			ctx:          FooterContext{ActiveModal: "swarm_scale", Width: 80},
+			wantContains: []string{"[+ / - / ↑ / ↓]", "Adjust", "[0-9]", "Type", "[Enter]", "Apply", "[Esc / Q]", "Cancel"},
+		},
 	}
 
 	for _, tc := range tests {
