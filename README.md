@@ -36,7 +36,7 @@
   - Power control: Start / Stop (`S`), Restart (`P`), Force Kill (`K` — `SIGKILL`).
   - Safe container removal with confirmation (`x`, `d`).
   - Docker System Prune modal (`C`) with disk reclaim estimates and confirmation.
-  - Socket support: Docker daemon, Rootless Docker, and Podman (<2 ms latency).
+  - Socket support: Docker daemon, Rootless Docker, and Rootless Podman (<2 ms latency) with automatic discovery across `XDG_RUNTIME_DIR`, `/run/user/$UID`, and candidate sockets.
 - **Docker Images**:
   - Local image inventory with Image ID, Repository, Tag, Size, Created timestamp, and Digest.
   - Status indicators: `[In Use]`, `[Unused]`, and `[Dangling]` (`<none>:<none>`).

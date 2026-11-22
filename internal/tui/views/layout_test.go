@@ -44,6 +44,39 @@ func TestRenderHeader(t *testing.T) {
 			t.Errorf("expected fallback version 'v0.4.0' when Version is empty, got: %s", hdr)
 		}
 	})
+
+	t.Run("renders engine label adaptively", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name       string
+			isPodman   bool
+			isRootless bool
+			expected   string
+		}{
+			{"standard docker", false, false, "Docker:"},
+			{"rootless docker", false, true, "Docker (rootless):"},
+			{"standard podman", true, false, "Podman:"},
+			{"rootless podman", true, true, "Podman (rootless):"},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				hdr := RenderHeader(HeaderContext{
+					Version:    "v0.21.0",
+					LastUpdate: "12:00:00",
+					DockerInfo: monitor.DockerSummary{
+						IsPodman:   tt.isPodman,
+						IsRootless: tt.isRootless,
+					},
+					FormattedDockerStatus: "Running",
+				})
+				if !strings.Contains(hdr, tt.expected) {
+					t.Errorf("expected %q in header, got: %s", tt.expected, hdr)
+				}
+			})
+		}
+	})
 }
 
 func TestRenderTabs(t *testing.T) {

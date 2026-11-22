@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -141,15 +142,23 @@ func fetchDockerSummaryViaCLI(summary *DockerSummary) {
 		}
 	}
 
-	if summary.Status == DockerStatusRunning && len(summary.Containers) == 0 {
-		psCtx, psCancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
-		defer psCancel()
-		psOut, psErr := DockerCLIRunner(psCtx, "ps", "-a", "--format", "{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.State}}\t{{.Status}}\t{{.Ports}}\t{{.Mounts}}\t{{.Labels}}\t{{.Networks}}\t{{.CreatedAt}}\t{{.RunningFor}}")
-		if psErr == nil {
-			summary.Containers = parseCLIPsOutput(string(psOut))
+	if summary.Status == DockerStatusRunning {
+		if GetContainerCLI() == "podman" || strings.Contains(strings.ToLower(summary.Version), "podman") {
+			summary.IsPodman = true
+			if os.Getuid() != 0 {
+				summary.IsRootless = true
+			}
 		}
-		if len(summary.Containers) > 0 {
-			enrichContainersWithCLIInspect(summary.Containers)
+		if len(summary.Containers) == 0 {
+			psCtx, psCancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+			defer psCancel()
+			psOut, psErr := DockerCLIRunner(psCtx, "ps", "-a", "--format", "{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.State}}\t{{.Status}}\t{{.Ports}}\t{{.Mounts}}\t{{.Labels}}\t{{.Networks}}\t{{.CreatedAt}}\t{{.RunningFor}}")
+			if psErr == nil {
+				summary.Containers = parseCLIPsOutput(string(psOut))
+			}
+			if len(summary.Containers) > 0 {
+				enrichContainersWithCLIInspect(summary.Containers)
+			}
 		}
 	}
 }

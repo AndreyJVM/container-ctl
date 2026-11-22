@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
+	"strings"
 )
 
 func fetchDockerSummaryViaSocket(sockPath string, summary *DockerSummary) bool {
@@ -59,6 +61,14 @@ func fetchDockerSummaryViaSocket(sockPath string, summary *DockerSummary) bool {
 	}
 
 	// Update summary atomically
+	summary.SocketPath = sockPath
+	if IsPodmanSocket(sockPath) {
+		summary.IsPodman = true
+	}
+	if IsRootlessSocket(sockPath) {
+		summary.IsRootless = true
+	}
+
 	summary.Status = DockerStatusRunning
 	summary.StatusDisplay = DockerStatusDisplayRunning
 	if infoSuccess {
@@ -67,6 +77,12 @@ func fetchDockerSummaryViaSocket(sockPath string, summary *DockerSummary) bool {
 		summary.StoppedContainers = infoData.ContainersStopped
 		summary.ImagesCount = infoData.Images
 		summary.Version = infoData.ServerVersion
+		if strings.Contains(strings.ToLower(infoData.ServerVersion), "podman") {
+			summary.IsPodman = true
+		}
+	}
+	if summary.IsPodman && os.Getuid() != 0 {
+		summary.IsRootless = true
 	}
 
 	summary.Containers = parseRawSocketContainers(rawContainers)
@@ -97,16 +113,24 @@ func GetDockerSummary() DockerSummary {
 	cliAvailable := IsDockerCLIAvailable()
 	sockPath := DockerSocketFinder()
 
+	isPodman := GetContainerCLI() == "podman" || (sockPath != "" && IsPodmanSocket(sockPath))
+	isRootless := (sockPath != "" && IsRootlessSocket(sockPath)) || (isPodman && os.Getuid() != 0)
+
 	if !cliAvailable && sockPath == "" {
 		return DockerSummary{
 			Status:        DockerStatusNotInstalled,
 			StatusDisplay: DockerStatusDisplayNotInstalled,
+			IsPodman:      isPodman,
+			IsRootless:    isRootless,
 		}
 	}
 
 	summary := DockerSummary{
 		Status:        DockerStatusStopped,
 		StatusDisplay: DockerStatusDisplayStopped,
+		IsPodman:      isPodman,
+		IsRootless:    isRootless,
+		SocketPath:    sockPath,
 	}
 
 	if sockPath != "" {

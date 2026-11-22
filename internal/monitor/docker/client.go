@@ -57,46 +57,45 @@ func IsPodmanSocket(sockPath string) bool {
 	return strings.Contains(strings.ToLower(sockPath), "podman")
 }
 
-// FindDockerSocket finds an available Docker or Podman Unix socket.
-func FindDockerSocket() string {
-	if customSocketPath != "" {
-		p := filepath.Clean(strings.TrimPrefix(customSocketPath, "unix://"))
-		if _, err := os.Stat(p); err == nil {
-			return p
-		}
-	}
+// IsRootlessSocket returns true if the socket is located in a per-user rootless runtime directory.
+func IsRootlessSocket(sockPath string) bool {
+	p := strings.ToLower(sockPath)
+	return strings.Contains(p, "/run/user/") ||
+		strings.Contains(p, "/.local/share/containers/") ||
+		strings.Contains(p, "/.docker/")
+}
 
-	// 1. DOCKER_HOST environment variable override
-	if dockerHost := os.Getenv("DOCKER_HOST"); dockerHost != "" {
-		p := strings.TrimPrefix(dockerHost, "unix://")
-		p = strings.TrimPrefix(p, "unix:")
+// CanConnectToSocket checks if a Unix socket is actively listening and accessible.
+func CanConnectToSocket(sockPath string) bool {
+	if sockPath == "" {
+		return false
+	}
+	conn, err := net.DialTimeout("unix", sockPath, 150*time.Millisecond)
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
+func deduplicatePaths(paths []string) []string {
+	seen := make(map[string]bool, len(paths))
+	var res []string
+	for _, p := range paths {
 		cleaned := filepath.Clean(p)
-		if filepath.IsAbs(cleaned) {
-			if _, err := os.Stat(cleaned); err == nil { // #nosec G703
-				return cleaned
-			}
+		if cleaned != "" && cleaned != "." && !seen[cleaned] {
+			seen[cleaned] = true
+			res = append(res, cleaned)
 		}
 	}
+	return res
+}
 
-	// 2. CONTAINER_HOST environment variable override (Podman standard)
-	if containerHost := os.Getenv("CONTAINER_HOST"); containerHost != "" {
-		p := strings.TrimPrefix(containerHost, "unix://")
-		p = strings.TrimPrefix(p, "unix:")
-		cleaned := filepath.Clean(p)
-		if filepath.IsAbs(cleaned) {
-			if _, err := os.Stat(cleaned); err == nil { // #nosec G703
-				return cleaned
-			}
-		}
-	}
+// GetCandidateSockets returns an ordered list of candidate Unix socket paths.
+func GetCandidateSockets() []string {
+	var candidates []string
 
-	// 3. Standard system Docker sockets
-	candidates := []string{
-		"/var/run/docker.sock",
-		"/run/docker.sock",
-	}
-
-	// 4. Rootless Podman and Docker sockets via XDG_RUNTIME_DIR and /run/user/$UID
+	// Rootless Podman and Docker sockets via XDG_RUNTIME_DIR and /run/user/$UID
 	if xdg := os.Getenv("XDG_RUNTIME_DIR"); xdg != "" {
 		candidates = append(candidates,
 			filepath.Join(xdg, "podman", "podman.sock"),
@@ -110,11 +109,17 @@ func FindDockerSocket() string {
 		fmt.Sprintf("/run/user/%d/podman/podman.sock", uid),
 		fmt.Sprintf("/run/user/%d/podman.sock", uid),
 		fmt.Sprintf("/run/user/%d/docker.sock", uid),
+	)
+
+	// Standard system Docker and Podman sockets
+	candidates = append(candidates,
+		"/var/run/docker.sock",
+		"/run/docker.sock",
 		"/run/podman/podman.sock",
 		"/var/run/podman/podman.sock",
 	)
 
-	// 5. User home directory machine sockets (Podman machine & Docker Desktop)
+	// User home directory machine sockets (Podman machine & Docker Desktop)
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
 		candidates = append(candidates,
 			filepath.Join(home, ".local/share/containers/podman/machine/podman.sock"),
@@ -125,11 +130,68 @@ func FindDockerSocket() string {
 		)
 	}
 
+	return deduplicatePaths(candidates)
+}
+
+// FindDockerSocket finds an available Docker or Podman Unix socket.
+func FindDockerSocket() string {
+	// Explicit overrides:
+	if customSocketPath != "" {
+		p := filepath.Clean(strings.TrimPrefix(customSocketPath, "unix://"))
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+
+	if dockerHost := os.Getenv("DOCKER_HOST"); dockerHost != "" {
+		p := strings.TrimPrefix(dockerHost, "unix://")
+		p = strings.TrimPrefix(p, "unix:")
+		cleaned := filepath.Clean(p)
+		if filepath.IsAbs(cleaned) {
+			if _, err := os.Stat(cleaned); err == nil { // #nosec G703
+				return cleaned
+			}
+		}
+	}
+
+	if containerHost := os.Getenv("CONTAINER_HOST"); containerHost != "" {
+		p := strings.TrimPrefix(containerHost, "unix://")
+		p = strings.TrimPrefix(p, "unix:")
+		cleaned := filepath.Clean(p)
+		if filepath.IsAbs(cleaned) {
+			if _, err := os.Stat(cleaned); err == nil { // #nosec G703
+				return cleaned
+			}
+		}
+	}
+
+	if podmanSocket := os.Getenv("PODMAN_SOCKET"); podmanSocket != "" {
+		p := strings.TrimPrefix(podmanSocket, "unix://")
+		p = strings.TrimPrefix(p, "unix:")
+		cleaned := filepath.Clean(p)
+		if filepath.IsAbs(cleaned) {
+			if _, err := os.Stat(cleaned); err == nil { // #nosec G703
+				return cleaned
+			}
+		}
+	}
+
+	candidates := GetCandidateSockets()
+
+	// 1. First pass: find an active, listening socket that we can connect to
+	for _, p := range candidates {
+		if CanConnectToSocket(p) {
+			return p
+		}
+	}
+
+	// 2. Second pass: fallback to the first candidate that exists on the filesystem
 	for _, p := range candidates {
 		if _, err := os.Stat(p); err == nil {
 			return p
 		}
 	}
+
 	return ""
 }
 

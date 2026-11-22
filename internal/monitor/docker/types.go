@@ -92,4 +92,7 @@ type DockerSummary struct {
 	ImagesCount       int
 	Version           string
 	Containers        []ContainerItem
+	IsPodman          bool
+	IsRootless        bool
+	SocketPath        string
 }

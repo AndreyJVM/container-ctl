@@ -25,8 +25,19 @@ func RenderHeader(ctx HeaderContext) string {
 	appLine := theme.HeaderStyle.Render("Dockpulse") +
 		theme.DimStyle.Render(fmt.Sprintf("  %s  ", verStr)) +
 		theme.GreenStyle.Render("["+ctx.LastUpdate+"]")
+	engineLabel := "Docker:"
+	if ctx.DockerInfo.IsPodman {
+		if ctx.DockerInfo.IsRootless {
+			engineLabel = "Podman (rootless):"
+		} else {
+			engineLabel = "Podman:"
+		}
+	} else if ctx.DockerInfo.IsRootless {
+		engineLabel = "Docker (rootless):"
+	}
+
 	statusLine := fmt.Sprintf("%s %s  |  %s  |  %s %d  |  %s %s",
-		theme.DimStyle.Render("Docker:"), ctx.FormattedDockerStatus,
+		theme.DimStyle.Render(engineLabel), ctx.FormattedDockerStatus,
 		theme.BoldStyle.Render(fmt.Sprintf("Containers: %d active, %d stopped", ctx.DockerInfo.RunningContainers, ctx.DockerInfo.StoppedContainers)),
 		theme.DimStyle.Render("Images:"), ctx.DockerInfo.ImagesCount,
 		theme.DimStyle.Render("Engine:"), ctx.DockerInfo.Version,

@@ -364,3 +364,85 @@ func TestParseRawSocketContainers_DeterministicNetworks(t *testing.T) {
 		}
 	}
 }
+
+func TestGetDockerSummary_PodmanSocket(t *testing.T) {
+	origFinder := DockerSocketFinder
+	origFactory := SocketClientFactory
+	defer func() {
+		DockerSocketFinder = origFinder
+		SocketClientFactory = origFactory
+	}()
+
+	DockerSocketFinder = func() string { return "/run/user/1000/podman/podman.sock" }
+	SocketClientFactory = func(_ string) *http.Client {
+		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
+			if req.URL.Path == "/info" {
+				return mockStringResponse(http.StatusOK, `{
+					"Containers": 1,
+					"ContainersRunning": 1,
+					"ContainersStopped": 0,
+					"Images": 2,
+					"ServerVersion": "4.9.3"
+				}`), nil
+			}
+			if req.URL.Path == "/containers/json" {
+				return mockStringResponse(http.StatusOK, `[]`), nil
+			}
+			return mockStringResponse(http.StatusOK, `{}`), nil
+		})
+	}
+
+	summary := GetDockerSummary()
+	if summary.Status != DockerStatusRunning {
+		t.Errorf("expected status %q, got %q", DockerStatusRunning, summary.Status)
+	}
+	if !summary.IsPodman {
+		t.Errorf("expected summary.IsPodman to be true")
+	}
+	if !summary.IsRootless {
+		t.Errorf("expected summary.IsRootless to be true")
+	}
+	if summary.SocketPath != "/run/user/1000/podman/podman.sock" {
+		t.Errorf("expected SocketPath to be populated, got %s", summary.SocketPath)
+	}
+}
+
+func TestGetDockerSummary_PodmanCLI(t *testing.T) {
+	origLookPath := ExecLookPath
+	origFinder := DockerSocketFinder
+	origCLIRunner := DockerCLIRunner
+	defer func() {
+		ExecLookPath = origLookPath
+		DockerSocketFinder = origFinder
+		DockerCLIRunner = origCLIRunner
+	}()
+
+	DockerSocketFinder = func() string { return "" }
+	ExecLookPath = func(bin string) (string, error) {
+		if bin == "podman" {
+			return "/usr/bin/podman", nil
+		}
+		return "", errors.New("not found")
+	}
+	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+		if len(args) > 0 && args[0] == "info" {
+			return []byte("3 2 1 5 4.9.3-podman"), nil
+		}
+		if len(args) > 0 && args[0] == "ps" {
+			return []byte(""), nil
+		}
+		return []byte(""), nil
+	}
+
+	summary := GetDockerSummary()
+	if summary.Status != DockerStatusRunning {
+		t.Errorf("expected status %q, got %q", DockerStatusRunning, summary.Status)
+	}
+	if !summary.IsPodman {
+		t.Errorf("expected summary.IsPodman to be true")
+	}
+	if summary.TotalContainers != 3 || summary.RunningContainers != 2 || summary.StoppedContainers != 1 {
+		t.Errorf("unexpected counts: total=%d, running=%d, stopped=%d",
+			summary.TotalContainers, summary.RunningContainers, summary.StoppedContainers)
+	}
+}

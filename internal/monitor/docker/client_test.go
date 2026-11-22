@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -167,6 +168,108 @@ func TestIsPodmanSocket(t *testing.T) {
 				t.Errorf("IsPodmanSocket(%q) = %v; want %v", tt.sockPath, got, tt.expected)
 			}
 		})
+	}
+}
+
+func TestIsRootlessSocket(t *testing.T) {
+	tests := []struct {
+		sockPath string
+		expected bool
+	}{
+		{"/run/user/1000/podman/podman.sock", true},
+		{"/run/user/1000/docker.sock", true},
+		{"/home/user/.local/share/containers/podman/machine/podman.sock", true},
+		{"/home/user/.docker/run/docker.sock", true},
+		{"/var/run/docker.sock", false},
+		{"/run/docker.sock", false},
+		{"/var/run/podman/podman.sock", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.sockPath, func(t *testing.T) {
+			if got := IsRootlessSocket(tt.sockPath); got != tt.expected {
+				t.Errorf("IsRootlessSocket(%q) = %v; want %v", tt.sockPath, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCanConnectToSocket(t *testing.T) {
+	// Empty path should return false
+	if CanConnectToSocket("") {
+		t.Error("expected CanConnectToSocket('') to return false")
+	}
+
+	// Non-existent path should return false
+	if CanConnectToSocket("/tmp/nonexistent-dockpulse-sock.sock") {
+		t.Error("expected CanConnectToSocket to return false for nonexistent socket")
+	}
+
+	// Active unix listener should return true
+	tmpDir, err := os.MkdirTemp("", "dockpulse-listen-*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	sockPath := filepath.Join(tmpDir, "test.sock")
+	ln, err := net.Listen("unix", sockPath)
+	if err != nil {
+		t.Fatalf("failed to listen on unix socket: %v", err)
+	}
+	defer ln.Close()
+
+	if !CanConnectToSocket(sockPath) {
+		t.Errorf("expected CanConnectToSocket(%q) to return true for active listener", sockPath)
+	}
+
+	// After listener closes, CanConnectToSocket should return false
+	_ = ln.Close()
+	if CanConnectToSocket(sockPath) {
+		t.Errorf("expected CanConnectToSocket(%q) to return false after listener closed", sockPath)
+	}
+}
+
+func TestGetCandidateSockets(t *testing.T) {
+	candidates := GetCandidateSockets()
+	if len(candidates) == 0 {
+		t.Fatal("expected at least some candidate socket paths")
+	}
+
+	// Ensure candidates are deduplicated
+	seen := make(map[string]bool)
+	for _, c := range candidates {
+		if seen[c] {
+			t.Errorf("duplicate candidate socket found: %s", c)
+		}
+		seen[c] = true
+	}
+}
+
+func TestFindDockerSocket_PodmanSocket(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "podman-sock-env-*.sock")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	origDockerHost := os.Getenv("DOCKER_HOST")
+	origContainerHost := os.Getenv("CONTAINER_HOST")
+	origPodmanSocket := os.Getenv("PODMAN_SOCKET")
+	defer func() {
+		os.Setenv("DOCKER_HOST", origDockerHost)
+		os.Setenv("CONTAINER_HOST", origContainerHost)
+		os.Setenv("PODMAN_SOCKET", origPodmanSocket)
+	}()
+
+	os.Unsetenv("DOCKER_HOST")
+	os.Unsetenv("CONTAINER_HOST")
+	os.Setenv("PODMAN_SOCKET", tmpFile.Name())
+
+	detected := FindDockerSocket()
+	if detected != tmpFile.Name() {
+		t.Errorf("expected PODMAN_SOCKET %s, got %s", tmpFile.Name(), detected)
 	}
 }
 
