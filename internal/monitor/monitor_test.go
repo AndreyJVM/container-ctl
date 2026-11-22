@@ -129,7 +129,7 @@ func TestFacadeExports(t *testing.T) {
 	_ = monitor.RemoveContainer("c1")
 }
 
-func TestInspectAndCustomSocketFacade(t *testing.T) {
+func TestInspectAndCustomSocketFacade(_ *testing.T) {
 	_, _ = monitor.GetNetworkInspectJSON("bridge")
 	_, _ = monitor.GetVolumeInspectJSON("my-vol")
 }

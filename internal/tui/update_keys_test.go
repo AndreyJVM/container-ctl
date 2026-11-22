@@ -351,6 +351,9 @@ func TestHandleMainKeys_ModalTriggers(t *testing.T) {
 	})
 
 	t.Run("exec modal trigger via 'e' and 'E'", func(t *testing.T) {
+		restore := monitor.SetDockerCLIAvailableCheckerForTesting(func() bool { return true })
+		defer restore()
+
 		for _, key := range []string{"e", "E"} {
 			m := newFastTestModel()
 			m.activeTab = TabDocker
