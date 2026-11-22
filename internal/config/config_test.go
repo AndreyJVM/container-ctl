@@ -540,4 +540,3 @@ initial_tab: 2
 		t.Errorf("expected initial tab 2, got: %d", cfg.InitialTab)
 	}
 }
-

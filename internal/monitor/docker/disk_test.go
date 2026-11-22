@@ -308,4 +308,3 @@ func TestGetDockerDiskUsage_Error(t *testing.T) {
 		t.Errorf("expected error when both socket and CLI fail")
 	}
 }
-
