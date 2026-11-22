@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -252,6 +253,9 @@ func (s *safeBuffer) Len() int {
 }
 
 func TestE2E_InteractivePTY_FullSession(t *testing.T) {
+	if runtime.GOOS == "darwin" && os.Getenv("CI") != "" {
+		t.Skip("skipping interactive PTY test on macOS in headless CI environment")
+	}
 	cmd := exec.Command(binaryPath, "-i", "200ms")
 	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: 35, Cols: 120})
 	if err != nil {
@@ -360,6 +364,9 @@ func TestE2E_InteractivePTY_FullSession(t *testing.T) {
 }
 
 func TestE2E_InteractivePTY_FilterAndPrune(t *testing.T) {
+	if runtime.GOOS == "darwin" && os.Getenv("CI") != "" {
+		t.Skip("skipping interactive PTY test on macOS in headless CI environment")
+	}
 	cmd := exec.Command(binaryPath, "-t", "networks", "-i", "200ms")
 	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: 35, Cols: 120})
 	if err != nil {
