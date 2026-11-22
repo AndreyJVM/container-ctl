@@ -25,6 +25,26 @@ func TestFilterContainers(t *testing.T) {
 		t.Errorf("expected app-db, got %+v", filtered)
 	}
 
+	// 2a. Query filter by State
+	stateFiltered := Containers(containers, "paused", SortDefault)
+	if len(stateFiltered) != 1 || stateFiltered[0].Name != "redis-cache" {
+		t.Errorf("expected redis-cache when filtering by state 'paused', got %+v", stateFiltered)
+	}
+
+	// 2b. Query filter by Status, Ports, ComposeService
+	extraContainers := []monitor.ContainerItem{
+		{ID: "c4", Name: "custom-api", Status: "Up 5 hours", Ports: "0.0.0.0:8080->8080/tcp", ComposeService: "web-srv"},
+	}
+	if len(Containers(extraContainers, "8080", SortDefault)) != 1 {
+		t.Errorf("expected match by port 8080")
+	}
+	if len(Containers(extraContainers, "5 hours", SortDefault)) != 1 {
+		t.Errorf("expected match by status '5 hours'")
+	}
+	if len(Containers(extraContainers, "web-srv", SortDefault)) != 1 {
+		t.Errorf("expected match by compose service 'web-srv'")
+	}
+
 	// 3. Sort by CPU
 	cpuSorted := Containers(containers, "", SortCPU)
 	if cpuSorted[0].Name != "app-db" {

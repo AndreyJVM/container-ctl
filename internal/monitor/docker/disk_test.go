@@ -219,10 +219,10 @@ func TestGetDockerDiskUsage_CLIFallback(t *testing.T) {
 	DockerSocketFinder = func() string { return "" }
 	DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 		lines := []string{
-			`{"Type":"Images","TotalCount":"5","Active":"2","Size":"100MB","Reclaimable":"20MB"}`,
-			`{"Type":"Containers","TotalCount":"8","Active":"3","Size":"50MB","Reclaimable":"10MB"}`,
-			`{"Type":"Local Volumes","TotalCount":"4","Active":"1","Size":"30MB","Reclaimable":"20MB"}`,
-			`{"Type":"Build Cache","TotalCount":"6","Active":"2","Size":"40MB","Reclaimable":"10MB"}`,
+			`{"Type":"Images","TotalCount":"5","Active":"2","Size":"100MB","Reclaimable":"20MB (20%)"}`,
+			`{"Type":"Containers","TotalCount":"8","Active":"3","Size":"50MB","Reclaimable":"10MB (20%)"}`,
+			`{"Type":"Local Volumes","TotalCount":"4","Active":"1","Size":"30MB","Reclaimable":"20MB (66%)"}`,
+			`{"Type":"Build Cache","TotalCount":"6","Active":"2","Size":"40MB","Reclaimable":"10MB (25%)"}`,
 		}
 		return []byte(strings.Join(lines, "\n")), nil
 	}
@@ -232,16 +232,61 @@ func TestGetDockerDiskUsage_CLIFallback(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if usage.Images.TotalCount != 5 || usage.Images.ActiveCount != 2 {
-		t.Errorf("unexpected Images: %+v", usage.Images)
+		t.Errorf("unexpected Images count: %+v", usage.Images)
+	}
+	if usage.Images.TotalSize != 100*1024*1024 || usage.Images.Reclaimable != 20*1024*1024 {
+		t.Errorf("unexpected Images size: %+v", usage.Images)
 	}
 	if usage.Containers.TotalCount != 8 || usage.Containers.ActiveCount != 3 {
-		t.Errorf("unexpected Containers: %+v", usage.Containers)
+		t.Errorf("unexpected Containers count: %+v", usage.Containers)
+	}
+	if usage.Containers.TotalSize != 50*1024*1024 || usage.Containers.Reclaimable != 10*1024*1024 {
+		t.Errorf("unexpected Containers size: %+v", usage.Containers)
 	}
 	if usage.Volumes.TotalCount != 4 || usage.Volumes.ActiveCount != 1 {
-		t.Errorf("unexpected Volumes: %+v", usage.Volumes)
+		t.Errorf("unexpected Volumes count: %+v", usage.Volumes)
+	}
+	if usage.Volumes.TotalSize != 30*1024*1024 || usage.Volumes.Reclaimable != 20*1024*1024 {
+		t.Errorf("unexpected Volumes size: %+v", usage.Volumes)
 	}
 	if usage.BuildCache.TotalCount != 6 || usage.BuildCache.ActiveCount != 2 {
-		t.Errorf("unexpected BuildCache: %+v", usage.BuildCache)
+		t.Errorf("unexpected BuildCache count: %+v", usage.BuildCache)
+	}
+	if usage.BuildCache.TotalSize != 40*1024*1024 || usage.BuildCache.Reclaimable != 10*1024*1024 {
+		t.Errorf("unexpected BuildCache size: %+v", usage.BuildCache)
+	}
+
+	expectedTotal := int64(100+50+30+40) * 1024 * 1024
+	expectedRecl := int64(20+10+20+10) * 1024 * 1024
+	if usage.TotalSize != expectedTotal {
+		t.Errorf("expected total size %d, got %d", expectedTotal, usage.TotalSize)
+	}
+	if usage.TotalRecl != expectedRecl {
+		t.Errorf("expected total reclaimable %d, got %d", expectedRecl, usage.TotalRecl)
+	}
+}
+
+func TestParseCLISize(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"100MB", 100 * 1024 * 1024},
+		{"20MB (20%)", 20 * 1024 * 1024},
+		{"0B", 0},
+		{"0B (0%)", 0},
+		{"1.5GB (10%)", int64(1.5 * 1024 * 1024 * 1024)},
+		{"invalid", 0},
+		{"", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := parseCLISize(tt.input)
+			if got != tt.expected {
+				t.Errorf("parseCLISize(%q) = %d; want %d", tt.input, got, tt.expected)
+			}
+		})
 	}
 }
 
@@ -263,3 +308,4 @@ func TestGetDockerDiskUsage_Error(t *testing.T) {
 		t.Errorf("expected error when both socket and CLI fail")
 	}
 }
+

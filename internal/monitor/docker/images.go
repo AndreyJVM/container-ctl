@@ -152,11 +152,15 @@ func parseRepoTags(tags []string) (repo, tag string, dangling bool) {
 	}
 	first := tags[0]
 	idx := strings.LastIndex(first, ":")
-	if idx == -1 {
-		return first, "<none>", false
+	slashIdx := strings.LastIndex(first, "/")
+	var baseTag string
+	if idx == -1 || idx < slashIdx {
+		repo = first
+		baseTag = "<none>"
+	} else {
+		repo = first[:idx]
+		baseTag = first[idx+1:]
 	}
-	repo = first[:idx]
-	baseTag := first[idx+1:]
 	if len(tags) > 1 {
 		tag = fmt.Sprintf("%s (+%d)", baseTag, len(tags)-1)
 	} else {

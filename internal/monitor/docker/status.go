@@ -35,19 +35,38 @@ func ParseHealthStatus(val string) string {
 }
 
 // ParseExitCode extracts whether an exit code is present and its integer value
-// from Docker status strings like "Exited (1) 2 minutes ago" or "Exited (0)".
+// from Docker status strings like "Exited (1) 2 minutes ago", "Exited (0)", or "exited (ExitCode: 137)".
 func ParseExitCode(status string) (bool, int) {
 	lower := strings.ToLower(status)
-	idx := strings.Index(lower, "exited (")
-	if idx == -1 {
+	var rest string
+	if idx := strings.Index(lower, "exited ("); idx != -1 {
+		rest = status[idx+len("exited ("):]
+	} else if idx := strings.Index(lower, "(exitcode:"); idx != -1 {
+		rest = status[idx+len("(exitcode:"):]
+	} else if idx := strings.Index(lower, "exitcode:"); idx != -1 {
+		rest = status[idx+len("exitcode:"):]
+	} else {
 		return false, 0
 	}
-	rest := status[idx+len("exited ("):]
+
 	end := strings.IndexByte(rest, ')')
-	if end == -1 {
-		return false, 0
+	var rawCode string
+	if end != -1 {
+		rawCode = strings.TrimSpace(rest[:end])
+	} else {
+		fields := strings.Fields(rest)
+		if len(fields) > 0 {
+			rawCode = strings.TrimRight(fields[0], ")")
+		} else {
+			return false, 0
+		}
 	}
-	code, err := strconv.Atoi(strings.TrimSpace(rest[:end]))
+
+	if strings.HasPrefix(strings.ToLower(rawCode), "exitcode:") {
+		rawCode = strings.TrimSpace(rawCode[len("exitcode:"):])
+	}
+
+	code, err := strconv.Atoi(rawCode)
 	if err != nil {
 		return false, 0
 	}

@@ -18,6 +18,14 @@ func KeyBytes(msg tea.KeyMsg) []byte {
 		return data
 	}
 
+	if msg.Type == tea.KeySpace {
+		data := []byte(" ")
+		if msg.Alt {
+			return append([]byte{0x1b}, data...)
+		}
+		return data
+	}
+
 	if msg.Type >= 0 && msg.Type <= 31 {
 		data := []byte{byte(msg.Type)} // #nosec G115 -- bounded by msg.Type >= 0 && msg.Type <= 31
 		if msg.Alt {

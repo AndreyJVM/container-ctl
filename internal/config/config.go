@@ -156,7 +156,7 @@ func FindConfigFile(explicitPath string) string {
 
 	if envPath := os.Getenv("DOCKPULSE_CONFIG"); envPath != "" {
 		cleaned := filepath.Clean(envPath)
-		if _, err := os.Stat(cleaned); err == nil { // #nosec G703 - path is cleaned and checking configuration file existence
+		if info, err := os.Stat(cleaned); err == nil && !info.IsDir() { // #nosec G703 - path is cleaned and checking configuration file existence
 			return cleaned
 		}
 	}
@@ -221,6 +221,10 @@ func LoadConfig(explicitPath string) (*Config, error) {
 					cfg.Interval = d
 				case int:
 					cfg.Interval = time.Duration(v) * time.Second
+				case int64:
+					cfg.Interval = time.Duration(v) * time.Second
+				case float64:
+					cfg.Interval = time.Duration(v * float64(time.Second))
 				default:
 					return nil, fmt.Errorf("unsupported interval type in config: %T", raw.Interval)
 				}
@@ -233,6 +237,10 @@ func LoadConfig(explicitPath string) (*Config, error) {
 					tabStr = v
 				case int:
 					tabStr = strconv.Itoa(v)
+				case int64:
+					tabStr = strconv.FormatInt(v, 10)
+				case float64:
+					tabStr = strconv.Itoa(int(v))
 				default:
 					return nil, fmt.Errorf("unsupported initial_tab type in config: %T", raw.InitialTab)
 				}

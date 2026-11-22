@@ -119,7 +119,7 @@ func parseFlags(args []string, stdout, stderr io.Writer) (*config, error) {
 
 	cfg.configFile = configFilePath
 
-	if cfg.initConfig {
+	if cfg.showVersion || cfg.initConfig {
 		return cfg, nil
 	}
 

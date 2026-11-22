@@ -103,8 +103,9 @@ func FormatPortDisplay(portsStr string) []string {
 
 		// Deduplicate IPv6 if identical IPv4 mapping exists
 		dedupKey := clean
-		if strings.HasPrefix(clean, "[::]:") {
-			dedupKey = "0.0.0.0:" + strings.TrimPrefix(clean, "[::]:")
+		if strings.HasPrefix(clean, "[::]:") || strings.HasPrefix(clean, ":::") {
+			suffix := strings.TrimPrefix(strings.TrimPrefix(clean, "[::]:"), ":::")
+			dedupKey = "0.0.0.0:" + suffix
 		}
 
 		if seenMap[dedupKey] || seenMap[clean] {

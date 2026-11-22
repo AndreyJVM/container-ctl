@@ -105,7 +105,7 @@ func (m Model) handleDockerKill() (Model, tea.Cmd) {
 			m.showToast(fmt.Sprintf("Force killing %s...", c.Name))
 			return m, killContainerCmd(c.ID, c.Name)
 		}
-		m.showToast(fmt.Sprintf("Cannot connect: container %s is not running", c.Name))
+		m.showToast(fmt.Sprintf("Cannot kill: container %s is not running", c.Name))
 	}
 	return m, nil
 }
@@ -161,6 +161,10 @@ func (m Model) handleDockerOpenURL() (Model, tea.Cmd) {
 	containers := m.getFilteredContainers()
 	if len(containers) > 0 && m.cursorIdx < len(containers) {
 		c := containers[m.cursorIdx]
+		if c.State != "running" {
+			m.showToast(fmt.Sprintf("Cannot open URL: container %s is not running", c.Name))
+			return m, nil
+		}
 		urls := views.ExtractPortURLs(c.Ports)
 		if len(urls) == 0 {
 			m.showToast(fmt.Sprintf("No mapped ports for %s", c.Name))

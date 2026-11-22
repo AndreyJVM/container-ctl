@@ -36,6 +36,13 @@ func TestFormatPortDisplay(t *testing.T) {
 	if got[0] != "0.0.0.0:8080 → 8080/tcp" || got[1] != "0.0.0.0:443 → 443/tcp" {
 		t.Errorf("unexpected deduped ports: %v", got)
 	}
+
+	// IPv6 deduplication with ::: format
+	ipv46Colons := "0.0.0.0:8080->8080/tcp, :::8080->8080/tcp"
+	gotColons := FormatPortDisplay(ipv46Colons)
+	if len(gotColons) != 1 || gotColons[0] != "0.0.0.0:8080 → 8080/tcp" {
+		t.Errorf("expected 1 deduped port for ::: format, got: %v", gotColons)
+	}
 }
 
 func TestRenderContainerDetailsCard_Extended(t *testing.T) {

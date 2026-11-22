@@ -49,7 +49,11 @@ func Containers(containers []monitor.ContainerItem, query string, sortMode int) 
 			if strings.Contains(strings.ToLower(c.Name), q) ||
 				strings.Contains(strings.ToLower(c.Image), q) ||
 				strings.Contains(strings.ToLower(c.ID), q) ||
+				strings.Contains(strings.ToLower(c.State), q) ||
+				strings.Contains(strings.ToLower(c.Status), q) ||
+				strings.Contains(strings.ToLower(c.Ports), q) ||
 				strings.Contains(strings.ToLower(c.ComposeProject), q) ||
+				strings.Contains(strings.ToLower(c.ComposeService), q) ||
 				strings.Contains(strings.ToLower(c.Health), q) {
 				list = append(list, c)
 			}

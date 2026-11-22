@@ -352,11 +352,12 @@ func TestEmbeddedShell_WaitCmdAndExitCodeVariants(t *testing.T) {
 
 	t.Run("exit code 0 (clean exit)", func(t *testing.T) {
 		t.Parallel()
+		subFake := &fakeEmbeddedShell{}
 		m := newFastTestModel()
-		m.embeddedShell = fake
+		m.embeddedShell = subFake
 		m.shellContainerName = "api"
 
-		res, nextCmd := m.Update(embeddedShellExitedMsg{session: fake, err: nil})
+		res, nextCmd := m.Update(embeddedShellExitedMsg{session: subFake, err: nil})
 		updated := res.(Model)
 
 		if updated.embeddedShell != nil {
@@ -377,11 +378,12 @@ func TestEmbeddedShell_WaitCmdAndExitCodeVariants(t *testing.T) {
 			t.Skip("unable to produce exit code 130")
 		}
 
+		subFake := &fakeEmbeddedShell{}
 		m := newFastTestModel()
-		m.embeddedShell = fake
+		m.embeddedShell = subFake
 		m.shellContainerName = "api"
 
-		res, _ := m.Update(embeddedShellExitedMsg{session: fake, err: exit130})
+		res, _ := m.Update(embeddedShellExitedMsg{session: subFake, err: exit130})
 		updated := res.(Model)
 
 		if !strings.Contains(updated.actionMessage, "Shell session in api ended") ||
@@ -397,11 +399,12 @@ func TestEmbeddedShell_WaitCmdAndExitCodeVariants(t *testing.T) {
 			t.Skip("unable to produce exit code 1")
 		}
 
+		subFake := &fakeEmbeddedShell{}
 		m := newFastTestModel()
-		m.embeddedShell = fake
+		m.embeddedShell = subFake
 		m.shellContainerName = "api"
 
-		res, _ := m.Update(embeddedShellExitedMsg{session: fake, err: exit1})
+		res, _ := m.Update(embeddedShellExitedMsg{session: subFake, err: exit1})
 		updated := res.(Model)
 
 		if !strings.Contains(updated.actionMessage, "Shell session in api ended (code 1)") {
@@ -411,11 +414,12 @@ func TestEmbeddedShell_WaitCmdAndExitCodeVariants(t *testing.T) {
 
 	t.Run("generic non-ExitError error", func(t *testing.T) {
 		t.Parallel()
+		subFake := &fakeEmbeddedShell{}
 		m := newFastTestModel()
-		m.embeddedShell = fake
+		m.embeddedShell = subFake
 		m.shellContainerName = "api"
 
-		res, _ := m.Update(embeddedShellExitedMsg{session: fake, err: errors.New("PTY read error")})
+		res, _ := m.Update(embeddedShellExitedMsg{session: subFake, err: errors.New("PTY read error")})
 		updated := res.(Model)
 
 		if !strings.Contains(updated.actionMessage, "Shell error in api: PTY read error") {

@@ -177,18 +177,28 @@ func GetDockerDiskUsage() (DockerDiskUsage, error) {
 				case "images":
 					usage.Images.TotalCount = parseCLIInt(item.TotalCount)
 					usage.Images.ActiveCount = parseCLIInt(item.Active)
+					usage.Images.TotalSize = parseCLISize(item.Size)
+					usage.Images.Reclaimable = parseCLISize(item.Reclaimable)
 				case "containers":
 					usage.Containers.TotalCount = parseCLIInt(item.TotalCount)
 					usage.Containers.ActiveCount = parseCLIInt(item.Active)
+					usage.Containers.TotalSize = parseCLISize(item.Size)
+					usage.Containers.Reclaimable = parseCLISize(item.Reclaimable)
 				case "local volumes", "volumes":
 					usage.Volumes.TotalCount = parseCLIInt(item.TotalCount)
 					usage.Volumes.ActiveCount = parseCLIInt(item.Active)
+					usage.Volumes.TotalSize = parseCLISize(item.Size)
+					usage.Volumes.Reclaimable = parseCLISize(item.Reclaimable)
 				case "build cache":
 					usage.BuildCache.TotalCount = parseCLIInt(item.TotalCount)
 					usage.BuildCache.ActiveCount = parseCLIInt(item.Active)
+					usage.BuildCache.TotalSize = parseCLISize(item.Size)
+					usage.BuildCache.Reclaimable = parseCLISize(item.Reclaimable)
 				}
 			}
 		}
+		usage.TotalSize = usage.Images.TotalSize + usage.Containers.TotalSize + usage.Volumes.TotalSize + usage.BuildCache.TotalSize
+		usage.TotalRecl = usage.Images.Reclaimable + usage.Containers.Reclaimable + usage.Volumes.Reclaimable + usage.BuildCache.Reclaimable
 		return usage, nil
 	}
 
@@ -199,4 +209,16 @@ func parseCLIInt(s string) int {
 	var n int
 	_, _ = fmt.Sscanf(strings.TrimSpace(s), "%d", &n)
 	return n
+}
+
+func parseCLISize(s string) int64 {
+	s = strings.TrimSpace(s)
+	if idx := strings.Index(s, "("); idx != -1 {
+		s = strings.TrimSpace(s[:idx])
+	}
+	bytes := parseSizeToBytes(s)
+	if bytes < 0 {
+		return 0
+	}
+	return bytes
 }

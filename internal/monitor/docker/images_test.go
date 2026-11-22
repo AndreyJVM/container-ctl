@@ -223,3 +223,74 @@ func TestParseSizeToBytes(t *testing.T) {
 		}
 	}
 }
+
+func TestParseRepoTags(t *testing.T) {
+	tests := []struct {
+		name         string
+		tags         []string
+		wantRepo     string
+		wantTag      string
+		wantDangling bool
+	}{
+		{
+			name:         "empty tags",
+			tags:         nil,
+			wantRepo:     "<none>",
+			wantTag:      "<none>",
+			wantDangling: true,
+		},
+		{
+			name:         "dangling tags",
+			tags:         []string{"<none>:<none>"},
+			wantRepo:     "<none>",
+			wantTag:      "<none>",
+			wantDangling: true,
+		},
+		{
+			name:         "standard repo and tag",
+			tags:         []string{"nginx:alpine"},
+			wantRepo:     "nginx",
+			wantTag:      "alpine",
+			wantDangling: false,
+		},
+		{
+			name:         "multiple tags",
+			tags:         []string{"redis:7.0", "redis:latest"},
+			wantRepo:     "redis",
+			wantTag:      "7.0 (+1)",
+			wantDangling: false,
+		},
+		{
+			name:         "host with port and no tag",
+			tags:         []string{"localhost:5000/my-app"},
+			wantRepo:     "localhost:5000/my-app",
+			wantTag:      "<none>",
+			wantDangling: false,
+		},
+		{
+			name:         "host with port and tag",
+			tags:         []string{"registry.example.com:8443/team/service:v2.1.0"},
+			wantRepo:     "registry.example.com:8443/team/service",
+			wantTag:      "v2.1.0",
+			wantDangling: false,
+		},
+		{
+			name:         "repo without tag",
+			tags:         []string{"my-service"},
+			wantRepo:     "my-service",
+			wantTag:      "<none>",
+			wantDangling: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotRepo, gotTag, gotDangling := parseRepoTags(tt.tags)
+			if gotRepo != tt.wantRepo || gotTag != tt.wantTag || gotDangling != tt.wantDangling {
+				t.Errorf("parseRepoTags(%v) = (%q, %q, %v); want (%q, %q, %v)",
+					tt.tags, gotRepo, gotTag, gotDangling, tt.wantRepo, tt.wantTag, tt.wantDangling)
+			}
+		})
+	}
+}
+

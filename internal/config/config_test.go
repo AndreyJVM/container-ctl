@@ -499,3 +499,45 @@ initial_tab: swarm
 		t.Errorf("expected ShowSwarm to be true when initial_tab is swarm (6)")
 	}
 }
+
+func TestFindConfigFile_IgnoresDirectory(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "container-ctl-dir-*")
+	if err != nil {
+		t.Fatalf("temp dir error: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	origEnv := os.Getenv("DOCKPULSE_CONFIG")
+	defer os.Setenv("DOCKPULSE_CONFIG", origEnv)
+	os.Setenv("DOCKPULSE_CONFIG", tempDir)
+
+	if got := FindConfigFile(""); got == tempDir {
+		t.Errorf("FindConfigFile should not return a directory: got %s", got)
+	}
+}
+
+func TestLoadConfig_FloatAndInt64(t *testing.T) {
+	yamlContent := `
+interval: 1.5
+initial_tab: 2
+`
+	tmpFile, err := os.CreateTemp("", "float-interval-*.yaml")
+	if err != nil {
+		t.Fatalf("temp file error: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.WriteString(yamlContent)
+	tmpFile.Close()
+
+	cfg, err := LoadConfig(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("unexpected error loading float interval: %v", err)
+	}
+	if cfg.Interval != 1500*time.Millisecond {
+		t.Errorf("expected interval 1.5s (1500ms), got: %v", cfg.Interval)
+	}
+	if cfg.InitialTab != 2 {
+		t.Errorf("expected initial tab 2, got: %d", cfg.InitialTab)
+	}
+}
+

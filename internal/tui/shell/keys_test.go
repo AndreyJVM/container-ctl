@@ -54,6 +54,43 @@ func TestKeyBytes_Runes(t *testing.T) {
 	}
 }
 
+func TestKeyBytes_Space(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		msg      tea.KeyMsg
+		expected []byte
+	}{
+		{
+			name:     "space key without alt",
+			msg:      tea.KeyMsg{Type: tea.KeySpace, Runes: []rune(" ")},
+			expected: []byte(" "),
+		},
+		{
+			name:     "space key with alt",
+			msg:      tea.KeyMsg{Type: tea.KeySpace, Runes: []rune(" "), Alt: true},
+			expected: []byte{0x1b, ' '},
+		},
+		{
+			name:     "space key without runes slice",
+			msg:      tea.KeyMsg{Type: tea.KeySpace},
+			expected: []byte(" "),
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := KeyBytes(tc.msg)
+			if !bytes.Equal(got, tc.expected) {
+				t.Errorf("expected %v, got %v", tc.expected, got)
+			}
+		})
+	}
+}
+
 func TestKeyBytes_ControlKeys(t *testing.T) {
 	t.Parallel()
 

@@ -349,6 +349,25 @@ func TestRun_Version(t *testing.T) {
 	}
 }
 
+func TestRun_Version_WithCorruptedConfig(t *testing.T) {
+	badConfigFile, err := os.CreateTemp("", "bad-config-*.yaml")
+	if err != nil {
+		t.Fatalf("temp file error: %v", err)
+	}
+	defer os.Remove(badConfigFile.Name())
+	badConfigFile.WriteString("invalid: [yaml: broken: {{")
+	badConfigFile.Close()
+
+	var stdout, stderr bytes.Buffer
+	err = run([]string{"-c", badConfigFile.Name(), "-v"}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("expected version check to succeed despite broken config file, got: %v", err)
+	}
+	if !strings.Contains(stdout.String(), version) {
+		t.Errorf("expected version %q in stdout, got: %s", version, stdout.String())
+	}
+}
+
 func TestRun_ValidationFailure(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	err := run([]string{"--tab", "99"}, &stdout, &stderr)

@@ -122,8 +122,8 @@ func CleanTablePorts(portsStr string) string {
 		}
 
 		// Deduplicate IPv6 if identical IPv4 mapping exists
-		if strings.HasPrefix(entry, "[::]:") || strings.HasPrefix(entry, "::: ") {
-			v4Suffix := strings.TrimPrefix(entry, "[::]:")
+		if strings.HasPrefix(entry, "[::]:") || strings.HasPrefix(entry, ":::") {
+			v4Suffix := strings.TrimPrefix(strings.TrimPrefix(entry, "[::]:"), ":::")
 			if seen["0.0.0.0:"+v4Suffix] || seen[v4Suffix] {
 				continue
 			}

@@ -490,15 +490,15 @@ func TestContainerKillAndRemoveWorkflow(t *testing.T) {
 		t.Errorf("expected toast 'Force killing app-run', got: %s", m.actionMessage)
 	}
 
-	// 2. Press K on stopped container shows cannot connect toast
+	// 2. Press K on stopped container shows cannot kill toast
 	m.cursorIdx = 1
 	res, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'K'}})
 	m = res.(Model)
 	if cmd != nil {
 		t.Errorf("expected nil cmd when killing stopped container")
 	}
-	if !strings.Contains(m.actionMessage, "Cannot connect") {
-		t.Errorf("expected 'Cannot connect' toast, got: %s", m.actionMessage)
+	if !strings.Contains(m.actionMessage, "Cannot kill") {
+		t.Errorf("expected 'Cannot kill' toast, got: %s", m.actionMessage)
 	}
 
 	// 3. Press x on container opens remove confirmation modal
@@ -573,12 +573,20 @@ func TestContainerCopyAndOpenURL(t *testing.T) {
 		testutil.AContainer(
 			testutil.WithID("c1"),
 			testutil.WithName("web-frontend"),
+			testutil.WithState("running", "Up 2 hours"),
 			testutil.WithPorts("0.0.0.0:3000->3000/tcp"),
 		),
 		testutil.AContainer(
 			testutil.WithID("c2"),
 			testutil.WithName("headless-worker"),
+			testutil.WithState("running", "Up 2 hours"),
 			testutil.WithPorts(""),
+		),
+		testutil.AContainer(
+			testutil.WithID("c3"),
+			testutil.WithName("stopped-service"),
+			testutil.WithState("exited", "Exited (0) 5 mins ago"),
+			testutil.WithPorts("0.0.0.0:8080->8080/tcp"),
 		),
 	}
 
@@ -590,7 +598,7 @@ func TestContainerCopyAndOpenURL(t *testing.T) {
 	}
 
 	// 2. Press 'w' when browser opener succeeds
-	browserOpener = func(url string) bool { return true }
+	browserOpener = func(_ string) bool { return true }
 	m.cursorIdx = 0
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
 	m = res.(Model)
@@ -599,7 +607,7 @@ func TestContainerCopyAndOpenURL(t *testing.T) {
 	}
 
 	// 3. Press 'w' when browser opener fails (fallback to copied URL)
-	browserOpener = func(url string) bool { return false }
+	browserOpener = func(_ string) bool { return false }
 	m.cursorIdx = 0
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
 	m = res.(Model)
@@ -613,6 +621,14 @@ func TestContainerCopyAndOpenURL(t *testing.T) {
 	m = res.(Model)
 	if !strings.Contains(m.actionMessage, "No mapped ports for headless-worker") {
 		t.Errorf("expected no mapped ports toast, got: %s", m.actionMessage)
+	}
+
+	// 5. Move cursor down to stopped container with ports and press 'w'
+	m.cursorIdx = 2
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
+	m = res.(Model)
+	if !strings.Contains(m.actionMessage, "Cannot open URL: container stopped-service is not running") {
+		t.Errorf("expected container not running toast, got: %s", m.actionMessage)
 	}
 }
 
