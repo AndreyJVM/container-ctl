@@ -94,10 +94,10 @@ func fetchDockerSummaryViaSocket(sockPath string, summary *DockerSummary) bool {
 
 // GetDockerSummary collects Docker daemon status and container list with live metrics.
 func GetDockerSummary() DockerSummary {
-	_, cliErr := ExecLookPath("docker")
+	cliAvailable := IsDockerCLIAvailable()
 	sockPath := DockerSocketFinder()
 
-	if cliErr != nil && sockPath == "" {
+	if !cliAvailable && sockPath == "" {
 		return DockerSummary{
 			Status:        DockerStatusNotInstalled,
 			StatusDisplay: DockerStatusDisplayNotInstalled,
@@ -115,7 +115,7 @@ func GetDockerSummary() DockerSummary {
 		}
 	}
 
-	if cliErr == nil {
+	if cliAvailable {
 		fetchDockerSummaryViaCLI(&summary)
 	}
 	return summary

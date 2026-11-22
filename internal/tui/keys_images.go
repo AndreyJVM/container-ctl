@@ -3,7 +3,6 @@ package tui
 import (
 	"fmt"
 
-	"github.com/AndreyJVM/container-ctl/internal/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -42,11 +41,7 @@ func (m Model) handleImagesCopy() (Model, tea.Cmd) {
 		if img.Tag != "" && img.Tag != "<none>" {
 			name = fmt.Sprintf("%s:%s", img.Repository, img.Tag)
 		}
-		if err := clipboard.Write(name); err != nil {
-			m.showToast(fmt.Sprintf("Clipboard error: %v", err))
-		} else {
-			m.showToast(fmt.Sprintf("Copied to clipboard: %s", name))
-		}
+		m.copyToClipboard(name)
 	}
 	return m, nil
 }

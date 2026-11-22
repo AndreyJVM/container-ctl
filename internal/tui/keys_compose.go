@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/container-ctl/internal/clipboard"
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -71,11 +70,7 @@ func (m Model) handleComposeCopy() (Model, tea.Cmd) {
 	compose := m.getFilteredCompose()
 	if len(compose) > 0 && m.composeCursorIdx < len(compose) {
 		proj := compose[m.composeCursorIdx]
-		if err := clipboard.Write(proj.Name); err != nil {
-			m.showToast(fmt.Sprintf("Clipboard error: %v", err))
-		} else {
-			m.showToast(fmt.Sprintf("Copied to clipboard: %s", proj.Name))
-		}
+		m.copyToClipboard(proj.Name)
 	}
 	return m, nil
 }

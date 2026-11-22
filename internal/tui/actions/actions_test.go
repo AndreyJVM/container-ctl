@@ -116,4 +116,19 @@ func TestFetchAllDataAndCmd(t *testing.T) {
 	if len(msg.Timestamp) != 8 {
 		t.Errorf("expected valid timestamp from FetchData, got %s", msg.Timestamp)
 	}
+
+	// Filtered fetching: skip images, networks, volumes, swarm
+	filtered := FetchAllDataFiltered(false, false, false, false)
+	if len(filtered.Timestamp) != 8 {
+		t.Errorf("expected valid timestamp from FetchAllDataFiltered, got %s", filtered.Timestamp)
+	}
+	if len(filtered.Images) != 0 {
+		t.Errorf("expected empty images when images disabled, got %d", len(filtered.Images))
+	}
+	if len(filtered.Networks) != 0 {
+		t.Errorf("expected empty networks when networks disabled, got %d", len(filtered.Networks))
+	}
+	if len(filtered.Volumes) != 0 {
+		t.Errorf("expected empty volumes when volumes disabled, got %d", len(filtered.Volumes))
+	}
 }

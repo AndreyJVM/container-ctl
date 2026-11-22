@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/container-ctl/internal/clipboard"
 	"github.com/AndreyJVM/container-ctl/internal/tui/modals"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -208,11 +207,7 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			targetToCopy = m.inspectTarget.ID
 		}
 		if m.activeModal == ModalInspect && targetToCopy != "" {
-			if err := clipboard.Write(targetToCopy); err != nil {
-				m.showToast(fmt.Sprintf("Clipboard error: %v", err))
-			} else {
-				m.showToast(fmt.Sprintf("Copied to clipboard: %s", targetToCopy))
-			}
+			m.copyToClipboard(targetToCopy)
 			return m, nil
 		}
 	}

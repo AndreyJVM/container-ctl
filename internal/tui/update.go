@@ -20,44 +20,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleExecFinished(msg)
 
 	case actionFinishedMsg:
-		if msg.err != nil {
-			m.showToast(msg.err.Error())
-		} else if msg.message != "" {
-			m.showToast(msg.message)
-		}
-		if msg.refresh {
-			return m, fetchDataCmd()
-		}
-		return m, nil
+		return m.handleActionResult(msg.err, msg.message, msg.refresh)
 
 	case actions.FinishedMsg:
-		if msg.Err != nil {
-			m.showToast(msg.Err.Error())
-		} else if msg.Message != "" {
-			m.showToast(msg.Message)
-		}
-		if msg.Refresh {
-			return m, fetchDataCmd()
-		}
-		return m, nil
+		return m.handleActionResult(msg.Err, msg.Message, msg.Refresh)
 
 	case dataFetchedMsg:
 		m.applyFetchedData(msg)
 		return m, nil
 
 	case actions.DataFetchedMsg:
-		m.applyFetchedData(dataFetchedMsg{
-			dockerInfo: msg.DockerInfo,
-			images:     msg.Images,
-			compose:    msg.Compose,
-			networks:   msg.Networks,
-			volumes:    msg.Volumes,
-			swarm:      msg.Swarm,
-			imageErr:   msg.ImageErr,
-			networkErr: msg.NetworkErr,
-			volumeErr:  msg.VolumeErr,
-			timestamp:  msg.Timestamp,
-		})
+		m.applyActionsData(msg)
 		return m, nil
 
 	case tea.WindowSizeMsg:
@@ -133,4 +106,16 @@ func (m Model) handleExecFinished(msg execFinishedMsg) (tea.Model, tea.Cmd) {
 	}
 	m.fetchAllData()
 	return m, nil
+}
+
+func (m *Model) handleActionResult(err error, message string, refresh bool) (tea.Model, tea.Cmd) {
+	if err != nil {
+		m.showToast(err.Error())
+	} else if message != "" {
+		m.showToast(message)
+	}
+	if refresh {
+		return *m, fetchDataCmd()
+	}
+	return *m, nil
 }

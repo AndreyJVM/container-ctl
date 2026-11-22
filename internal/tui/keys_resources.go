@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AndreyJVM/container-ctl/internal/clipboard"
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -41,11 +40,7 @@ func (m Model) handleNetworksCopy() (Model, tea.Cmd) {
 	networks := m.getFilteredNetworks()
 	if len(networks) > 0 && m.networkCursorIdx < len(networks) {
 		net := networks[m.networkCursorIdx]
-		if err := clipboard.Write(net.Name); err != nil {
-			m.showToast(fmt.Sprintf("Clipboard error: %v", err))
-		} else {
-			m.showToast(fmt.Sprintf("Copied to clipboard: %s", net.Name))
-		}
+		m.copyToClipboard(net.Name)
 	}
 	return m, nil
 }
@@ -78,11 +73,7 @@ func (m Model) handleVolumesCopy() (Model, tea.Cmd) {
 	volumes := m.getFilteredVolumes()
 	if len(volumes) > 0 && m.volumeCursorIdx < len(volumes) {
 		vol := volumes[m.volumeCursorIdx]
-		if err := clipboard.Write(vol.Name); err != nil {
-			m.showToast(fmt.Sprintf("Clipboard error: %v", err))
-		} else {
-			m.showToast(fmt.Sprintf("Copied to clipboard: %s", vol.Name))
-		}
+		m.copyToClipboard(vol.Name)
 	}
 	return m, nil
 }
@@ -107,11 +98,7 @@ func (m Model) handleSwarmLogs() (Model, tea.Cmd) {
 func (m Model) handleSwarmCopy() (Model, tea.Cmd) {
 	if len(m.swarm.Services) > 0 && m.swarmCursorIdx < len(m.swarm.Services) {
 		svc := m.swarm.Services[m.swarmCursorIdx]
-		if err := clipboard.Write(svc.Name); err != nil {
-			m.showToast(fmt.Sprintf("Clipboard error: %v", err))
-		} else {
-			m.showToast(fmt.Sprintf("Copied to clipboard: %s", svc.Name))
-		}
+		m.copyToClipboard(svc.Name)
 	}
 	return m, nil
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/tui/actions"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -496,5 +497,32 @@ func TestDynamicSwarmTabLifecycle(t *testing.T) {
 	}
 	if !strings.Contains(m.actionMessage, "Host is not part of an active Swarm cluster.") {
 		t.Fatalf("expected toast on deactivation fallback, got %q", m.actionMessage)
+	}
+}
+
+func TestModel_CopyToClipboard(t *testing.T) {
+	t.Parallel()
+
+	m := newFastTestModel()
+	m.copyToClipboard("test-resource-id")
+	if !strings.Contains(m.actionMessage, "Copied to clipboard: test-resource-id") && !strings.Contains(m.actionMessage, "Clipboard error:") {
+		t.Errorf("unexpected actionMessage after copyToClipboard: %q", m.actionMessage)
+	}
+}
+
+func TestModel_ApplyActionsData(t *testing.T) {
+	t.Parallel()
+
+	m := newFastTestModel()
+	m.applyActionsData(actions.DataFetchedMsg{
+		DockerInfo: monitor.DockerSummary{RunningContainers: 5},
+		Timestamp:  "12:34:56",
+	})
+
+	if m.dockerInfo.RunningContainers != 5 {
+		t.Errorf("expected 5 running containers, got %d", m.dockerInfo.RunningContainers)
+	}
+	if m.lastUpdate != "12:34:56" {
+		t.Errorf("expected timestamp 12:34:56, got %s", m.lastUpdate)
 	}
 }

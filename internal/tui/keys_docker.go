@@ -147,12 +147,8 @@ func (m Model) handleDockerCopy() (Model, tea.Cmd) {
 	containers := m.getFilteredContainers()
 	if len(containers) > 0 && m.cursorIdx < len(containers) {
 		c := containers[m.cursorIdx]
-		cmdText := fmt.Sprintf("docker exec -it %s sh", c.Name)
-		if err := clipboard.Write(cmdText); err != nil {
-			m.showToast(fmt.Sprintf("Clipboard error: %v", err))
-		} else {
-			m.showToast(fmt.Sprintf("Copied to clipboard: %s", cmdText))
-		}
+		cmdText := fmt.Sprintf("%s exec -it %s sh", monitor.GetContainerCLI(), c.Name)
+		m.copyToClipboard(cmdText)
 	}
 	return m, nil
 }

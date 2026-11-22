@@ -1,11 +1,14 @@
 package tui
 
 import (
+	"fmt"
 	"os/exec"
 	"time"
 
+	"github.com/AndreyJVM/container-ctl/internal/clipboard"
 	"github.com/AndreyJVM/container-ctl/internal/module"
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/tui/actions"
 	"github.com/AndreyJVM/container-ctl/internal/tui/shell"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -214,17 +217,17 @@ func NewModel(refreshInterval time.Duration, initialTab int, version string, sho
 	return m
 }
 
-func (m *Model) applyFetchedData(d dataFetchedMsg) {
-	m.dockerInfo = d.dockerInfo
-	m.images = d.images
-	m.compose = d.compose
-	m.networks = d.networks
-	m.volumes = d.volumes
-	m.swarm = d.swarm
-	m.imageErr = d.imageErr
-	m.networkErr = d.networkErr
-	m.volumeErr = d.volumeErr
-	m.lastUpdate = d.timestamp
+func (m *Model) applyActionsData(d actions.DataFetchedMsg) {
+	m.dockerInfo = d.DockerInfo
+	m.images = d.Images
+	m.compose = d.Compose
+	m.networks = d.Networks
+	m.volumes = d.Volumes
+	m.swarm = d.Swarm
+	m.imageErr = d.ImageErr
+	m.networkErr = d.NetworkErr
+	m.volumeErr = d.VolumeErr
+	m.lastUpdate = d.Timestamp
 
 	m.clampCursor()
 	if m.composeCursorIdx >= len(m.compose) {
@@ -240,6 +243,21 @@ func (m *Model) applyFetchedData(d dataFetchedMsg) {
 	}
 }
 
+func (m *Model) applyFetchedData(d dataFetchedMsg) {
+	m.applyActionsData(actions.DataFetchedMsg{
+		DockerInfo: d.dockerInfo,
+		Images:     d.images,
+		Compose:    d.compose,
+		Networks:   d.networks,
+		Volumes:    d.volumes,
+		Swarm:      d.swarm,
+		ImageErr:   d.imageErr,
+		NetworkErr: d.networkErr,
+		VolumeErr:  d.volumeErr,
+		Timestamp:  d.timestamp,
+	})
+}
+
 var fetchDockerData = fetchAllData
 
 func (m *Model) fetchAllData() {
@@ -253,6 +271,14 @@ func (m Model) Init() tea.Cmd {
 func (m *Model) showToast(msg string) {
 	m.actionMessage = msg
 	m.actionMessageExpiry = time.Now().Add(4 * time.Second)
+}
+
+func (m *Model) copyToClipboard(text string) {
+	if err := clipboard.Write(text); err != nil {
+		m.showToast(fmt.Sprintf("Clipboard error: %v", err))
+	} else {
+		m.showToast(fmt.Sprintf("Copied to clipboard: %s", text))
+	}
 }
 
 func formatFetchError(err error) string {

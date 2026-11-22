@@ -2,6 +2,7 @@ package actions
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
@@ -47,24 +48,77 @@ func formatFetchError(err error) string {
 	return err.Error()
 }
 
-// FetchAllData queries all Docker resources synchronously.
-func FetchAllData() DataFetchedMsg {
-	dockerInfo := monitor.GetDockerSummary()
-	images, imageErr := monitor.GetDockerImages()
-	networks, networkErr := monitor.GetDockerNetworks()
-	volumes, volumeErr := monitor.GetDockerVolumes()
+// FetchAllDataFiltered queries Docker resources concurrently, allowing selective subsystem fetching.
+func FetchAllDataFiltered(includeImages, includeNetworks, includeVolumes, includeSwarm bool) DataFetchedMsg {
+	var (
+		dockerInfo monitor.DockerSummary
+		images     []monitor.DockerImage
+		imageErr   error
+		networks   []monitor.DockerNetwork
+		networkErr error
+		volumes    []monitor.DockerVolume
+		volumeErr  error
+		swarm      monitor.SwarmSummary
+		wg         sync.WaitGroup
+	)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		dockerInfo = monitor.GetDockerSummary()
+	}()
+
+	if includeImages {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			images, imageErr = monitor.GetDockerImages()
+		}()
+	}
+
+	if includeNetworks {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			networks, networkErr = monitor.GetDockerNetworks()
+		}()
+	}
+
+	if includeVolumes {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			volumes, volumeErr = monitor.GetDockerVolumes()
+		}()
+	}
+
+	if includeSwarm {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			swarm = monitor.GetSwarmSummary()
+		}()
+	}
+
+	wg.Wait()
+
 	return DataFetchedMsg{
 		DockerInfo: dockerInfo,
 		Images:     images,
 		Compose:    monitor.GetComposeProjects(dockerInfo.Containers),
 		Networks:   networks,
 		Volumes:    volumes,
-		Swarm:      monitor.GetSwarmSummary(),
+		Swarm:      swarm,
 		ImageErr:   formatFetchError(imageErr),
 		NetworkErr: formatFetchError(networkErr),
 		VolumeErr:  formatFetchError(volumeErr),
 		Timestamp:  time.Now().Format(TimeFormat),
 	}
+}
+
+// FetchAllData queries all Docker resources concurrently.
+func FetchAllData() DataFetchedMsg {
+	return FetchAllDataFiltered(true, true, true, true)
 }
 
 // FetchData creates a tea.Cmd to fetch all Docker data asynchronously.

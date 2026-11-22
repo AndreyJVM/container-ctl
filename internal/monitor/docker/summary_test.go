@@ -184,6 +184,54 @@ func TestGetDockerSummary_CLIFallback(t *testing.T) {
 	}
 }
 
+func TestGetDockerSummary_PodmanCLIFallback(t *testing.T) {
+	origFinder := DockerSocketFinder
+	origRunner := DockerCLIRunner
+	origLookPath := ExecLookPath
+	defer func() {
+		DockerSocketFinder = origFinder
+		DockerCLIRunner = origRunner
+		ExecLookPath = origLookPath
+	}()
+
+	// Simulate "docker" missing, but "podman" available
+	ExecLookPath = func(binary string) (string, error) {
+		if binary == "podman" {
+			return "/usr/bin/podman", nil
+		}
+		return "", errors.New("command not found")
+	}
+	DockerSocketFinder = func() string { return "" }
+	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+		if len(args) == 0 {
+			return nil, errors.New("no args")
+		}
+		switch args[0] {
+		case "info":
+			return []byte("2 2 0 1 4.9.3"), nil
+		case "ps":
+			return []byte("p456\tpodman-app\tredis:alpine\trunning\tUp 10 minutes\t6379/tcp\t/data\t\tpodman-net\t2026-01-01\t10m"), nil
+		case "inspect":
+			return []byte("p456|unless-stopped|10.88.0.2"), nil
+		}
+		return nil, errors.New("unknown cmd")
+	}
+
+	summary := GetDockerSummary()
+	if summary.Status != DockerStatusRunning {
+		t.Fatalf("expected status %q, got %q", DockerStatusRunning, summary.Status)
+	}
+	if summary.Version != "4.9.3" {
+		t.Errorf("expected version 4.9.3, got %q", summary.Version)
+	}
+	if len(summary.Containers) != 1 {
+		t.Fatalf("expected 1 container, got %d", len(summary.Containers))
+	}
+	if summary.Containers[0].Name != "podman-app" {
+		t.Errorf("expected podman-app, got %q", summary.Containers[0].Name)
+	}
+}
+
 func TestGetDockerSummary_SocketInfoFails_ContainersSucceed(t *testing.T) {
 	origFinder := DockerSocketFinder
 	origFactory := SocketClientFactory
