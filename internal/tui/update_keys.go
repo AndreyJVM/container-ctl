@@ -50,21 +50,14 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "shift+tab", "left":
 		m.prevTab()
 
-	case "1":
-		m.setTab(TabDocker)
-	case "2":
-		m.setTab(TabImages)
-	case "3":
-		m.setTab(TabCompose)
-	case "4":
-		m.setTab(TabNetworks)
-	case "5":
-		m.setTab(TabVolumes)
-	case "6":
-		if m.IsSwarmVisible() {
-			m.setTab(TabSwarm)
-		} else {
-			m.showToast("Host is not part of an active Swarm cluster.")
+	case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		if len(msg.Runes) > 0 {
+			idx := int(msg.Runes[0] - '0')
+			if !m.setTabByIndex(idx) {
+				if msg.String() == "6" && !m.IsSwarmVisible() {
+					m.showToast("Host is not part of an active Swarm cluster.")
+				}
+			}
 		}
 
 	case "r", "R":

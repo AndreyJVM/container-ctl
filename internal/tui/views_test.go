@@ -670,3 +670,31 @@ func TestView_ModuleRegistryCustomization(t *testing.T) {
 		t.Errorf("expected Images tab to be hidden from tabs bar, got:\n%s", view)
 	}
 }
+
+func TestView_ModuleRegistryActiveTabHighlight(t *testing.T) {
+	t.Parallel()
+	m := newFastTestModel()
+
+	// Swarm first, Containers second
+	reg := module.NewRegistry()
+	reg.Register(module.ContainersModule)
+	reg.Register(module.SwarmModule)
+	reg.SetModuleConfig(module.IDSwarm, module.Config{Order: 1})
+	reg.SetModuleConfig(module.IDContainers, module.Config{Order: 2})
+	m.SetRegistry(reg)
+	m.swarm.IsActive = true
+
+	// When activeTab is TabSwarm, Swarm is tab index 1
+	m.activeTab = TabSwarm
+	view := m.View()
+	if !strings.Contains(view, "1: Swarm") {
+		t.Errorf("expected 1: Swarm in view, got: %s", view)
+	}
+
+	// Now switch to TabDocker (index 2)
+	m.activeTab = TabDocker
+	view2 := m.View()
+	if !strings.Contains(view2, "2: Containers") {
+		t.Errorf("expected 2: Containers in view, got: %s", view2)
+	}
+}

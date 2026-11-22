@@ -60,6 +60,51 @@ func (m *Model) clampCursor() {
 	}
 }
 
+// TabIDFromModuleID maps a module ID to its legacy TabID enum.
+func TabIDFromModuleID(id module.ID) (TabID, bool) {
+	switch id {
+	case module.IDContainers:
+		return TabDocker, true
+	case module.IDImages:
+		return TabImages, true
+	case module.IDCompose:
+		return TabCompose, true
+	case module.IDNetworks:
+		return TabNetworks, true
+	case module.IDVolumes:
+		return TabVolumes, true
+	case module.IDSwarm:
+		return TabSwarm, true
+	default:
+		return 0, false
+	}
+}
+
+// ModuleIDFromTabID maps a TabID to its corresponding module ID.
+func ModuleIDFromTabID(tab TabID) (module.ID, bool) {
+	switch tab {
+	case TabDocker:
+		return module.IDContainers, true
+	case TabImages:
+		return module.IDImages, true
+	case TabCompose:
+		return module.IDCompose, true
+	case TabNetworks:
+		return module.IDNetworks, true
+	case TabVolumes:
+		return module.IDVolumes, true
+	case TabSwarm:
+		return module.IDSwarm, true
+	default:
+		return "", false
+	}
+}
+
+// visibleModules returns the slice of currently visible modules from the registry.
+func (m *Model) visibleModules() []module.VisibleModule {
+	return m.Registry().VisibleModules(m.moduleContext())
+}
+
 // IsSwarmVisible returns true if Swarm tab is explicitly enabled or active on the host.
 func (m *Model) IsSwarmVisible() bool {
 	if m.registry != nil {
@@ -82,18 +127,78 @@ func (m *Model) maxTab() TabID {
 
 // nextTab switches to the next tab cyclically based on visible tabs.
 func (m *Model) nextTab() {
-	m.activeTab++
-	if m.activeTab > m.maxTab() {
-		m.activeTab = TabDocker
+	visible := m.visibleModules()
+	if len(visible) == 0 {
+		m.activeTab++
+		if m.activeTab > m.maxTab() {
+			m.activeTab = TabDocker
+		}
+		return
+	}
+
+	currIdx := -1
+	for i, v := range visible {
+		if tabID, ok := TabIDFromModuleID(v.ID); ok && tabID == m.activeTab {
+			currIdx = i
+			break
+		}
+	}
+	if currIdx == -1 {
+		if tabID, ok := TabIDFromModuleID(visible[0].ID); ok {
+			m.activeTab = tabID
+		}
+		return
+	}
+
+	nextIdx := (currIdx + 1) % len(visible)
+	if tabID, ok := TabIDFromModuleID(visible[nextIdx].ID); ok {
+		m.activeTab = tabID
 	}
 }
 
 // prevTab switches to the previous tab cyclically based on visible tabs.
 func (m *Model) prevTab() {
-	m.activeTab--
-	if m.activeTab < TabDocker {
-		m.activeTab = m.maxTab()
+	visible := m.visibleModules()
+	if len(visible) == 0 {
+		m.activeTab--
+		if m.activeTab < TabDocker {
+			m.activeTab = m.maxTab()
+		}
+		return
 	}
+
+	currIdx := -1
+	for i, v := range visible {
+		if tabID, ok := TabIDFromModuleID(v.ID); ok && tabID == m.activeTab {
+			currIdx = i
+			break
+		}
+	}
+	if currIdx == -1 {
+		if tabID, ok := TabIDFromModuleID(visible[0].ID); ok {
+			m.activeTab = tabID
+		}
+		return
+	}
+
+	prevIdx := (currIdx - 1 + len(visible)) % len(visible)
+	if tabID, ok := TabIDFromModuleID(visible[prevIdx].ID); ok {
+		m.activeTab = tabID
+	}
+}
+
+// setTabByIndex switches directly to the module at 1-based index if visible.
+func (m *Model) setTabByIndex(index int) bool {
+	visible := m.visibleModules()
+	if index < 1 || index > len(visible) {
+		return false
+	}
+	tabID, mapped := TabIDFromModuleID(visible[index-1].ID)
+	if mapped {
+		m.activeTab = tabID
+		return true
+	}
+	return false
 }
 
 // setTab switches directly to the specified tab if within valid range.

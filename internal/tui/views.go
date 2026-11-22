@@ -25,10 +25,14 @@ func (m Model) View() string {
 	// 2. Tabs
 	visible := m.Registry().VisibleModules(m.moduleContext())
 	tabs := make([]string, len(visible))
+	activeTabIdx := 1
 	for i, v := range visible {
 		tabs[i] = v.TabLabel
+		if tabID, ok := TabIDFromModuleID(v.ID); ok && tabID == m.activeTab {
+			activeTabIdx = i + 1
+		}
 	}
-	b.WriteString(views.RenderTabs(tabs, int(m.activeTab), m.width) + "\n")
+	b.WriteString(views.RenderTabs(tabs, activeTabIdx, m.width) + "\n")
 
 	// Action message toast
 	if m.actionMessage != "" && time.Now().Before(m.actionMessageExpiry) {

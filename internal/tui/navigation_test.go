@@ -3,6 +3,7 @@ package tui
 import (
 	"testing"
 
+	"github.com/AndreyJVM/container-ctl/internal/module"
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	"github.com/AndreyJVM/container-ctl/internal/testutil"
 	tea "github.com/charmbracelet/bubbletea"
@@ -433,4 +434,99 @@ func TestNavigationKeysViaUpdate(t *testing.T) {
 			t.Errorf("expected cursor to remain at 3 when filtering and pressing 'g', got %d", m.cursorIdx)
 		}
 	})
+}
+
+func TestDynamicModuleNavigation_ReorderingAndDisabling(t *testing.T) {
+	t.Parallel()
+
+	// 1. Test TabIDFromModuleID and ModuleIDFromTabID mapping
+	tabID, ok := TabIDFromModuleID(module.IDContainers)
+	if !ok || tabID != TabDocker {
+		t.Fatalf("expected TabDocker for IDContainers, got %v", tabID)
+	}
+	modID, ok := ModuleIDFromTabID(TabSwarm)
+	if !ok || modID != module.IDSwarm {
+		t.Fatalf("expected IDSwarm for TabSwarm, got %v", modID)
+	}
+	if _, ok := TabIDFromModuleID(module.ID("unknown")); ok {
+		t.Errorf("expected false for unknown module ID")
+	}
+	if _, ok := ModuleIDFromTabID(TabID(999)); ok {
+		t.Errorf("expected false for invalid TabID")
+	}
+
+	// 2. Custom registry: disable images, order Swarm first (order 1), Containers second (order 2)
+	m := newFastTestModel()
+	r := module.NewRegistry()
+	r.Register(module.ContainersModule)
+	r.Register(module.ImagesModule)
+	r.Register(module.SwarmModule)
+
+	disabled := false
+	r.SetModuleConfig(module.IDImages, module.Config{Enabled: &disabled})
+	r.SetModuleConfig(module.IDSwarm, module.Config{Order: 1})
+	r.SetModuleConfig(module.IDContainers, module.Config{Order: 2})
+
+	m.SetRegistry(r)
+	m.swarm.IsActive = true // make swarm active so it is visible
+
+	visible := m.visibleModules()
+	if len(visible) != 2 {
+		t.Fatalf("expected exactly 2 visible modules, got %d", len(visible))
+	}
+	if visible[0].ID != module.IDSwarm {
+		t.Errorf("expected first visible module to be Swarm, got %v", visible[0].ID)
+	}
+	if visible[1].ID != module.IDContainers {
+		t.Errorf("expected second visible module to be Containers, got %v", visible[1].ID)
+	}
+
+	// 3. Test setTabByIndex
+	if !m.setTabByIndex(1) {
+		t.Fatalf("expected setTabByIndex(1) to succeed")
+	}
+	if m.activeTab != TabSwarm {
+		t.Errorf("expected activeTab to be TabSwarm after setTabByIndex(1), got %v", m.activeTab)
+	}
+
+	if !m.setTabByIndex(2) {
+		t.Fatalf("expected setTabByIndex(2) to succeed")
+	}
+	if m.activeTab != TabDocker {
+		t.Errorf("expected activeTab to be TabDocker after setTabByIndex(2), got %v", m.activeTab)
+	}
+
+	// Out of bounds index
+	if m.setTabByIndex(3) {
+		t.Errorf("expected setTabByIndex(3) to fail when only 2 modules visible")
+	}
+
+	// 4. Test nextTab and prevTab cycling with custom ordering
+	m.setTab(TabSwarm)
+	m.nextTab()
+	if m.activeTab != TabDocker {
+		t.Errorf("expected nextTab from Swarm to go to Containers, got %v", m.activeTab)
+	}
+	m.nextTab()
+	if m.activeTab != TabSwarm {
+		t.Errorf("expected nextTab from Containers to wrap back to Swarm, got %v", m.activeTab)
+	}
+
+	m.prevTab()
+	if m.activeTab != TabDocker {
+		t.Errorf("expected prevTab from Swarm to wrap back to Containers, got %v", m.activeTab)
+	}
+
+	// 5. Test numeric key presses via Update
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'1'}})
+	m = res.(Model)
+	if m.activeTab != TabSwarm {
+		t.Errorf("expected pressing '1' to switch to first visible module (Swarm), got %v", m.activeTab)
+	}
+
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'2'}})
+	m = res.(Model)
+	if m.activeTab != TabDocker {
+		t.Errorf("expected pressing '2' to switch to second visible module (Containers), got %v", m.activeTab)
+	}
 }

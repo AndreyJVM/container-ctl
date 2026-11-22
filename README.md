@@ -210,7 +210,7 @@ modules:
 
 | Key | Action |
 |---|---|
-| `1`..`5` (or `6`) / `Tab` / `←`/`→` | Switch tabs (Docker, Images, Compose, Networks, Volumes, Swarm) |
+| `1`..`9` / `Tab` / `Shift+Tab` / `←`/`→` | Switch tabs dynamically based on configured visible modules |
 | `r`, `R` | Force immediate refresh |
 | `↑` / `↓` (or `k` / `j`) | Navigate rows / select items |
 | `/` | Search & filter in list or in log viewer modal (`Esc` to clear) |

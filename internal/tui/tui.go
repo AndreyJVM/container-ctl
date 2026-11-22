@@ -237,7 +237,20 @@ func (m *Model) applyActionsData(d actions.DataFetchedMsg) {
 		m.swarmCursorIdx = max(0, len(m.swarm.Services)-1)
 	}
 
-	if !m.IsSwarmVisible() && m.activeTab == TabSwarm {
+	if m.registry != nil {
+		currID, hasID := ModuleIDFromTabID(m.activeTab)
+		if hasID && !m.registry.IsModuleVisible(currID, m.moduleContext()) {
+			visible := m.registry.VisibleModules(m.moduleContext())
+			if len(visible) > 0 {
+				if tabID, ok := TabIDFromModuleID(visible[0].ID); ok {
+					m.activeTab = tabID
+				}
+			}
+			if currID == module.IDSwarm {
+				m.showToast("Host is not part of an active Swarm cluster.")
+			}
+		}
+	} else if !m.IsSwarmVisible() && m.activeTab == TabSwarm {
 		m.activeTab = TabDocker
 		m.showToast("Host is not part of an active Swarm cluster.")
 	}
@@ -261,6 +274,15 @@ func (m *Model) applyFetchedData(d dataFetchedMsg) {
 var fetchDockerData = fetchAllData
 
 func (m *Model) fetchAllData() {
+	if m.registry != nil {
+		ctx := m.moduleContext()
+		includeImages := m.registry.IsModuleVisible(module.IDImages, ctx)
+		includeNetworks := m.registry.IsModuleVisible(module.IDNetworks, ctx)
+		includeVolumes := m.registry.IsModuleVisible(module.IDVolumes, ctx)
+		includeSwarm := m.registry.IsModuleVisible(module.IDSwarm, ctx)
+		m.applyActionsData(actions.FetchAllDataFiltered(includeImages, includeNetworks, includeVolumes, includeSwarm))
+		return
+	}
 	m.applyFetchedData(fetchDockerData())
 }
 

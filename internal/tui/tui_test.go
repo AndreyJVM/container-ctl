@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AndreyJVM/container-ctl/internal/module"
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	"github.com/AndreyJVM/container-ctl/internal/tui/actions"
 	tea "github.com/charmbracelet/bubbletea"
@@ -524,5 +525,44 @@ func TestModel_ApplyActionsData(t *testing.T) {
 	}
 	if m.lastUpdate != "12:34:56" {
 		t.Errorf("expected timestamp 12:34:56, got %s", m.lastUpdate)
+	}
+}
+
+func TestModel_FetchAllData_FilteredByRegistry(t *testing.T) {
+	m := newFastTestModel()
+	r := module.NewRegistry()
+	r.Register(module.ContainersModule)
+	m.SetRegistry(r)
+
+	// Fetch data via registry filter
+	m.fetchAllData()
+	if len(m.lastUpdate) != 8 {
+		t.Errorf("expected valid timestamp after fetchAllData, got %s", m.lastUpdate)
+	}
+}
+
+func TestModel_HiddenTabFallback(t *testing.T) {
+	t.Parallel()
+
+	m := newFastTestModel()
+	r := module.NewRegistry()
+	r.Register(module.ContainersModule)
+	r.Register(module.ImagesModule)
+	m.SetRegistry(r)
+
+	// Start on TabImages
+	m.activeTab = TabImages
+
+	// Disable Images
+	disabled := false
+	r.SetModuleConfig(module.IDImages, module.Config{Enabled: &disabled})
+
+	// When applying fresh data, activeTab should fall back to TabDocker
+	m.applyActionsData(actions.DataFetchedMsg{
+		Timestamp: "12:00:00",
+	})
+
+	if m.activeTab != TabDocker {
+		t.Errorf("expected activeTab to fall back to TabDocker when Images disabled, got %v", m.activeTab)
 	}
 }
