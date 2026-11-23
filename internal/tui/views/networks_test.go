@@ -273,6 +273,46 @@ func TestRenderNetworks_DetailsCardFields(t *testing.T) {
 			t.Errorf("did not expect 'attachable' flag when network is not attachable, got: %s", view)
 		}
 	})
+
+	t.Run("detailed IPAM config, range, IPv6 and container details", func(t *testing.T) {
+		t.Parallel()
+		net := monitor.DockerNetwork{
+			ID:         "net456",
+			Name:       "cluster-net",
+			Driver:     "bridge",
+			Scope:      "local",
+			Created:    "2026-11-23 14:00",
+			Subnet:     "10.10.0.0/16",
+			Gateway:    "10.10.0.1",
+			IPRange:    "10.10.5.0/24",
+			IPAMDriver: "custom-ipam",
+			EnableIPv6: true,
+			Attachable: true,
+			Containers: 2,
+			ContainerDetails: []monitor.NetworkContainerInfo{
+				{Name: "app-node-1", IPv4Address: "10.10.5.2/16"},
+				{Name: "app-node-2", IPv4Address: "10.10.5.3/16"},
+			},
+		}
+
+		view := RenderNetworks(NetworksContext{
+			Networks:  []monitor.DockerNetwork{net},
+			CursorIdx: 0,
+			Width:     100,
+		})
+
+		testutil.AssertContainsAll(t, view,
+			"cluster-net",
+			"Created: 2026-11-23 14:00",
+			"10.10.0.0/16",
+			"Gateway: 10.10.0.1",
+			"Range: 10.10.5.0/24",
+			"(custom-ipam)",
+			"IPv6",
+			"app-node-1 (10.10.5.2)",
+			"app-node-2 (10.10.5.3)",
+		)
+	})
 }
 
 func TestRenderNetworks_WidthClamping(t *testing.T) {

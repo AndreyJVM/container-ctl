@@ -219,3 +219,101 @@ func FuzzMaskEnvVar(f *testing.F) {
 		_ = MaskEnvVar(entry)
 	})
 }
+
+func TestBuildNetworkInspectLines(t *testing.T) {
+	net := monitor.DockerNetwork{
+		ID:         "net123456789",
+		Name:       "production-bridge",
+		Driver:     "bridge",
+		Scope:      "local",
+		Created:    "2026-11-23T10:00:00Z",
+		Internal:   true,
+		Attachable: true,
+		EnableIPv6: true,
+		Subnet:     "172.28.0.0/16",
+		Gateway:    "172.28.0.1",
+		IPRange:    "172.28.10.0/24",
+		IPAMDriver: "default",
+		Containers: 1,
+		ContainerDetails: []monitor.NetworkContainerInfo{
+			{
+				ID:          "c123456",
+				Name:        "web-api",
+				IPv4Address: "172.28.10.2/16",
+				MacAddress:  "02:42:ac:1c:0a:02",
+			},
+		},
+		Options: map[string]string{
+			"com.docker.network.bridge.name": "br-prod",
+		},
+		Labels: map[string]string{
+			"com.docker.compose.project": "shop",
+		},
+	}
+
+	rawJSON := "{\n  \"Name\": \"production-bridge\"\n}"
+	lines := BuildNetworkInspectLines(net, rawJSON)
+	fullText := strings.Join(lines, "\n")
+
+	if !strings.Contains(fullText, "production-bridge") || !strings.Contains(fullText, "net123456789") {
+		t.Errorf("expected network ID and name in inspect lines, got: %s", fullText)
+	}
+	if !strings.Contains(fullText, "172.28.0.0/16") || !strings.Contains(fullText, "172.28.0.1") || !strings.Contains(fullText, "172.28.10.0/24") {
+		t.Errorf("expected IPAM configuration in inspect lines, got: %s", fullText)
+	}
+	if !strings.Contains(fullText, "internal (isolated") || !strings.Contains(fullText, "attachable") || !strings.Contains(fullText, "enabled") {
+		t.Errorf("expected flags and IPv6 status in inspect lines, got: %s", fullText)
+	}
+	if !strings.Contains(fullText, "web-api") || !strings.Contains(fullText, "172.28.10.2/16") || !strings.Contains(fullText, "02:42:ac:1c:0a:02") {
+		t.Errorf("expected container details in inspect lines, got: %s", fullText)
+	}
+	if !strings.Contains(fullText, "br-prod") || !strings.Contains(fullText, "shop") {
+		t.Errorf("expected options and labels in inspect lines, got: %s", fullText)
+	}
+	if !strings.Contains(fullText, "── RAW DOCKER INSPECT JSON ──") {
+		t.Errorf("expected raw JSON separator in inspect lines, got: %s", fullText)
+	}
+}
+
+func TestBuildVolumeInspectLines(t *testing.T) {
+	vol := monitor.DockerVolume{
+		Name:            "db_backup",
+		Driver:          "local",
+		Scope:           "local",
+		Created:         "2026-11-20T08:00:00Z",
+		Mountpoint:      "/var/lib/docker/volumes/db_backup/_data",
+		Size:            104857600, // 100 MB
+		RefCount:        2,
+		Containers:      []string{"postgres", "backup-cron"},
+		ContainerMounts: []string{"postgres: db_backup -> /var/lib/postgresql/data (rw)", "backup-cron: db_backup -> /backup (ro)"},
+		Options: map[string]string{
+			"type": "none",
+		},
+		Labels: map[string]string{
+			"env": "prod",
+		},
+	}
+
+	rawJSON := "{\n  \"Name\": \"db_backup\"\n}"
+	lines := BuildVolumeInspectLines(vol, rawJSON)
+	fullText := strings.Join(lines, "\n")
+
+	if !strings.Contains(fullText, "db_backup") || !strings.Contains(fullText, "local") {
+		t.Errorf("expected volume name and driver in inspect lines, got: %s", fullText)
+	}
+	if !strings.Contains(fullText, "/var/lib/docker/volumes/db_backup/_data") {
+		t.Errorf("expected mountpoint in inspect lines, got: %s", fullText)
+	}
+	if !strings.Contains(fullText, "100.0 MB") || !strings.Contains(fullText, "in-use") {
+		t.Errorf("expected size and in-use status in inspect lines, got: %s", fullText)
+	}
+	if !strings.Contains(fullText, "postgres: db_backup -> /var/lib/postgresql/data (rw)") {
+		t.Errorf("expected container mounts in inspect lines, got: %s", fullText)
+	}
+	if !strings.Contains(fullText, "type: none") || !strings.Contains(fullText, "env: prod") {
+		t.Errorf("expected options and labels in inspect lines, got: %s", fullText)
+	}
+	if !strings.Contains(fullText, "── RAW DOCKER INSPECT JSON ──") {
+		t.Errorf("expected raw JSON separator in inspect lines, got: %s", fullText)
+	}
+}

@@ -104,7 +104,12 @@ func RenderVolumes(ctx VolumesContext) string {
 		}
 		s.WriteString("  " + theme.CyanStyle.Render("┌─") + theme.BoldStyle.Render(title) + theme.CyanStyle.Render(strings.Repeat("─", topDashLen)+"┐") + "\n")
 
-		s.WriteString(renderDetailRow("Driver / Scope:", fmt.Sprintf("%s / %s", valueOrDash(volume.Driver), valueOrDash(volume.Scope))))
+		createdStr := volume.Created
+		if createdStr != "" {
+			s.WriteString(renderDetailRow("Driver / Scope:", fmt.Sprintf("%s / %s  •  Created: %s", valueOrDash(volume.Driver), valueOrDash(volume.Scope), createdStr)))
+		} else {
+			s.WriteString(renderDetailRow("Driver / Scope:", fmt.Sprintf("%s / %s", valueOrDash(volume.Driver), valueOrDash(volume.Scope))))
+		}
 
 		sizeDisplay := "-"
 		if volume.Size >= 0 {
@@ -119,7 +124,9 @@ func RenderVolumes(ctx VolumesContext) string {
 				count = len(volume.Containers)
 			}
 			msg := fmt.Sprintf("● In Use (%d container reference(s))", count)
-			if len(volume.Containers) > 0 {
+			if len(volume.ContainerMounts) > 0 {
+				msg += ": " + strings.Join(volume.ContainerMounts, ", ")
+			} else if len(volume.Containers) > 0 {
 				msg += ": " + strings.Join(volume.Containers, ", ")
 			}
 			statusDisplay = theme.GreenStyle.Render(msg)

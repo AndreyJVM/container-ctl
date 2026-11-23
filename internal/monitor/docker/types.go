@@ -32,15 +32,16 @@ const (
 
 // Re-export type aliases for backward compatibility.
 type (
-	ContainerItem     = types.ContainerItem
-	ContainerDetail   = types.ContainerDetail
-	DockerSummary     = types.DockerSummary
-	DockerDiskItem    = types.DockerDiskItem
-	DockerDiskUsage   = types.DockerDiskUsage
-	DockerImage       = types.DockerImage
-	DockerVolume      = types.DockerVolume
-	DockerNetwork     = types.DockerNetwork
-	ExecOptions       = types.ExecOptions
-	ContainerStats    = types.ContainerStats
-	ContainerStatsRaw = types.ContainerStatsRaw
+	ContainerItem        = types.ContainerItem
+	ContainerDetail      = types.ContainerDetail
+	DockerSummary        = types.DockerSummary
+	DockerDiskItem       = types.DockerDiskItem
+	DockerDiskUsage      = types.DockerDiskUsage
+	DockerImage          = types.DockerImage
+	DockerVolume         = types.DockerVolume
+	DockerNetwork        = types.DockerNetwork
+	NetworkContainerInfo = types.NetworkContainerInfo
+	ExecOptions          = types.ExecOptions
+	ContainerStats       = types.ContainerStats
+	ContainerStatsRaw    = types.ContainerStatsRaw
 )

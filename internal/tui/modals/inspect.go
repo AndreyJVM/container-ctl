@@ -87,6 +87,220 @@ func BuildInspectLines(d monitor.ContainerDetail) []string {
 	return lines
 }
 
+// BuildNetworkInspectLines converts network data and inspect JSON into structured display lines.
+func BuildNetworkInspectLines(net monitor.DockerNetwork, rawJSON string) []string {
+	var lines []string
+
+	lines = append(lines, fmt.Sprintf("%s %s    %s %s",
+		theme.DimStyle.Render("ID:"), net.ID,
+		theme.DimStyle.Render("Name:"), theme.BoldStyle.Render(net.Name),
+	))
+
+	createdStr := net.Created
+	if createdStr == "" {
+		createdStr = "-"
+	}
+	lines = append(lines, fmt.Sprintf("%s %s    %s %s    %s %s",
+		theme.DimStyle.Render("Driver:"), theme.CyanStyle.Render(net.Driver),
+		theme.DimStyle.Render("Scope:"), net.Scope,
+		theme.DimStyle.Render("Created:"), createdStr,
+	))
+
+	// IPAM section
+	lines = append(lines, "")
+	lines = append(lines, theme.BoldStyle.Render("IPAM Configuration:"))
+	subnetVal := net.Subnet
+	if subnetVal == "" {
+		subnetVal = "-"
+	}
+	gatewayVal := net.Gateway
+	if gatewayVal == "" {
+		gatewayVal = "-"
+	}
+	lines = append(lines, fmt.Sprintf("  %s %s    %s %s",
+		theme.DimStyle.Render("Subnet:"), theme.GreenStyle.Render(subnetVal),
+		theme.DimStyle.Render("Gateway:"), theme.GreenStyle.Render(gatewayVal),
+	))
+	ipRange := net.IPRange
+	if ipRange == "" {
+		ipRange = "-"
+	}
+	ipamDriver := net.IPAMDriver
+	if ipamDriver == "" {
+		ipamDriver = "default"
+	}
+	ipv6Status := theme.DimStyle.Render("disabled")
+	if net.EnableIPv6 {
+		ipv6Status = theme.GreenStyle.Render("enabled")
+	}
+	lines = append(lines, fmt.Sprintf("  %s %s    %s %s    %s %s",
+		theme.DimStyle.Render("IP Range:"), ipRange,
+		theme.DimStyle.Render("IPAM Driver:"), ipamDriver,
+		theme.DimStyle.Render("IPv6:"), ipv6Status,
+	))
+
+	// Security & Flags
+	lines = append(lines, "")
+	lines = append(lines, theme.BoldStyle.Render("Flags & Security:"))
+	var flags []string
+	if net.Internal {
+		flags = append(flags, theme.YellowStyle.Render("internal (isolated from host/internet)"))
+	} else {
+		flags = append(flags, theme.DimStyle.Render("external (access enabled)"))
+	}
+	if net.Attachable {
+		flags = append(flags, theme.CyanStyle.Render("attachable"))
+	}
+	if net.Ingress {
+		flags = append(flags, theme.CyanStyle.Render("ingress"))
+	}
+	lines = append(lines, fmt.Sprintf("  %s", strings.Join(flags, " • ")))
+
+	// Connected Containers
+	lines = append(lines, "")
+	lines = append(lines, theme.BoldStyle.Render(fmt.Sprintf("Connected Containers (%d):", net.Containers)))
+	if len(net.ContainerDetails) > 0 {
+		for _, c := range net.ContainerDetails {
+			ip := c.IPv4Address
+			if ip == "" {
+				ip = "-"
+			}
+			mac := c.MacAddress
+			if mac == "" {
+				mac = "-"
+			}
+			lines = append(lines, fmt.Sprintf("  • %s (ID: %s)", theme.BoldStyle.Render(c.Name), c.ID))
+			lines = append(lines, fmt.Sprintf("    IPv4: %s   MAC: %s", theme.GreenStyle.Render(ip), theme.DimStyle.Render(mac)))
+		}
+	} else if len(net.ConnectedContainers) > 0 {
+		for _, c := range net.ConnectedContainers {
+			lines = append(lines, fmt.Sprintf("  • %s", c))
+		}
+	} else {
+		lines = append(lines, "  "+theme.DimStyle.Render("○ No containers currently connected (network unused)"))
+	}
+
+	// Options
+	if len(net.Options) > 0 {
+		lines = append(lines, "")
+		lines = append(lines, theme.BoldStyle.Render("Driver Options:"))
+		for k, v := range net.Options {
+			lines = append(lines, fmt.Sprintf("  • %s: %s", theme.DimStyle.Render(k), v))
+		}
+	}
+
+	// Labels
+	if len(net.Labels) > 0 {
+		lines = append(lines, "")
+		lines = append(lines, theme.BoldStyle.Render("Labels:"))
+		for k, v := range net.Labels {
+			lines = append(lines, fmt.Sprintf("  • %s: %s", theme.DimStyle.Render(k), v))
+		}
+	}
+
+	// Raw JSON
+	if trimmed := strings.TrimSpace(rawJSON); trimmed != "" {
+		lines = append(lines, "")
+		lines = append(lines, theme.BoldStyle.Render("── RAW DOCKER INSPECT JSON ──"))
+		for _, l := range strings.Split(trimmed, "\n") {
+			lines = append(lines, l)
+		}
+	}
+
+	return lines
+}
+
+// BuildVolumeInspectLines converts volume data and inspect JSON into structured display lines.
+func BuildVolumeInspectLines(vol monitor.DockerVolume, rawJSON string) []string {
+	var lines []string
+
+	lines = append(lines, fmt.Sprintf("%s %s",
+		theme.DimStyle.Render("Volume Name:"), theme.BoldStyle.Render(vol.Name),
+	))
+
+	createdStr := vol.Created
+	if createdStr == "" {
+		createdStr = "-"
+	}
+	lines = append(lines, fmt.Sprintf("%s %s    %s %s    %s %s",
+		theme.DimStyle.Render("Driver:"), theme.CyanStyle.Render(vol.Driver),
+		theme.DimStyle.Render("Scope:"), vol.Scope,
+		theme.DimStyle.Render("Created:"), createdStr,
+	))
+
+	// Storage section
+	lines = append(lines, "")
+	lines = append(lines, theme.BoldStyle.Render("Storage & Mountpoint:"))
+	lines = append(lines, fmt.Sprintf("  %s %s",
+		theme.DimStyle.Render("Mountpoint (Host):"), theme.GreenStyle.Render(vol.Mountpoint),
+	))
+	sizeDisplay := "-"
+	if vol.Size >= 0 {
+		sizeDisplay = monitor.FormatBytes(vol.Size)
+	}
+	refsDisplay := "-"
+	if vol.RefCount >= 0 {
+		refsDisplay = fmt.Sprintf("%d", vol.RefCount)
+	}
+	statusDisplay := theme.DimStyle.Render("unknown")
+	if vol.RefCount > 0 || len(vol.Containers) > 0 {
+		statusDisplay = theme.GreenStyle.Render("in-use")
+	} else if vol.RefCount == 0 {
+		statusDisplay = theme.YellowStyle.Render("unused (reclaimable)")
+	}
+	lines = append(lines, fmt.Sprintf("  %s %s    %s %s    %s %s",
+		theme.DimStyle.Render("Size:"), theme.BoldStyle.Render(sizeDisplay),
+		theme.DimStyle.Render("References:"), refsDisplay,
+		theme.DimStyle.Render("Status:"), statusDisplay,
+	))
+
+	// Containers Mounted
+	lines = append(lines, "")
+	lines = append(lines, theme.BoldStyle.Render("Mounted By Containers:"))
+	if len(vol.ContainerMounts) > 0 {
+		for _, m := range vol.ContainerMounts {
+			lines = append(lines, fmt.Sprintf("  • %s", m))
+		}
+	} else if len(vol.Containers) > 0 {
+		for _, c := range vol.Containers {
+			lines = append(lines, fmt.Sprintf("  • %s", c))
+		}
+	} else if vol.RefCount == 0 {
+		lines = append(lines, "  "+theme.YellowStyle.Render("○ Not mounted by any container (reclaimable with prune)"))
+	} else {
+		lines = append(lines, "  "+theme.DimStyle.Render("○ No container mount metadata available"))
+	}
+
+	// Options
+	if len(vol.Options) > 0 {
+		lines = append(lines, "")
+		lines = append(lines, theme.BoldStyle.Render("Driver Options:"))
+		for k, v := range vol.Options {
+			lines = append(lines, fmt.Sprintf("  • %s: %s", theme.DimStyle.Render(k), v))
+		}
+	}
+
+	// Labels
+	if len(vol.Labels) > 0 {
+		lines = append(lines, "")
+		lines = append(lines, theme.BoldStyle.Render("Labels:"))
+		for k, v := range vol.Labels {
+			lines = append(lines, fmt.Sprintf("  • %s: %s", theme.DimStyle.Render(k), v))
+		}
+	}
+
+	// Raw JSON
+	if trimmed := strings.TrimSpace(rawJSON); trimmed != "" {
+		lines = append(lines, "")
+		lines = append(lines, theme.BoldStyle.Render("── RAW DOCKER INSPECT JSON ──"))
+		for _, l := range strings.Split(trimmed, "\n") {
+			lines = append(lines, l)
+		}
+	}
+
+	return lines
+}
+
 // RenderInspectLines renders an inspection modal with custom title and lines.
 func RenderInspectLines(title string, lines []string, scrollOpts ...int) string {
 	var s strings.Builder

@@ -285,6 +285,37 @@ func TestRenderVolumes_DetailsCardAndUsageStatuses(t *testing.T) {
 			"Unknown",
 		)
 	})
+
+	t.Run("detailed volume card with Created timestamp and container mount paths", func(t *testing.T) {
+		t.Parallel()
+		vol := monitor.DockerVolume{
+			Name:            "db_data",
+			Driver:          "local",
+			Scope:           "local",
+			Created:         "2026-11-20 12:00",
+			Mountpoint:      "/var/lib/docker/volumes/db_data/_data",
+			Size:            20971520, // 20 MB
+			RefCount:        1,
+			Containers:      []string{"postgres-db"},
+			ContainerMounts: []string{"postgres-db: /var/lib/postgresql/data (rw)"},
+			ComposeProject:  "my_stack",
+		}
+
+		view := RenderVolumes(VolumesContext{
+			Volumes:   []monitor.DockerVolume{vol},
+			CursorIdx: 0,
+			Width:     100,
+		})
+
+		testutil.AssertContainsAll(t, view,
+			"db_data",
+			"Created: 2026-11-20 12:00",
+			"20.0 MB",
+			"postgres-db: /var/lib/postgresql/data (rw)",
+			"/var/lib/docker/volumes/db_data/_data",
+			"my_stack",
+		)
+	})
 }
 
 func TestRenderVolumes_WidthClamping(t *testing.T) {

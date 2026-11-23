@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/tui/modals"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -13,25 +14,21 @@ func (m Model) handleNetworksInspect() (Model, tea.Cmd) {
 	networks := m.getFilteredNetworks()
 	if len(networks) > 0 && m.networkCursorIdx < len(networks) {
 		net := networks[m.networkCursorIdx]
-		inspectStr, err := monitor.GetNetworkInspectJSON(net.ID)
-		if err != nil || strings.TrimSpace(inspectStr) == "" {
+		inspectStr, _ := monitor.GetNetworkInspectJSON(net.ID)
+		if strings.TrimSpace(inspectStr) == "" {
 			if b, mErr := json.MarshalIndent(net, "", "  "); mErr == nil {
 				inspectStr = string(b)
 			}
 		}
-		if strings.TrimSpace(inspectStr) == "" {
-			m.showToast("Inspect error: unable to inspect network " + net.Name)
-		} else {
-			m.inspectTarget = monitor.ContainerDetail{}
-			m.inspectCustomTitle = fmt.Sprintf("NETWORK INSPECTION: %s", net.Name)
-			m.inspectCustomLines = strings.Split(strings.TrimSpace(inspectStr), "\n")
-			m.inspectCopyID = net.ID
-			if m.inspectCopyID == "" {
-				m.inspectCopyID = net.Name
-			}
-			m.inspectScroll = 0
-			m.openModal(ModalInspect)
+		m.inspectTarget = monitor.ContainerDetail{}
+		m.inspectCustomTitle = fmt.Sprintf("NETWORK INSPECTION: %s", net.Name)
+		m.inspectCustomLines = modals.BuildNetworkInspectLines(net, inspectStr)
+		m.inspectCopyID = net.ID
+		if m.inspectCopyID == "" {
+			m.inspectCopyID = net.Name
 		}
+		m.inspectScroll = 0
+		m.openModal(ModalInspect)
 	}
 	return m, nil
 }
@@ -61,22 +58,18 @@ func (m Model) handleVolumesInspect() (Model, tea.Cmd) {
 	volumes := m.getFilteredVolumes()
 	if len(volumes) > 0 && m.volumeCursorIdx < len(volumes) {
 		vol := volumes[m.volumeCursorIdx]
-		inspectStr, err := monitor.GetVolumeInspectJSON(vol.Name)
-		if err != nil || strings.TrimSpace(inspectStr) == "" {
+		inspectStr, _ := monitor.GetVolumeInspectJSON(vol.Name)
+		if strings.TrimSpace(inspectStr) == "" {
 			if b, mErr := json.MarshalIndent(vol, "", "  "); mErr == nil {
 				inspectStr = string(b)
 			}
 		}
-		if strings.TrimSpace(inspectStr) == "" {
-			m.showToast("Inspect error: unable to inspect volume " + vol.Name)
-		} else {
-			m.inspectTarget = monitor.ContainerDetail{}
-			m.inspectCustomTitle = fmt.Sprintf("VOLUME INSPECTION: %s", vol.Name)
-			m.inspectCustomLines = strings.Split(strings.TrimSpace(inspectStr), "\n")
-			m.inspectCopyID = vol.Name
-			m.inspectScroll = 0
-			m.openModal(ModalInspect)
-		}
+		m.inspectTarget = monitor.ContainerDetail{}
+		m.inspectCustomTitle = fmt.Sprintf("VOLUME INSPECTION: %s", vol.Name)
+		m.inspectCustomLines = modals.BuildVolumeInspectLines(vol, inspectStr)
+		m.inspectCopyID = vol.Name
+		m.inspectScroll = 0
+		m.openModal(ModalInspect)
 	}
 	return m, nil
 }

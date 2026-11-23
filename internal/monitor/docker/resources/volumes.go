@@ -18,13 +18,55 @@ import (
 // GetDockerVolumes returns Docker volumes without changing daemon state.
 func GetDockerVolumes() ([]types.DockerVolume, error) {
 	if sockPath := engine.DockerSocketFinder(); sockPath != "" {
+		// Prefer /system/df as Docker Engine computes accurate volume size and ref count there
+		var dfRaw struct {
+			Volumes []struct {
+				Name       string            `json:"Name"`
+				Driver     string            `json:"Driver"`
+				Scope      string            `json:"Scope"`
+				Mountpoint string            `json:"Mountpoint"`
+				CreatedAt  string            `json:"CreatedAt"`
+				Labels     map[string]string `json:"Labels"`
+				Options    map[string]string `json:"Options"`
+				UsageData  *struct {
+					Size     int64 `json:"Size"`
+					RefCount int   `json:"RefCount"`
+				} `json:"UsageData"`
+			} `json:"Volumes"`
+		}
+		if err := engine.FetchDockerResourceJSON(sockPath, "/system/df", &dfRaw); err == nil && len(dfRaw.Volumes) > 0 {
+			volumes := make([]types.DockerVolume, 0, len(dfRaw.Volumes))
+			for _, item := range dfRaw.Volumes {
+				size, refCount := int64(-1), -1
+				if item.UsageData != nil {
+					size = item.UsageData.Size
+					refCount = item.UsageData.RefCount
+				}
+				volumes = append(volumes, types.DockerVolume{
+					Name:           item.Name,
+					Driver:         item.Driver,
+					Scope:          item.Scope,
+					Mountpoint:     item.Mountpoint,
+					Size:           size,
+					RefCount:       refCount,
+					ComposeProject: item.Labels[types.ComposeProjectLabel],
+					Created:        item.CreatedAt,
+					Labels:         item.Labels,
+					Options:        item.Options,
+				})
+			}
+			return volumes, nil
+		}
+
 		var raw struct {
 			Volumes []struct {
 				Name       string            `json:"Name"`
 				Driver     string            `json:"Driver"`
 				Scope      string            `json:"Scope"`
 				Mountpoint string            `json:"Mountpoint"`
+				CreatedAt  string            `json:"CreatedAt"`
 				Labels     map[string]string `json:"Labels"`
+				Options    map[string]string `json:"Options"`
 				UsageData  *struct {
 					Size     int64 `json:"Size"`
 					RefCount int   `json:"RefCount"`
@@ -47,6 +89,9 @@ func GetDockerVolumes() ([]types.DockerVolume, error) {
 					Size:           size,
 					RefCount:       refCount,
 					ComposeProject: item.Labels[types.ComposeProjectLabel],
+					Created:        item.CreatedAt,
+					Labels:         item.Labels,
+					Options:        item.Options,
 				})
 			}
 			return volumes, nil
@@ -182,7 +227,24 @@ func MatchContainersForVolume(volName string, containers []types.ContainerItem) 
 	return matched
 }
 
-// EnrichVolumesWithContainers populates Containers slice on volumes based on container mounts.
+// MatchContainerMountsForVolume finds container mount details that reference the given volume name.
+func MatchContainerMountsForVolume(volName string, containers []types.ContainerItem) []string {
+	if volName == "" {
+		return nil
+	}
+	var matched []string
+	for _, c := range containers {
+		for _, mount := range c.Mounts {
+			if strings.Contains(mount, volName) {
+				matched = append(matched, fmt.Sprintf("%s: %s", c.Name, mount))
+			}
+		}
+	}
+	sort.Strings(matched)
+	return matched
+}
+
+// EnrichVolumesWithContainers populates Containers and ContainerMounts slices on volumes based on container mounts.
 func EnrichVolumesWithContainers(volumes []types.DockerVolume, containers []types.ContainerItem) []types.DockerVolume {
 	if len(volumes) == 0 {
 		return volumes
@@ -192,6 +254,9 @@ func EnrichVolumesWithContainers(volumes []types.DockerVolume, containers []type
 	for i := range enriched {
 		if len(enriched[i].Containers) == 0 {
 			enriched[i].Containers = MatchContainersForVolume(enriched[i].Name, containers)
+		}
+		if len(enriched[i].ContainerMounts) == 0 {
+			enriched[i].ContainerMounts = MatchContainerMountsForVolume(enriched[i].Name, containers)
 		}
 	}
 	return enriched

@@ -130,16 +130,30 @@ type DockerImage struct {
 	Dangling   bool
 }
 
+// NetworkContainerInfo holds detailed information about a container attached to a Docker network.
+type NetworkContainerInfo struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	IPv4Address string `json:"ipv4_address"`
+	IPv6Address string `json:"ipv6_address"`
+	MacAddress  string `json:"mac_address"`
+	EndpointID  string `json:"endpoint_id"`
+}
+
 // DockerVolume represents a Docker storage volume.
 type DockerVolume struct {
-	Name           string
-	Driver         string
-	Scope          string
-	Mountpoint     string
-	Size           int64
-	RefCount       int
-	Containers     []string
-	ComposeProject string
+	Name            string
+	Driver          string
+	Scope           string
+	Mountpoint      string
+	Size            int64
+	RefCount        int
+	Containers      []string
+	ContainerMounts []string
+	ComposeProject  string
+	Created         string
+	Labels          map[string]string
+	Options         map[string]string
 }
 
 // DockerNetwork represents a Docker virtual network.
@@ -150,11 +164,19 @@ type DockerNetwork struct {
 	Scope               string
 	Internal            bool
 	Attachable          bool
+	Ingress             bool
+	EnableIPv6          bool
 	Containers          int
 	ConnectedContainers []string
+	ContainerDetails    []NetworkContainerInfo
 	Subnet              string
 	Gateway             string
+	IPRange             string
+	IPAMDriver          string
 	ComposeProject      string
+	Created             string
+	Labels              map[string]string
+	Options             map[string]string
 }
 
 // ExecOptions specifies options for launching an interactive session in a container.

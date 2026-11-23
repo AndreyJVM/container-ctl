@@ -26,6 +26,7 @@ type DockerDiskItem = docker.DockerDiskItem
 type DockerDiskUsage = docker.DockerDiskUsage
 type DockerImage = docker.DockerImage
 type DockerNetwork = docker.DockerNetwork
+type NetworkContainerInfo = docker.NetworkContainerInfo
 type DockerVolume = docker.DockerVolume
 type ExecOptions = docker.ExecOptions
 

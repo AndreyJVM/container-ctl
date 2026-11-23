@@ -44,7 +44,16 @@ func TestGetDockerVolumesViaSocket(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetDockerVolumes() returned an error: %v", err)
 	}
-	wantVolume := types.DockerVolume{Name: "shop_data", Driver: "local", Scope: "local", Mountpoint: "/var/lib/docker/volumes/shop_data/_data", Size: 4096, RefCount: 2, ComposeProject: "shop"}
+	wantVolume := types.DockerVolume{
+		Name:           "shop_data",
+		Driver:         "local",
+		Scope:          "local",
+		Mountpoint:     "/var/lib/docker/volumes/shop_data/_data",
+		Size:           4096,
+		RefCount:       2,
+		ComposeProject: "shop",
+		Labels:         map[string]string{"com.docker.compose.project": "shop"},
+	}
 	if !reflect.DeepEqual(volumes, []types.DockerVolume{wantVolume}) {
 		t.Fatalf("unexpected volumes: %#v", volumes)
 	}
@@ -252,5 +261,75 @@ func TestEnrichVolumesWithContainers(t *testing.T) {
 	}
 	if len(enriched[2].Containers) != 0 {
 		t.Errorf("expected empty containers for unused, got: %v", enriched[2].Containers)
+	}
+	if len(enriched[0].ContainerMounts) != 1 || enriched[0].ContainerMounts[0] != "web: app_data:/data" {
+		t.Errorf("expected ContainerMounts enriched, got: %v", enriched[0].ContainerMounts)
+	}
+}
+
+func TestGetDockerVolumesViaSystemDF(t *testing.T) {
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
+	defer func() {
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
+	}()
+
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.SocketClientFactory = func(_ string) *http.Client {
+		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
+			if req.URL.Path == "/system/df" {
+				return mockStringResponse(http.StatusOK, `{
+					"Volumes": [
+						{
+							"Name": "postgres_data",
+							"Driver": "local",
+							"Scope": "local",
+							"Mountpoint": "/var/lib/docker/volumes/postgres_data/_data",
+							"CreatedAt": "2026-11-20T12:00:00Z",
+							"Labels": {"com.docker.compose.project": "db"},
+							"Options": {"type": "tmpfs"},
+							"UsageData": {"Size": 8388608, "RefCount": 1}
+						}
+					]
+				}`), nil
+			}
+			return mockStringResponse(http.StatusNotFound, "not found"), nil
+		})
+	}
+
+	volumes, err := GetDockerVolumes()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(volumes) != 1 {
+		t.Fatalf("expected 1 volume, got %d", len(volumes))
+	}
+	vol := volumes[0]
+	if vol.Name != "postgres_data" || vol.Size != 8388608 || vol.RefCount != 1 {
+		t.Errorf("unexpected volume data: %+v", vol)
+	}
+	if vol.Created != "2026-11-20T12:00:00Z" || vol.Options["type"] != "tmpfs" {
+		t.Errorf("unexpected options or created: %+v", vol)
+	}
+}
+
+func TestMatchContainerMountsForVolume(t *testing.T) {
+	if MatchContainerMountsForVolume("", nil) != nil {
+		t.Errorf("expected nil for empty volume name")
+	}
+
+	containers := []types.ContainerItem{
+		{Name: "web", Mounts: []string{"app_data -> /app/data (rw)", "logs -> /app/logs (rw)"}},
+		{Name: "worker", Mounts: []string{"app_data -> /app/data (ro)"}},
+		{Name: "db", Mounts: []string{"db_data -> /var/lib/postgresql/data (rw)"}},
+	}
+
+	mounts := MatchContainerMountsForVolume("app_data", containers)
+	if len(mounts) != 2 {
+		t.Fatalf("expected 2 mount details, got %d: %v", len(mounts), mounts)
+	}
+	if mounts[0] != "web: app_data -> /app/data (rw)" || mounts[1] != "worker: app_data -> /app/data (ro)" {
+		t.Errorf("unexpected mounts: %v", mounts)
 	}
 }

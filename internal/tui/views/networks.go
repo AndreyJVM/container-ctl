@@ -97,12 +97,43 @@ func RenderNetworks(ctx NetworksContext) string {
 		}
 		s.WriteString("  " + theme.CyanStyle.Render("┌─") + theme.BoldStyle.Render(title) + theme.CyanStyle.Render(strings.Repeat("─", topDashLen)+"┐") + "\n")
 
-		s.WriteString(renderDetailRow("Driver / Scope:", fmt.Sprintf("%s / %s", valueOrDash(network.Driver), valueOrDash(network.Scope))))
-		s.WriteString(renderDetailRow("Subnet / Gateway:", fmt.Sprintf("%s  •  Gateway: %s", valueOrDash(network.Subnet), valueOrDash(network.Gateway))))
+		createdStr := network.Created
+		if createdStr != "" {
+			s.WriteString(renderDetailRow("Driver / Scope:", fmt.Sprintf("%s / %s  •  Created: %s", valueOrDash(network.Driver), valueOrDash(network.Scope), createdStr)))
+		} else {
+			s.WriteString(renderDetailRow("Driver / Scope:", fmt.Sprintf("%s / %s", valueOrDash(network.Driver), valueOrDash(network.Scope))))
+		}
+
+		ipamParts := fmt.Sprintf("%s  •  Gateway: %s", valueOrDash(network.Subnet), valueOrDash(network.Gateway))
+		if network.IPRange != "" {
+			ipamParts += fmt.Sprintf("  •  Range: %s", network.IPRange)
+		}
+		if network.IPAMDriver != "" && network.IPAMDriver != "default" {
+			ipamParts += fmt.Sprintf(" (%s)", network.IPAMDriver)
+		}
+		s.WriteString(renderDetailRow("Subnet / Gateway:", ipamParts))
 
 		var containersDisplay string
 		if network.Containers > 0 {
-			if len(network.ConnectedContainers) > 0 {
+			if len(network.ContainerDetails) > 0 {
+				var cList []string
+				for i, c := range network.ContainerDetails {
+					if i >= 4 {
+						cList = append(cList, fmt.Sprintf("...+%d more", len(network.ContainerDetails)-4))
+						break
+					}
+					ip := c.IPv4Address
+					if idx := strings.IndexByte(ip, '/'); idx != -1 {
+						ip = ip[:idx]
+					}
+					if ip != "" {
+						cList = append(cList, fmt.Sprintf("%s (%s)", c.Name, ip))
+					} else {
+						cList = append(cList, c.Name)
+					}
+				}
+				containersDisplay = theme.GreenStyle.Render(fmt.Sprintf("● %d container(s): ", network.Containers)) + strings.Join(cList, ", ")
+			} else if len(network.ConnectedContainers) > 0 {
 				containersDisplay = theme.GreenStyle.Render(fmt.Sprintf("● %d container(s): ", network.Containers)) + strings.Join(network.ConnectedContainers, ", ")
 			} else {
 				containersDisplay = theme.GreenStyle.Render(fmt.Sprintf("● %d container(s) connected", network.Containers))
@@ -120,6 +151,9 @@ func RenderNetworks(ctx NetworksContext) string {
 		}
 		if network.Attachable {
 			flags = append(flags, theme.CyanStyle.Render("attachable"))
+		}
+		if network.EnableIPv6 {
+			flags = append(flags, theme.GreenStyle.Render("IPv6"))
 		}
 		s.WriteString(renderDetailRow("Flags:", strings.Join(flags, " • ")))
 

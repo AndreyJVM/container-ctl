@@ -44,7 +44,18 @@ func TestGetDockerNetworksViaSocket(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetDockerNetworks() returned an error: %v", err)
 	}
-	wantNetwork := types.DockerNetwork{ID: "network12345", Name: "frontend", Driver: "bridge", Scope: "local", Attachable: true, Containers: 1, Subnet: "172.20.0.0/16", Gateway: "172.20.0.1", ComposeProject: "shop"}
+	wantNetwork := types.DockerNetwork{
+		ID:             "network12345",
+		Name:           "frontend",
+		Driver:         "bridge",
+		Scope:          "local",
+		Attachable:     true,
+		Containers:     1,
+		Subnet:         "172.20.0.0/16",
+		Gateway:        "172.20.0.1",
+		ComposeProject: "shop",
+		Labels:         map[string]string{"com.docker.compose.project": "shop"},
+	}
 	if !reflect.DeepEqual(networks, []types.DockerNetwork{wantNetwork}) {
 		t.Fatalf("unexpected networks: %#v", networks)
 	}
@@ -232,4 +243,92 @@ func TestRemoveDockerNetwork(t *testing.T) {
 			t.Errorf("expected active endpoints error, got: %v", err)
 		}
 	})
+}
+
+func TestGetDockerNetworks_DetailedIPAMAndContainers(t *testing.T) {
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
+	defer func() {
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
+	}()
+
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.SocketClientFactory = func(_ string) *http.Client {
+		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
+			if req.URL.Path == "/networks" {
+				return mockStringResponse(http.StatusOK, `[
+					{
+						"Id": "abc1234567890def",
+						"Name": "custom-bridge",
+						"Created": "2026-11-23T10:00:00Z",
+						"Driver": "bridge",
+						"Scope": "local",
+						"Internal": true,
+						"Attachable": true,
+						"Ingress": false,
+						"EnableIPv6": true,
+						"IPAM": {
+							"Driver": "default",
+							"Config": [
+								{
+									"Subnet": "172.28.0.0/16",
+									"Gateway": "172.28.0.1",
+									"IPRange": "172.28.5.0/24"
+								}
+							]
+						},
+						"Options": {
+							"com.docker.network.bridge.name": "br-custom",
+							"com.docker.network.driver.mtu": "1450"
+						},
+						"Labels": {
+							"environment": "production"
+						},
+						"Containers": {
+							"cont1234567890": {
+								"Name": "api-server",
+								"EndpointID": "ep1234567890",
+								"MacAddress": "02:42:ac:1c:05:02",
+								"IPv4Address": "172.28.5.2/16",
+								"IPv6Address": "fd00::2"
+							}
+						}
+					}
+				]`), nil
+			}
+			return mockStringResponse(http.StatusNotFound, "not found"), nil
+		})
+	}
+
+	networks, err := GetDockerNetworks()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(networks) != 1 {
+		t.Fatalf("expected 1 network, got %d", len(networks))
+	}
+	net := networks[0]
+	if net.ID != "abc123456789" {
+		t.Errorf("expected truncated ID abc123456789, got %s", net.ID)
+	}
+	if !net.Internal || !net.Attachable || !net.EnableIPv6 {
+		t.Errorf("expected Internal, Attachable, EnableIPv6 true")
+	}
+	if net.Subnet != "172.28.0.0/16" || net.Gateway != "172.28.0.1" || net.IPRange != "172.28.5.0/24" {
+		t.Errorf("unexpected IPAM config: subnet=%s, gw=%s, range=%s", net.Subnet, net.Gateway, net.IPRange)
+	}
+	if net.IPAMDriver != "default" {
+		t.Errorf("expected IPAMDriver default, got %s", net.IPAMDriver)
+	}
+	if net.Options["com.docker.network.bridge.name"] != "br-custom" {
+		t.Errorf("expected custom bridge name in options")
+	}
+	if len(net.ContainerDetails) != 1 {
+		t.Fatalf("expected 1 container detail, got %d", len(net.ContainerDetails))
+	}
+	cd := net.ContainerDetails[0]
+	if cd.Name != "api-server" || cd.IPv4Address != "172.28.5.2/16" || cd.MacAddress != "02:42:ac:1c:05:02" {
+		t.Errorf("unexpected container detail: %+v", cd)
+	}
 }
