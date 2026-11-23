@@ -19,6 +19,7 @@ type NetworksContext struct {
 	IsFiltering        bool
 	FilterQuery        string
 	Width              int
+	MaxRows            int
 	HideDetails        bool
 }
 
@@ -31,7 +32,14 @@ func RenderNetworks(ctx NetworksContext) string {
 		count = ctx.TotalNetworksCount
 	}
 
-	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf("DOCKER NETWORKS (%d)", count)) + "\n\n")
+	headerText := fmt.Sprintf("DOCKER NETWORKS (%d)", count)
+	if ctx.MaxRows > 0 && len(ctx.Networks) > ctx.MaxRows {
+		start, end := components.CalculateTableWindow(len(ctx.Networks), ctx.CursorIdx, ctx.MaxRows)
+		if badge := components.FormatWindowBadge(start, end, len(ctx.Networks)); badge != "" {
+			headerText += "   " + theme.CyanStyle.Render(badge)
+		}
+	}
+	s.WriteString(theme.TitleStyle.Render(headerText) + "\n\n")
 
 	if ctx.Error != "" {
 		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("Docker networks are unavailable: %s", ctx.Error)) + "\n")
@@ -64,7 +72,13 @@ func RenderNetworks(ctx NetworksContext) string {
 	s.WriteString(fmt.Sprintf("  %-12s  %-*s  %-10s  %-10s  %s\n",
 		"ID", nameWidth, "NAME", "DRIVER", "CONTAINERS", "SUBNET"))
 	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", contentWidth)) + "\n")
-	for index, network := range ctx.Networks {
+	start, end := 0, len(ctx.Networks)
+	if ctx.MaxRows > 0 && len(ctx.Networks) > ctx.MaxRows {
+		start, end = components.CalculateTableWindow(len(ctx.Networks), ctx.CursorIdx, ctx.MaxRows)
+	}
+
+	for index := start; index < end; index++ {
+		network := ctx.Networks[index]
 		idPadded := components.Truncate(network.ID, 12)
 		namePadded := components.PadRight(components.Truncate(network.Name, nameWidth), nameWidth)
 		driverPadded := components.PadRight(components.Truncate(network.Driver, 10), 10)
@@ -83,6 +97,17 @@ func RenderNetworks(ctx NetworksContext) string {
 		} else {
 			s.WriteString("  " + row + "\n")
 		}
+	}
+
+	if start > 0 || end < len(ctx.Networks) {
+		var hints []string
+		if start > 0 {
+			hints = append(hints, fmt.Sprintf("▲ %d more above", start))
+		}
+		if end < len(ctx.Networks) {
+			hints = append(hints, fmt.Sprintf("▼ %d more below", len(ctx.Networks)-end))
+		}
+		s.WriteString("  " + theme.DimStyle.Render(strings.Join(hints, "  │  ")) + "\n")
 	}
 
 	if !ctx.HideDetails && ctx.CursorIdx >= 0 && ctx.CursorIdx < len(ctx.Networks) {

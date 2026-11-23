@@ -141,6 +141,29 @@ func (m Model) renderEmbeddedShellLayout(content string) string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, left, " ", terminal)
 }
 
+func (m Model) calculateTableMaxRows(detailsHeight int) int {
+	if m.height <= 0 {
+		return 0
+	}
+
+	overhead := 16
+	if m.actionMessage != "" && time.Now().Before(m.actionMessageExpiry) {
+		overhead += 2
+	}
+	if m.isFiltering || m.filterQuery != "" || m.containerSortMode > 0 {
+		overhead += 2
+	}
+	if !m.hideDetails {
+		overhead += detailsHeight
+	}
+
+	available := m.height - overhead
+	if available < 3 {
+		return 3
+	}
+	return available
+}
+
 func (m Model) renderDockerTab() string {
 	containers := m.getFilteredContainers()
 	sortNames := []string{
@@ -161,6 +184,7 @@ func (m Model) renderDockerTab() string {
 		SortMode:             m.containerSortMode,
 		SortNames:            sortNames,
 		Width:                m.width,
+		MaxRows:              m.calculateTableMaxRows(13),
 		HideDetails:          m.hideDetails,
 	})
 }
@@ -177,6 +201,7 @@ func (m Model) renderImagesTab() string {
 		FilterQuery:      m.filterQuery,
 		OnlyUnused:       m.onlyUnusedImages,
 		Width:            m.width,
+		MaxRows:              m.calculateTableMaxRows(8),
 		HideDetails:      m.hideDetails,
 	})
 }
@@ -204,6 +229,7 @@ func (m Model) renderNetworksTab() string {
 		IsFiltering:        m.isFiltering,
 		FilterQuery:        m.filterQuery,
 		Width:              m.width,
+		MaxRows:              m.calculateTableMaxRows(8),
 		HideDetails:        m.hideDetails,
 	})
 }
@@ -217,6 +243,7 @@ func (m Model) renderVolumesTab() string {
 		IsFiltering:       m.isFiltering,
 		FilterQuery:       m.filterQuery,
 		Width:             m.width,
+		MaxRows:              m.calculateTableMaxRows(8),
 		HideDetails:       m.hideDetails,
 	})
 }

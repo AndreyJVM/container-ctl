@@ -400,3 +400,91 @@ func TestVisualPadding(t *testing.T) {
 		t.Errorf("expected padded string, got %q", got)
 	}
 }
+
+func TestRenderDocker_VirtualScrollingWindow(t *testing.T) {
+	t.Parallel()
+
+	// Generate 60 containers
+	containers := make([]monitor.ContainerItem, 60)
+	for i := 0; i < 60; i++ {
+		containers[i] = testutil.AContainer(
+			testutil.WithID(formatTestID(i)),
+			testutil.WithName(formatTestName(i)),
+		)
+	}
+
+	t.Run("top of list shows first window and down hint", func(t *testing.T) {
+		t.Parallel()
+		view := RenderDocker(DockerContext{
+			DockerInfo: monitor.DockerSummary{Status: "running", Containers: containers},
+			Containers: containers,
+			CursorIdx:  0,
+			MaxRows:    10,
+			Width:      100,
+		})
+
+		testutil.AssertContainsAll(t, view, "[1-10 of 60]")
+		testutil.AssertContainsAll(t, view, "container-00")
+		testutil.AssertContainsAll(t, view, "container-09")
+		testutil.AssertNotContains(t, view, "container-10")
+		testutil.AssertContainsAll(t, view, "▼ 50 more below")
+		testutil.AssertNotContains(t, view, "more above")
+	})
+
+	t.Run("middle of list shows both hints", func(t *testing.T) {
+		t.Parallel()
+		view := RenderDocker(DockerContext{
+			DockerInfo: monitor.DockerSummary{Status: "running", Containers: containers},
+			Containers: containers,
+			CursorIdx:  30,
+			MaxRows:    10,
+			Width:      100,
+		})
+
+		testutil.AssertContainsAll(t, view, "container-30")
+		testutil.AssertContainsAll(t, view, "more above")
+		testutil.AssertContainsAll(t, view, "more below")
+	})
+
+	t.Run("bottom of list shows last window and up hint", func(t *testing.T) {
+		t.Parallel()
+		view := RenderDocker(DockerContext{
+			DockerInfo: monitor.DockerSummary{Status: "running", Containers: containers},
+			Containers: containers,
+			CursorIdx:  59,
+			MaxRows:    10,
+			Width:      100,
+		})
+
+		testutil.AssertContainsAll(t, view, "[51-60 of 60]")
+		testutil.AssertContainsAll(t, view, "container-59")
+		testutil.AssertNotContains(t, view, "container-40")
+		testutil.AssertContainsAll(t, view, "▲ 50 more above")
+		testutil.AssertNotContains(t, view, "more below")
+	})
+
+	t.Run("zero max rows disables windowing", func(t *testing.T) {
+		t.Parallel()
+		view := RenderDocker(DockerContext{
+			DockerInfo: monitor.DockerSummary{Status: "running", Containers: containers},
+			Containers: containers,
+			CursorIdx:  0,
+			MaxRows:    0,
+			Width:      100,
+		})
+
+		testutil.AssertNotContains(t, view, "of 60]")
+		testutil.AssertContainsAll(t, view, "container-00")
+		testutil.AssertContainsAll(t, view, "container-59")
+		testutil.AssertNotContains(t, view, "more below")
+	})
+}
+
+func formatTestID(i int) string {
+	return strings.Repeat("a", 10) + string(rune('0'+i/10)) + string(rune('0'+i%10))
+}
+
+func formatTestName(i int) string {
+	return "container-" + string(rune('0'+i/10)) + string(rune('0'+i%10))
+}
+

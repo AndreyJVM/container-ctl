@@ -29,6 +29,7 @@ type ImagesContext struct {
 	FilterQuery      string
 	OnlyUnused       bool
 	Width            int
+	MaxRows          int
 	HideDetails      bool
 }
 
@@ -68,6 +69,12 @@ func RenderImages(ctx ImagesContext) string {
 			theme.GreenStyle.Render("● "+fmt.Sprintf("In Use: %d (%s)", inUseCount, monitor.FormatBytes(inUseSize))),
 			theme.YellowStyle.Render("○ "+fmt.Sprintf("Reclaimable: %d (%s)", unusedCount, monitor.FormatBytes(unusedSize))),
 		)
+	}
+	if ctx.MaxRows > 0 && len(ctx.Images) > ctx.MaxRows {
+		start, end := components.CalculateTableWindow(len(ctx.Images), ctx.CursorIdx, ctx.MaxRows)
+		if badge := components.FormatWindowBadge(start, end, len(ctx.Images)); badge != "" {
+			headerLine += "   " + theme.CyanStyle.Render(badge)
+		}
 	}
 	s.WriteString(headerLine + "\n\n")
 
@@ -112,7 +119,13 @@ func RenderImages(ctx ImagesContext) string {
 	s.WriteString(headerText + "\n")
 	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", contentWidth)) + "\n")
 
-	for index, img := range ctx.Images {
+	start, end := 0, len(ctx.Images)
+	if ctx.MaxRows > 0 && len(ctx.Images) > ctx.MaxRows {
+		start, end = components.CalculateTableWindow(len(ctx.Images), ctx.CursorIdx, ctx.MaxRows)
+	}
+
+	for index := start; index < end; index++ {
+		img := ctx.Images[index]
 		sizeStr := "-"
 		if img.Size >= 0 {
 			sizeStr = monitor.FormatBytes(img.Size)
@@ -150,6 +163,17 @@ func RenderImages(ctx ImagesContext) string {
 				idPadded, repoWidth, repoPadded, tagWidth, tagPadded, displaySize, datePadded, statusBadge)
 			s.WriteString("  " + coloredRow + "\n")
 		}
+	}
+
+	if start > 0 || end < len(ctx.Images) {
+		var hints []string
+		if start > 0 {
+			hints = append(hints, fmt.Sprintf("▲ %d more above", start))
+		}
+		if end < len(ctx.Images) {
+			hints = append(hints, fmt.Sprintf("▼ %d more below", len(ctx.Images)-end))
+		}
+		s.WriteString("  " + theme.DimStyle.Render(strings.Join(hints, "  │  ")) + "\n")
 	}
 
 	if !ctx.HideDetails && ctx.CursorIdx >= 0 && ctx.CursorIdx < len(ctx.Images) {

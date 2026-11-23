@@ -1031,3 +1031,63 @@ func TestFooterAnchoringToBottom(t *testing.T) {
 		}
 	}
 }
+
+func TestVirtualScrollingWindowing_50Containers(t *testing.T) {
+	t.Parallel()
+
+	targetHeight := 36
+	targetWidth := 110
+
+	m := newFastTestModel()
+	m.height = targetHeight
+	m.width = targetWidth
+	m.activeTab = TabDocker
+
+	// 55 containers
+	containers := make([]monitor.ContainerItem, 55)
+	for i := 0; i < 55; i++ {
+		name := "srv-" + string(rune('0'+i/10)) + string(rune('0'+i%10))
+		containers[i] = monitor.ContainerItem{
+			ID:    "id-" + name,
+			Name:  name,
+			State: "running",
+		}
+	}
+	m.dockerInfo = monitor.DockerSummary{
+		Status:     "running",
+		Containers: containers,
+	}
+	m.cursorIdx = 0
+
+	// View with cursor at top
+	viewTop := m.View()
+	if h := lipgloss.Height(viewTop); h != targetHeight {
+		t.Errorf("expected view height %d with 55 containers, got %d", targetHeight, h)
+	}
+	if !strings.Contains(viewTop, "of 55]") {
+		t.Errorf("expected window badge 'of 55]' in viewTop, got:\n%s", viewTop)
+	}
+	if !strings.Contains(viewTop, "▼") || !strings.Contains(viewTop, "more below") {
+		t.Errorf("expected down scroll hint in viewTop, got:\n%s", viewTop)
+	}
+	if !strings.Contains(viewTop, "Quit") {
+		t.Errorf("expected footer Quit in viewTop")
+	}
+
+	// Move cursor to bottom
+	m.cursorIdx = 54
+	viewBottom := m.View()
+	if h := lipgloss.Height(viewBottom); h != targetHeight {
+		t.Errorf("expected view height %d with cursor at bottom, got %d", targetHeight, h)
+	}
+	if !strings.Contains(viewBottom, "▲") || !strings.Contains(viewBottom, "more above") {
+		t.Errorf("expected up scroll hint in viewBottom, got:\n%s", viewBottom)
+	}
+	if !strings.Contains(viewBottom, "srv-54") {
+		t.Errorf("expected last container srv-54 to be visible in viewBottom")
+	}
+	if !strings.Contains(viewBottom, "Quit") {
+		t.Errorf("expected footer Quit in viewBottom")
+	}
+}
+

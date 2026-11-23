@@ -156,6 +156,7 @@ type DockerContext struct {
 	SortMode             int
 	SortNames            []string
 	Width                int
+	MaxRows              int
 	HideDetails          bool
 }
 
@@ -218,6 +219,12 @@ func renderDockerHeader(ctx *DockerContext, s *strings.Builder) {
 		if len(badges) > 0 {
 			summaryLine += "    " + strings.Join(badges, "   ")
 		}
+		if ctx.MaxRows > 0 && len(ctx.Containers) > ctx.MaxRows {
+			start, end := components.CalculateTableWindow(len(ctx.Containers), ctx.CursorIdx, ctx.MaxRows)
+			if badge := components.FormatWindowBadge(start, end, len(ctx.Containers)); badge != "" {
+				summaryLine += "   " + theme.CyanStyle.Render(badge)
+			}
+		}
 		s.WriteString(summaryLine + "\n\n")
 		return
 	}
@@ -271,9 +278,26 @@ func renderContainerTable(ctx *DockerContext, s *strings.Builder) {
 	s.WriteString(theme.DimStyle.Render(headerText) + "\n")
 	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", layout.contentWidth)) + "\n")
 
-	for i, c := range ctx.Containers {
+	start, end := 0, len(ctx.Containers)
+	if ctx.MaxRows > 0 && len(ctx.Containers) > ctx.MaxRows {
+		start, end = components.CalculateTableWindow(len(ctx.Containers), ctx.CursorIdx, ctx.MaxRows)
+	}
+
+	for i := start; i < end; i++ {
+		c := ctx.Containers[i]
 		isSelected := (i == ctx.CursorIdx)
 		s.WriteString(renderContainerRow(c, isSelected, layout))
+	}
+
+	if start > 0 || end < len(ctx.Containers) {
+		var hints []string
+		if start > 0 {
+			hints = append(hints, fmt.Sprintf("▲ %d more above", start))
+		}
+		if end < len(ctx.Containers) {
+			hints = append(hints, fmt.Sprintf("▼ %d more below", len(ctx.Containers)-end))
+		}
+		s.WriteString("  " + theme.DimStyle.Render(strings.Join(hints, "  │  ")) + "\n")
 	}
 }
 

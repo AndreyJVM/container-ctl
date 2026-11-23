@@ -19,6 +19,7 @@ type VolumesContext struct {
 	IsFiltering       bool
 	FilterQuery       string
 	Width             int
+	MaxRows           int
 	HideDetails       bool
 }
 
@@ -31,7 +32,14 @@ func RenderVolumes(ctx VolumesContext) string {
 		count = ctx.TotalVolumesCount
 	}
 
-	s.WriteString(theme.TitleStyle.Render(fmt.Sprintf("DOCKER VOLUMES (%d)", count)) + "\n\n")
+	headerText := fmt.Sprintf("DOCKER VOLUMES (%d)", count)
+	if ctx.MaxRows > 0 && len(ctx.Volumes) > ctx.MaxRows {
+		start, end := components.CalculateTableWindow(len(ctx.Volumes), ctx.CursorIdx, ctx.MaxRows)
+		if badge := components.FormatWindowBadge(start, end, len(ctx.Volumes)); badge != "" {
+			headerText += "   " + theme.CyanStyle.Render(badge)
+		}
+	}
+	s.WriteString(theme.TitleStyle.Render(headerText) + "\n\n")
 
 	if ctx.Error != "" {
 		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("Docker volumes are unavailable: %s", ctx.Error)) + "\n")
@@ -63,7 +71,14 @@ func RenderVolumes(ctx VolumesContext) string {
 	s.WriteString(fmt.Sprintf("  %-*s  %-10s  %-8s  %-6s  %s\n",
 		nameWidth, "NAME", "DRIVER", "SCOPE", "REFS", "SIZE"))
 	s.WriteString("  " + theme.DimStyle.Render(strings.Repeat("─", contentWidth)) + "\n")
-	for index, volume := range ctx.Volumes {
+
+	start, end := 0, len(ctx.Volumes)
+	if ctx.MaxRows > 0 && len(ctx.Volumes) > ctx.MaxRows {
+		start, end = components.CalculateTableWindow(len(ctx.Volumes), ctx.CursorIdx, ctx.MaxRows)
+	}
+
+	for index := start; index < end; index++ {
+		volume := ctx.Volumes[index]
 		size := "-"
 		if volume.Size >= 0 {
 			size = monitor.FormatBytes(volume.Size)
@@ -90,6 +105,17 @@ func RenderVolumes(ctx VolumesContext) string {
 		} else {
 			s.WriteString("  " + row + "\n")
 		}
+	}
+
+	if start > 0 || end < len(ctx.Volumes) {
+		var hints []string
+		if start > 0 {
+			hints = append(hints, fmt.Sprintf("▲ %d more above", start))
+		}
+		if end < len(ctx.Volumes) {
+			hints = append(hints, fmt.Sprintf("▼ %d more below", len(ctx.Volumes)-end))
+		}
+		s.WriteString("  " + theme.DimStyle.Render(strings.Join(hints, "  │  ")) + "\n")
 	}
 
 	if !ctx.HideDetails && ctx.CursorIdx >= 0 && ctx.CursorIdx < len(ctx.Volumes) {
