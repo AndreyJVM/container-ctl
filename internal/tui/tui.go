@@ -93,85 +93,104 @@ func tickCmd(d time.Duration) tea.Cmd {
 	})
 }
 
-// Model contains the TUI state.
-type Model struct {
-	version         string
-	activeTab       TabID
-	refreshInterval time.Duration
-	showHelp        bool
-	width           int
-	height          int
-
-	// Navigation and modal state.
-	cursorIdx           int
-	imageCursorIdx      int
-	composeCursorIdx    int
-	networkCursorIdx    int
-	volumeCursorIdx     int
-	swarmCursorIdx      int
-	activeModal         ModalType
-	execTargetID        string
-	execTargetName      string
-	execCursorIdx       int
-	execIsCustomInput   bool
-	execCustomCmd       string
-	embeddedShell       embeddedShellSession
-	shellFocused        bool
-	shellContainerName  string
-	logsTargetName      string
-	logsTargetID        string
-	logsLines           []string
-	logsScroll          int
-	logsFilterQuery     string
-	logsFiltering       bool
-	inspectTarget       monitor.ContainerDetail
-	inspectCustomTitle  string
-	inspectCustomLines  []string
-	inspectCopyID       string
-	inspectScroll       int
+// CommonState holds general application lifecycle and window dimensions.
+type CommonState struct {
+	version             string
+	activeTab           TabID
+	refreshInterval     time.Duration
+	showHelp            bool
+	width               int
+	height              int
 	actionMessage       string
 	actionMessageExpiry time.Time
+	registry            *module.Registry
+}
 
-	// Compose down modal.
+// NavState holds cursor positions, scroll offsets, sorting, and search filter queries per tab.
+type NavState struct {
+	cursorIdx         int
+	imageCursorIdx    int
+	composeCursorIdx  int
+	networkCursorIdx  int
+	volumeCursorIdx   int
+	swarmCursorIdx    int
+	containerSortMode int
+	isFiltering       bool
+	filterQuery       string
+	showSwarm         bool
+	hideDetails       bool
+	onlyUnusedImages  bool
+}
+
+// ShellState holds the embedded PTY shell terminal session.
+type ShellState struct {
+	embeddedShell      embeddedShellSession
+	shellFocused       bool
+	shellContainerName string
+}
+
+// ModalState holds state for active overlays and confirmation dialogs.
+type ModalState struct {
+	activeModal ModalType
+
+	// Exec modal
+	execTargetID      string
+	execTargetName    string
+	execCursorIdx     int
+	execIsCustomInput bool
+	execCustomCmd     string
+
+	// Logs modal
+	logsTargetName  string
+	logsTargetID    string
+	logsLines       []string
+	logsScroll      int
+	logsFilterQuery string
+	logsFiltering   bool
+
+	// Inspect modal
+	inspectTarget      monitor.ContainerDetail
+	inspectCustomTitle string
+	inspectCustomLines []string
+	inspectCopyID      string
+	inspectScroll      int
+
+	// Compose down modal
 	composeDownTarget string
 
-	// Remove container modal.
+	// Remove container modal
 	removeContainerTargetID   string
 	removeContainerTargetName string
 
-	// Remove image modal.
+	// Remove image modal
 	removeImageTargetID    string
 	removeImageTargetName  string
 	removeImageTargetInUse bool
 
-	// Remove network modal.
+	// Remove network modal
 	removeNetworkTargetID        string
 	removeNetworkTargetName      string
 	removeNetworkContainersCount int
 
-	// Remove volume modal.
+	// Remove volume modal
 	removeVolumeTargetName  string
 	removeVolumeTargetInUse bool
 
-	// Prune modal.
+	// Prune modal
 	pruneUsage    monitor.DockerDiskUsage
 	pruneUsageErr string
 	pruneConfirm  int // 0 - menu, 1 - containers, 2 - images, 3 - volumes, 4 - all
 
-	// Swarm scaling modal.
+	// Swarm scaling modal
 	swarmScaleTargetID   string
 	swarmScaleTargetName string
 	swarmScaleCurrent    int
 	swarmScaleDesired    int
 	swarmScaleTyped      bool
+}
 
-	// Container sorting: default, CPU desc, memory desc, name asc, or status.
-	containerSortMode int
-
-	// Container search and filtering.
-	isFiltering bool
-	filterQuery string
-
+// DataState holds cached domain data fetched asynchronously from the Docker daemon.
+type DataState struct {
 	dockerInfo monitor.DockerSummary
 	images     []monitor.DockerImage
 	compose    []monitor.ComposeProject
@@ -182,16 +201,15 @@ type Model struct {
 	networkErr string
 	volumeErr  string
 	lastUpdate string
+}
 
-	// showSwarm forces the Swarm tab to remain visible even when inactive.
-	showSwarm   bool
-	hideDetails bool
-
-	// onlyUnusedImages filters the image list to only unreferenced/reclaimable images.
-	onlyUnusedImages bool
-
-	// registry manages active modules and custom tab ordering.
-	registry *module.Registry
+// Model contains the complete TUI application state composed of dedicated state domains.
+type Model struct {
+	CommonState
+	NavState
+	ShellState
+	ModalState
+	DataState
 }
 
 // SetRegistry configures the module registry for the TUI model.
@@ -229,13 +247,12 @@ func NewModel(refreshInterval time.Duration, initialTab int, version string, sho
 	if len(showSwarm) > 0 && showSwarm[0] {
 		forceSwarm = true
 	}
-	m := Model{
-		version:         version,
-		activeTab:       tab,
-		refreshInterval: refreshInterval,
-		showSwarm:       forceSwarm,
-		registry:        module.DefaultRegistry(),
-	}
+	var m Model
+	m.version = version
+	m.activeTab = tab
+	m.refreshInterval = refreshInterval
+	m.showSwarm = forceSwarm
+	m.registry = module.DefaultRegistry()
 	m.fetchAllData()
 	return m
 }

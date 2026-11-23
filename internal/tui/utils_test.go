@@ -105,10 +105,9 @@ func TestFormatDockerStatus(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			m := Model{
-				dockerInfo: monitor.DockerSummary{
-					StatusDisplay: tt.statusDisplay,
-				},
+			var m Model
+			m.dockerInfo = monitor.DockerSummary{
+				StatusDisplay: tt.statusDisplay,
 			}
 			if res := m.formatDockerStatus(tt.status); res != tt.expected {
 				t.Errorf("status=%q display=%q: expected %q, got %q", tt.status, tt.statusDisplay, tt.expected, res)

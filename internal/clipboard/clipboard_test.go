@@ -32,3 +32,11 @@ func TestClipboardWrite(t *testing.T) {
 		t.Errorf("expected empty buffer on empty write, got: %q", buf.String())
 	}
 }
+
+func TestTestLock(t *testing.T) {
+	unlock := TestLock()
+	if unlock == nil {
+		t.Errorf("expected non-nil unlock function")
+	}
+	unlock()
+}

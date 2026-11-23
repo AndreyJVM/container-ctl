@@ -15,11 +15,11 @@ import (
 // newFastTestModel creates an initialized Model for testing without making
 // slow and blocking calls to the Docker daemon.
 func newFastTestModel() Model {
-	return Model{
-		version:         "v0.5.0",
-		activeTab:       TabDocker,
-		refreshInterval: 2 * time.Second,
-	}
+	var m Model
+	m.version = "v0.5.0"
+	m.activeTab = TabDocker
+	m.refreshInterval = 2 * time.Second
+	return m
 }
 
 func TestAsyncCommandTriggers(t *testing.T) {

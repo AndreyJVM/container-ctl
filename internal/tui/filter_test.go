@@ -341,22 +341,21 @@ func TestContainerSortingViaModel(t *testing.T) {
 func TestComposeNetworksVolumesSearchFilter(t *testing.T) {
 	t.Parallel()
 
-	m := Model{
-		version:         "v0.18.1",
-		activeTab:       TabCompose,
-		refreshInterval: 2 * time.Second,
-		compose: []monitor.ComposeProject{
-			{Name: "web-stack", Status: "running", Services: []monitor.ComposeService{{Name: "web-srv", Image: "nginx"}}},
-			{Name: "db-stack", Status: "running", Services: []monitor.ComposeService{{Name: "db-srv", Image: "postgres"}}},
-		},
-		networks: []monitor.DockerNetwork{
-			{ID: "n1", Name: "bridge-net", Driver: "bridge", Subnet: "172.18.0.0/16"},
-			{ID: "n2", Name: "custom-net", Driver: "overlay", Subnet: "10.0.0.0/24"},
-		},
-		volumes: []monitor.DockerVolume{
-			{Name: "db-data", Driver: "local"},
-			{Name: "cache-data", Driver: "local"},
-		},
+	var m Model
+	m.version = "v0.18.1"
+	m.activeTab = TabCompose
+	m.refreshInterval = 2 * time.Second
+	m.compose = []monitor.ComposeProject{
+		{Name: "web-stack", Status: "running", Services: []monitor.ComposeService{{Name: "web-srv", Image: "nginx"}}},
+		{Name: "db-stack", Status: "running", Services: []monitor.ComposeService{{Name: "db-srv", Image: "postgres"}}},
+	}
+	m.networks = []monitor.DockerNetwork{
+		{ID: "n1", Name: "bridge-net", Driver: "bridge", Subnet: "172.18.0.0/16"},
+		{ID: "n2", Name: "custom-net", Driver: "overlay", Subnet: "10.0.0.0/24"},
+	}
+	m.volumes = []monitor.DockerVolume{
+		{Name: "db-data", Driver: "local"},
+		{Name: "cache-data", Driver: "local"},
 	}
 
 	// 1. Open search on TabCompose with "/"
