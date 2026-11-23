@@ -110,12 +110,12 @@ func TestSocketClassification(t *testing.T) {
 	}
 }
 
-func TestCustomSocketPath(t *testing.T) {
+func TestCustomSocketPath(_ *testing.T) {
 	SetCustomSocketPath("/custom/docker.sock")
 	defer SetCustomSocketPath("")
 }
 
-func TestDefaultCLIRunner(t *testing.T) {
+func TestDefaultCLIRunner(_ *testing.T) {
 	ctx := context.Background()
 	_, _ = DefaultCLIRunner(ctx, "--version")
 	_, _ = DefaultCLIRunner(nil, "--version")
