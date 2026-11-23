@@ -61,21 +61,21 @@ func TestMessages_Instantiations(t *testing.T) {
 	t.Run("dataFetchedMsg fields", func(t *testing.T) {
 		t.Parallel()
 		dataMsg := dataFetchedMsg{
-			dockerInfo: monitor.DockerSummary{RunningContainers: 5},
-			images:     []monitor.DockerImage{{ID: "img-1"}},
-			compose:    []monitor.ComposeProject{{Name: "proj-1"}},
-			networks:   []monitor.DockerNetwork{{Name: "bridge"}},
-			volumes:    []monitor.DockerVolume{{Name: "vol-1"}},
-			swarm:      monitor.SwarmSummary{IsActive: false},
-			imageErr:   "img err",
-			networkErr: "net err",
-			volumeErr:  "vol err",
-			timestamp:  "12:00:00",
+			DockerInfo: monitor.DockerSummary{RunningContainers: 5},
+			Images:     []monitor.DockerImage{{ID: "img-1"}},
+			Compose:    []monitor.ComposeProject{{Name: "proj-1"}},
+			Networks:   []monitor.DockerNetwork{{Name: "bridge"}},
+			Volumes:    []monitor.DockerVolume{{Name: "vol-1"}},
+			Swarm:      monitor.SwarmSummary{IsActive: false},
+			ImageErr:   "img err",
+			NetworkErr: "net err",
+			VolumeErr:  "vol err",
+			Timestamp:  "12:00:00",
 		}
-		if dataMsg.dockerInfo.RunningContainers != 5 || len(dataMsg.images) != 1 || dataMsg.timestamp != "12:00:00" {
+		if dataMsg.DockerInfo.RunningContainers != 5 || len(dataMsg.Images) != 1 || dataMsg.Timestamp != "12:00:00" {
 			t.Errorf("unexpected dataFetchedMsg: %+v", dataMsg)
 		}
-		if dataMsg.imageErr != "img err" || dataMsg.networkErr != "net err" || dataMsg.volumeErr != "vol err" {
+		if dataMsg.ImageErr != "img err" || dataMsg.NetworkErr != "net err" || dataMsg.VolumeErr != "vol err" {
 			t.Errorf("unexpected error messages in dataFetchedMsg: %+v", dataMsg)
 		}
 	})
@@ -83,11 +83,11 @@ func TestMessages_Instantiations(t *testing.T) {
 	t.Run("actionFinishedMsg fields", func(t *testing.T) {
 		t.Parallel()
 		actionMsg := actionFinishedMsg{
-			message: "Action succeeded",
-			err:     nil,
-			refresh: true,
+			Message: "Action succeeded",
+			Err:     nil,
+			Refresh: true,
 		}
-		if actionMsg.message != "Action succeeded" || !actionMsg.refresh || actionMsg.err != nil {
+		if actionMsg.Message != "Action succeeded" || !actionMsg.Refresh || actionMsg.Err != nil {
 			t.Errorf("unexpected actionFinishedMsg: %+v", actionMsg)
 		}
 	})
@@ -103,22 +103,22 @@ func TestDataFetchedMsg_StateApplicationAndSwarmFallback(t *testing.T) {
 		m.swarmCursorIdx = 10
 
 		data := dataFetchedMsg{
-			dockerInfo: monitor.DockerSummary{
+			DockerInfo: monitor.DockerSummary{
 				Status:            monitor.DockerStatusRunning,
 				RunningContainers: 3,
 			},
-			images:   []monitor.DockerImage{{ID: "img1"}, {ID: "img2"}},
-			compose:  []monitor.ComposeProject{{Name: "stack1"}, {Name: "stack2"}},
-			networks: []monitor.DockerNetwork{{Name: "net1"}},
-			volumes:  []monitor.DockerVolume{{Name: "vol1"}},
-			swarm: monitor.SwarmSummary{
+			Images:   []monitor.DockerImage{{ID: "img1"}, {ID: "img2"}},
+			Compose:  []monitor.ComposeProject{{Name: "stack1"}, {Name: "stack2"}},
+			Networks: []monitor.DockerNetwork{{Name: "net1"}},
+			Volumes:  []monitor.DockerVolume{{Name: "vol1"}},
+			Swarm: monitor.SwarmSummary{
 				IsActive: true,
 				Services: []monitor.SwarmService{{Name: "svc1"}},
 			},
-			imageErr:   "warn image",
-			networkErr: "warn net",
-			volumeErr:  "warn vol",
-			timestamp:  "15:30:00",
+			ImageErr:   "warn image",
+			NetworkErr: "warn net",
+			VolumeErr:  "warn vol",
+			Timestamp:  "15:30:00",
 		}
 
 		res, cmd := m.Update(data)
@@ -151,10 +151,10 @@ func TestDataFetchedMsg_StateApplicationAndSwarmFallback(t *testing.T) {
 		m.showSwarm = false
 
 		data := dataFetchedMsg{
-			swarm: monitor.SwarmSummary{
+			Swarm: monitor.SwarmSummary{
 				IsActive: false,
 			},
-			timestamp: "16:00:00",
+			Timestamp: "16:00:00",
 		}
 
 		res, _ := m.Update(data)
@@ -179,19 +179,19 @@ func TestActionFinishedMsg_Dispatch(t *testing.T) {
 	}{
 		{
 			name:          "success without refresh",
-			msg:           actionFinishedMsg{message: "Service scaled", refresh: false},
+			msg:           actionFinishedMsg{Message: "Service scaled", Refresh: false},
 			expectedToast: "Service scaled",
 			expectCmd:     false,
 		},
 		{
 			name:          "success with refresh returns fetchDataCmd",
-			msg:           actionFinishedMsg{message: "Container removed", refresh: true},
+			msg:           actionFinishedMsg{Message: "Container removed", Refresh: true},
 			expectedToast: "Container removed",
 			expectCmd:     true,
 		},
 		{
 			name:          "error message takes precedence",
-			msg:           actionFinishedMsg{message: "ignored", err: errors.New("daemon timeout"), refresh: false},
+			msg:           actionFinishedMsg{Message: "ignored", Err: errors.New("daemon timeout"), Refresh: false},
 			expectedToast: "daemon timeout",
 			expectCmd:     false,
 		},

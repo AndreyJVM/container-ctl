@@ -61,7 +61,7 @@ func TestUpdate_MessageTypes(t *testing.T) {
 		m := newFastTestModel()
 
 		// Error toast
-		res, cmd := m.Update(actionFinishedMsg{err: errors.New("action failed")})
+		res, cmd := m.Update(actionFinishedMsg{Err: errors.New("action failed")})
 		m = res.(Model)
 		if !strings.Contains(m.actionMessage, "action failed") {
 			t.Errorf("expected toast with error, got: %s", m.actionMessage)
@@ -71,7 +71,7 @@ func TestUpdate_MessageTypes(t *testing.T) {
 		}
 
 		// Success toast with refresh
-		res, cmd = m.Update(actionFinishedMsg{message: "container started", refresh: true})
+		res, cmd = m.Update(actionFinishedMsg{Message: "container started", Refresh: true})
 		m = res.(Model)
 		if !strings.Contains(m.actionMessage, "container started") {
 			t.Errorf("expected toast 'container started', got: %s", m.actionMessage)
@@ -108,28 +108,28 @@ func TestUpdate_MessageTypes(t *testing.T) {
 	t.Run("dataFetchedMsg updates model state", func(t *testing.T) {
 		m := newFastTestModel()
 		res, _ := m.Update(dataFetchedMsg{
-			dockerInfo: monitor.DockerSummary{
+			DockerInfo: monitor.DockerSummary{
 				Status: "running",
 				Containers: []monitor.ContainerItem{
 					testutil.AContainer(testutil.WithID("c1"), testutil.WithName("api")),
 				},
 			},
-			images: []monitor.DockerImage{
+			Images: []monitor.DockerImage{
 				{ID: "img1", Repository: "api-image"},
 			},
-			compose: []monitor.ComposeProject{
+			Compose: []monitor.ComposeProject{
 				{Name: "app-stack"},
 			},
-			networks: []monitor.DockerNetwork{
+			Networks: []monitor.DockerNetwork{
 				{ID: "n1", Name: "app-net"},
 			},
-			volumes: []monitor.DockerVolume{
+			Volumes: []monitor.DockerVolume{
 				{Name: "app-vol"},
 			},
-			swarm: monitor.SwarmSummary{
+			Swarm: monitor.SwarmSummary{
 				IsActive: true,
 			},
-			timestamp: "12:00:00",
+			Timestamp: "12:00:00",
 		})
 		m = res.(Model)
 		if len(m.dockerInfo.Containers) != 1 || m.dockerInfo.Containers[0].Name != "api" {
@@ -227,7 +227,7 @@ func TestUpdate_ExecFinished(t *testing.T) {
 	origFetch := fetchDockerData
 	fetchDockerData = func() dataFetchedMsg {
 		return dataFetchedMsg{
-			timestamp: "12:00:00",
+			Timestamp: "12:00:00",
 		}
 	}
 	defer func() { fetchDockerData = origFetch }()

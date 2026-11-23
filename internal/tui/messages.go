@@ -3,7 +3,7 @@ package tui
 import (
 	"time"
 
-	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/AndreyJVM/container-ctl/internal/tui/actions"
 )
 
 // tickMsg signals a periodic refresh timer tick.
@@ -27,22 +27,7 @@ type embeddedShellExitedMsg struct {
 }
 
 // dataFetchedMsg delivers freshly gathered metrics and container lists across all domains.
-type dataFetchedMsg struct {
-	dockerInfo monitor.DockerSummary
-	images     []monitor.DockerImage
-	compose    []monitor.ComposeProject
-	networks   []monitor.DockerNetwork
-	volumes    []monitor.DockerVolume
-	swarm      monitor.SwarmSummary
-	imageErr   string
-	networkErr string
-	volumeErr  string
-	timestamp  string
-}
+type dataFetchedMsg = actions.DataFetchedMsg
 
 // actionFinishedMsg is returned upon completion of an async container or compose operation.
-type actionFinishedMsg struct {
-	message string
-	err     error
-	refresh bool
-}
+type actionFinishedMsg = actions.FinishedMsg

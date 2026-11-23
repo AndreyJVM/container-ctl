@@ -20,15 +20,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case execFinishedMsg:
 		return m.handleExecFinished(msg)
 
-	case actionFinishedMsg:
-		return m.handleActionResult(msg.err, msg.message, msg.refresh)
-
 	case actions.FinishedMsg:
 		return m.handleActionResult(msg.Err, msg.Message, msg.Refresh)
-
-	case dataFetchedMsg:
-		m.applyFetchedData(msg)
-		return m, nil
 
 	case actions.DataFetchedMsg:
 		m.applyActionsData(msg)

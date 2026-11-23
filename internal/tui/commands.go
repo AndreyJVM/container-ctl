@@ -18,19 +18,7 @@ const (
 )
 
 func fetchAllData() dataFetchedMsg {
-	d := actions.FetchAllData()
-	return dataFetchedMsg{
-		dockerInfo: d.DockerInfo,
-		images:     d.Images,
-		compose:    d.Compose,
-		networks:   d.Networks,
-		volumes:    d.Volumes,
-		swarm:      d.Swarm,
-		imageErr:   d.ImageErr,
-		networkErr: d.NetworkErr,
-		volumeErr:  d.VolumeErr,
-		timestamp:  d.Timestamp,
-	}
+	return actions.FetchAllData()
 }
 
 func fetchDataCmd() tea.Cmd {
@@ -40,21 +28,11 @@ func fetchDataCmd() tea.Cmd {
 }
 
 func wrapAction(cmd tea.Cmd) tea.Cmd {
-	return func() tea.Msg {
-		msg := cmd()
-		if fMsg, ok := msg.(actions.FinishedMsg); ok {
-			return actionFinishedMsg{
-				message: fMsg.Message,
-				err:     fMsg.Err,
-				refresh: fMsg.Refresh,
-			}
-		}
-		return msg
-	}
+	return cmd
 }
 
 func makeActionCmd(action func() error, errPrefix, successMsg string) tea.Cmd {
-	return wrapAction(actions.MakeActionCmd(action, errPrefix, successMsg))
+	return actions.MakeActionCmd(action, errPrefix, successMsg)
 }
 
 func startContainerCmd(id, name string) tea.Cmd {

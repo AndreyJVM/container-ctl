@@ -490,8 +490,8 @@ func TestDynamicSwarmTabLifecycle(t *testing.T) {
 
 	// 3. Swarm deactivated while on TabSwarm: applyFetchedData redirects to TabDocker
 	m.applyFetchedData(dataFetchedMsg{
-		swarm:     monitor.SwarmSummary{IsActive: false},
-		timestamp: "12:00:00",
+		Swarm:     monitor.SwarmSummary{IsActive: false},
+		Timestamp: "12:00:00",
 	})
 	if m.activeTab != TabDocker {
 		t.Fatalf("expected fallback to TabDocker after Swarm deactivation, got %v", m.activeTab)

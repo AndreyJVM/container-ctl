@@ -41,7 +41,8 @@ type DataFetchedMsg struct {
 	Timestamp  string
 }
 
-func formatFetchError(err error) string {
+// FormatFetchError converts an error into a string, returning empty string for nil.
+func FormatFetchError(err error) string {
 	if err == nil {
 		return ""
 	}
@@ -109,9 +110,9 @@ func FetchAllDataFiltered(includeImages, includeNetworks, includeVolumes, includ
 		Networks:   networks,
 		Volumes:    monitor.EnrichVolumesWithContainers(volumes, dockerInfo.Containers),
 		Swarm:      swarm,
-		ImageErr:   formatFetchError(imageErr),
-		NetworkErr: formatFetchError(networkErr),
-		VolumeErr:  formatFetchError(volumeErr),
+		ImageErr:   FormatFetchError(imageErr),
+		NetworkErr: FormatFetchError(networkErr),
+		VolumeErr:  FormatFetchError(volumeErr),
 		Timestamp:  time.Now().Format(TimeFormat),
 	}
 }

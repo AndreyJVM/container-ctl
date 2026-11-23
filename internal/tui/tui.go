@@ -297,18 +297,7 @@ func (m *Model) applyActionsData(d actions.DataFetchedMsg) {
 }
 
 func (m *Model) applyFetchedData(d dataFetchedMsg) {
-	m.applyActionsData(actions.DataFetchedMsg{
-		DockerInfo: d.dockerInfo,
-		Images:     d.images,
-		Compose:    d.compose,
-		Networks:   d.networks,
-		Volumes:    d.volumes,
-		Swarm:      d.swarm,
-		ImageErr:   d.imageErr,
-		NetworkErr: d.networkErr,
-		VolumeErr:  d.volumeErr,
-		Timestamp:  d.timestamp,
-	})
+	m.applyActionsData(d)
 }
 
 var fetchDockerData = fetchAllData
@@ -344,10 +333,7 @@ func (m *Model) copyToClipboard(text string) {
 }
 
 func formatFetchError(err error) string {
-	if err == nil {
-		return ""
-	}
-	return err.Error()
+	return actions.FormatFetchError(err)
 }
 
 // openModal activates the specified modal dialog.

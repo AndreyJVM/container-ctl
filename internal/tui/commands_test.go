@@ -100,19 +100,19 @@ func TestActionFinishedMsg(t *testing.T) {
 	}{
 		{
 			name:          "success message without refresh",
-			msg:           actionFinishedMsg{message: "Operation completed successfully", refresh: false},
+			msg:           actionFinishedMsg{Message: "Operation completed successfully", Refresh: false},
 			expectedToast: "Operation completed successfully",
 			expectCmd:     false,
 		},
 		{
 			name:          "error message",
-			msg:           actionFinishedMsg{err: errors.New("command execution failed"), refresh: false},
+			msg:           actionFinishedMsg{Err: errors.New("command execution failed"), Refresh: false},
 			expectedToast: "command execution failed",
 			expectCmd:     false,
 		},
 		{
 			name:          "success message with refresh -> triggers fetchDataCmd",
-			msg:           actionFinishedMsg{message: "Container removed", refresh: true},
+			msg:           actionFinishedMsg{Message: "Container removed", Refresh: true},
 			expectedToast: "Container removed",
 			expectCmd:     true,
 		},
@@ -141,8 +141,8 @@ func TestDataFetchedMsg(t *testing.T) {
 
 	m := newFastTestModel()
 	data := dataFetchedMsg{
-		timestamp: "14:25:36",
-		dockerInfo: monitor.DockerSummary{
+		Timestamp: "14:25:36",
+		DockerInfo: monitor.DockerSummary{
 			Status:            monitor.DockerStatusRunning,
 			RunningContainers: 2,
 		},
@@ -180,13 +180,13 @@ func TestWrapAction(t *testing.T) {
 		if !ok {
 			t.Fatalf("expected actionFinishedMsg, got %T", res)
 		}
-		if afm.message != "action done" {
-			t.Errorf("expected message 'action done', got %q", afm.message)
+		if afm.Message != "action done" {
+			t.Errorf("expected message 'action done', got %q", afm.Message)
 		}
-		if !errors.Is(afm.err, testErr) {
-			t.Errorf("expected error %v, got %v", testErr, afm.err)
+		if !errors.Is(afm.Err, testErr) {
+			t.Errorf("expected error %v, got %v", testErr, afm.Err)
 		}
-		if !afm.refresh {
+		if !afm.Refresh {
 			t.Errorf("expected refresh=true")
 		}
 	})
@@ -228,7 +228,7 @@ func TestMakeActionCmd(t *testing.T) {
 		if !ok {
 			t.Fatalf("expected actionFinishedMsg, got %T", msg)
 		}
-		if afm.err != nil || afm.message != "done successfully" || !afm.refresh {
+		if afm.Err != nil || afm.Message != "done successfully" || !afm.Refresh {
 			t.Errorf("unexpected success actionFinishedMsg: %+v", afm)
 		}
 	})
@@ -246,10 +246,10 @@ func TestMakeActionCmd(t *testing.T) {
 		if !ok {
 			t.Fatalf("expected actionFinishedMsg, got %T", msg)
 		}
-		if afm.err == nil || !strings.Contains(afm.err.Error(), "action error: network failure") {
-			t.Errorf("expected wrapped error with prefix, got: %+v", afm.err)
+		if afm.Err == nil || !strings.Contains(afm.Err.Error(), "action error: network failure") {
+			t.Errorf("expected wrapped error with prefix, got: %+v", afm.Err)
 		}
-		if !errors.Is(afm.err, testErr) {
+		if !errors.Is(afm.Err, testErr) {
 			t.Errorf("expected wrapped error to unwrap to testErr via %%w")
 		}
 	})
@@ -271,7 +271,7 @@ func TestExecutePruneAndPruneCmd(t *testing.T) {
 		if !ok {
 			t.Fatalf("expected actionFinishedMsg, got %T", badMsg)
 		}
-		if afm.err == nil || !strings.Contains(afm.err.Error(), "Prune error:") {
+		if afm.Err == nil || !strings.Contains(afm.Err.Error(), "Prune error:") {
 			t.Errorf("expected prune error toast, got: %+v", afm)
 		}
 	})
@@ -350,8 +350,8 @@ func TestFetchAllDataAndFetchDataCmd(t *testing.T) {
 	}
 
 	data := fetchAllData()
-	if len(data.timestamp) != 8 || !strings.Contains(data.timestamp, ":") {
-		t.Errorf("expected timestamp in HH:MM:SS format, got %q", data.timestamp)
+	if len(data.Timestamp) != 8 || !strings.Contains(data.Timestamp, ":") {
+		t.Errorf("expected timestamp in HH:MM:SS format, got %q", data.Timestamp)
 	}
 }
 
