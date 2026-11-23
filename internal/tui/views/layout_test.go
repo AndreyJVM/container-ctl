@@ -63,7 +63,7 @@ func TestRenderHeader(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				hdr := RenderHeader(HeaderContext{
-					Version:    "v0.21.0",
+					Version:    "v0.22.0",
 					LastUpdate: "12:00:00",
 					DockerInfo: monitor.DockerSummary{
 						IsPodman:   tt.isPodman,
