@@ -114,11 +114,14 @@ func RemoveDockerImage(imageID string, force bool) error {
 		return fmt.Errorf("image ID cannot be empty")
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	sockPath := DockerSocketFinder()
 	if sockPath != "" {
 		client := SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/images/%s?force=%t", url.PathEscape(imageID), force)
-		req, err := http.NewRequest(http.MethodDelete, endpoint, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
 		if err == nil {
 			resp, err := client.Do(req)
 			if err == nil {
@@ -131,9 +134,6 @@ func RemoveDockerImage(imageID string, force bool) error {
 			}
 		}
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	args := []string{"rmi"}
 	if force {
 		args = append(args, "-f")

@@ -209,6 +209,7 @@ func RenderFooter(ctx FooterContext) string {
 		} else if ctx.FilterQuery != "" {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[Esc]") + " Reset Filter  |  " +
+				theme.BoldStyle.Render("[V]") + " Details  |  " +
 				theme.BoldStyle.Render("[y]") + " Copy  |  " +
 				theme.BoldStyle.Render("[x]") + " Remove  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
@@ -219,6 +220,7 @@ func RenderFooter(ctx FooterContext) string {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[/]") + " Search  |  " +
 				theme.BoldStyle.Render("[u]") + " Filter Unused  |  " +
+				theme.BoldStyle.Render("[V]") + " Details  |  " +
 				theme.BoldStyle.Render("[y]") + " Copy  |  " +
 				theme.BoldStyle.Render("[x]") + " Remove  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
@@ -265,6 +267,7 @@ func RenderFooter(ctx FooterContext) string {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[Enter/I]") + " Inspect  |  " +
 				theme.BoldStyle.Render("[Esc]") + " Reset Filter  |  " +
+				theme.BoldStyle.Render("[V]") + " Details  |  " +
 				theme.BoldStyle.Render("[y]") + " Copy  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
 				theme.BoldStyle.Render("[R]") + " Refresh  |  " +
@@ -274,6 +277,7 @@ func RenderFooter(ctx FooterContext) string {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[Enter/I]") + " Inspect  |  " +
 				theme.BoldStyle.Render("[/]") + " Search  |  " +
+				theme.BoldStyle.Render("[V]") + " Details  |  " +
 				theme.BoldStyle.Render("[y]") + " Copy  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
 				theme.BoldStyle.Render("[R]") + " Refresh  |  " +

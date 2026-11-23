@@ -162,6 +162,7 @@ func (m Model) renderImagesTab() string {
 		FilterQuery:      m.filterQuery,
 		OnlyUnused:       m.onlyUnusedImages,
 		Width:            m.width,
+		HideDetails:      m.hideDetails,
 	})
 }
 
@@ -188,6 +189,7 @@ func (m Model) renderNetworksTab() string {
 		IsFiltering:        m.isFiltering,
 		FilterQuery:        m.filterQuery,
 		Width:              m.width,
+		HideDetails:        m.hideDetails,
 	})
 }
 
@@ -201,6 +203,7 @@ func (m Model) renderVolumesTab() string {
 		IsFiltering:       m.isFiltering,
 		FilterQuery:       m.filterQuery,
 		Width:             m.width,
+		HideDetails:       m.hideDetails,
 	})
 }
 

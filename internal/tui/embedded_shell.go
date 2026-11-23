@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 
@@ -90,9 +91,10 @@ func (m Model) handleEmbeddedShellExited(msg embeddedShellExitedMsg) (tea.Model,
 	}
 	name := m.shellContainerName
 	m.closeEmbeddedShell()
+	var exitErr *exec.ExitError
 	if msg.err == nil {
 		m.showToast(fmt.Sprintf("Shell session in %s ended", name))
-	} else if exitErr, ok := msg.err.(*exec.ExitError); ok {
+	} else if errors.As(msg.err, &exitErr) {
 		if exitErr.ExitCode() == 130 {
 			m.showToast(fmt.Sprintf("Shell session in %s ended", name))
 		} else {

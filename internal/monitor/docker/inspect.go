@@ -52,9 +52,16 @@ func getContainerDetailViaSocket(sockPath, containerID string) (ContainerDetail,
 	var detail ContainerDetail
 	detail.ID = containerID
 
+	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	defer cancel()
+
 	client := SocketClientFactory(sockPath)
 	endpoint := fmt.Sprintf("http://localhost/containers/%s/json", url.PathEscape(containerID))
-	resp, err := client.Get(endpoint)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return detail, err
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return detail, err
 	}

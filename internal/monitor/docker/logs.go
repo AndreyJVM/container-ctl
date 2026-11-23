@@ -22,21 +22,25 @@ func GetContainerLogs(containerID string, tailLines int) (string, error) {
 		tailLines = defaultTailLines
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	sockPath := DockerSocketFinder()
 	if sockPath != "" {
 		client := SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/containers/%s/logs?stdout=1&stderr=1&tail=%d", url.PathEscape(containerID), tailLines)
-		resp, err := client.Get(endpoint)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 		if err == nil {
-			defer resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				return DemuxDockerLogs(resp.Body), nil
+			resp, err := client.Do(req)
+			if err == nil {
+				defer resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					return DemuxDockerLogs(resp.Body), nil
+				}
 			}
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	out, err := DockerCLIRunner(ctx, "logs", "--tail", fmt.Sprintf("%d", tailLines), containerID)
 	if err != nil {
 		return "", fmt.Errorf("%s", strings.TrimSpace(string(out)))

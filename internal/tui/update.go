@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 
@@ -92,7 +93,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleExecFinished(msg execFinishedMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
-		if exitErr, ok := msg.err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(msg.err, &exitErr) {
 			if exitErr.ExitCode() == 130 {
 				m.showToast(fmt.Sprintf("Shell session in %s ended", msg.containerName))
 			} else {

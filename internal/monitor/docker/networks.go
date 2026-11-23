@@ -101,27 +101,31 @@ func GetNetworkInspectJSON(idOrName string) (string, error) {
 		return "", fmt.Errorf("network identifier cannot be empty")
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	defer cancel()
+
 	if sockPath := DockerSocketFinder(); sockPath != "" {
 		client := SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/networks/%s", url.PathEscape(idOrName))
-		resp, err := client.Get(endpoint)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 		if err == nil {
-			defer resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				body, err := io.ReadAll(resp.Body)
-				if err == nil && len(body) > 0 {
-					var pretty bytes.Buffer
-					if err := json.Indent(&pretty, body, "", "  "); err == nil {
-						return pretty.String(), nil
+			resp, err := client.Do(req)
+			if err == nil {
+				defer resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					body, err := io.ReadAll(resp.Body)
+					if err == nil && len(body) > 0 {
+						var pretty bytes.Buffer
+						if err := json.Indent(&pretty, body, "", "  "); err == nil {
+							return pretty.String(), nil
+						}
+						return string(body), nil
 					}
-					return string(body), nil
 				}
 			}
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
-	defer cancel()
 	out, err := DockerCLIRunner(ctx, "network", "inspect", idOrName)
 	if err == nil && len(out) > 0 {
 		var pretty bytes.Buffer

@@ -19,6 +19,7 @@ type NetworksContext struct {
 	IsFiltering        bool
 	FilterQuery        string
 	Width              int
+	HideDetails        bool
 }
 
 // RenderNetworks renders Docker networks and details for the selected network.
@@ -84,7 +85,7 @@ func RenderNetworks(ctx NetworksContext) string {
 		}
 	}
 
-	if ctx.CursorIdx >= 0 && ctx.CursorIdx < len(ctx.Networks) {
+	if !ctx.HideDetails && ctx.CursorIdx >= 0 && ctx.CursorIdx < len(ctx.Networks) {
 		network := ctx.Networks[ctx.CursorIdx]
 		s.WriteString("\n")
 
@@ -120,7 +121,12 @@ func RenderNetworks(ctx NetworksContext) string {
 
 		s.WriteString(renderDetailRow("Compose project:", valueOrDash(network.ComposeProject)))
 
-		actions := []string{theme.BoldStyle.Render("[y]") + " Copy Name", theme.BoldStyle.Render("[C]") + " Prune Unused"}
+		actions := []string{
+			theme.BoldStyle.Render("[Enter]") + " Inspect",
+			theme.BoldStyle.Render("[y]") + " Copy Name",
+			theme.BoldStyle.Render("[C]") + " Prune Unused",
+			theme.BoldStyle.Render("[V]") + " Details",
+		}
 		s.WriteString(renderDetailRow("Quick Actions:", strings.Join(actions, "  ")))
 
 		s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")

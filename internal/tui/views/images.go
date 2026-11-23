@@ -29,6 +29,7 @@ type ImagesContext struct {
 	FilterQuery      string
 	OnlyUnused       bool
 	Width            int
+	HideDetails      bool
 }
 
 // RenderImages renders Docker images and details for the selected image.
@@ -151,7 +152,7 @@ func RenderImages(ctx ImagesContext) string {
 		}
 	}
 
-	if ctx.CursorIdx >= 0 && ctx.CursorIdx < len(ctx.Images) {
+	if !ctx.HideDetails && ctx.CursorIdx >= 0 && ctx.CursorIdx < len(ctx.Images) {
 		img := ctx.Images[ctx.CursorIdx]
 		s.WriteString("\n")
 
@@ -193,9 +194,9 @@ func RenderImages(ctx ImagesContext) string {
 
 		var actionStr string
 		if img.InUse {
-			actionStr = theme.GreenStyle.Render("● ") + fmt.Sprintf("In Use by %d container(s) — Cannot be removed while containers exist", img.Containers)
+			actionStr = theme.GreenStyle.Render("● ") + fmt.Sprintf("In Use by %d container(s) — Cannot be removed while containers exist  ", img.Containers) + theme.BoldStyle.Render("[V]") + " Details"
 		} else {
-			actionStr = theme.YellowStyle.Render("○ ") + "Unused (reclaimable) — Press 'x' to delete, 'C' to prune"
+			actionStr = theme.YellowStyle.Render("○ ") + "Unused (reclaimable) — Press 'x' to delete, 'C' to prune  " + theme.BoldStyle.Render("[V]") + " Details"
 		}
 		s.WriteString(renderDetailRow("Status / Action:", actionStr))
 

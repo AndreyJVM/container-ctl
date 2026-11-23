@@ -323,3 +323,36 @@ func TestRenderVolumes_WidthClamping(t *testing.T) {
 		}
 	})
 }
+
+func TestRenderVolumes_HideDetails(t *testing.T) {
+	t.Parallel()
+
+	vol := testutil.AVolume(func(v *monitor.DockerVolume) {
+		v.Name = "pgdata_volume"
+	})
+
+	// 1. Details visible
+	viewVisible := RenderVolumes(VolumesContext{
+		Volumes:     []monitor.DockerVolume{vol},
+		CursorIdx:   0,
+		Width:       100,
+		HideDetails: false,
+	})
+	if !strings.Contains(viewVisible, "SELECTED VOLUME DETAILS") {
+		t.Errorf("expected details card when HideDetails is false")
+	}
+
+	// 2. Details hidden
+	viewHidden := RenderVolumes(VolumesContext{
+		Volumes:     []monitor.DockerVolume{vol},
+		CursorIdx:   0,
+		Width:       100,
+		HideDetails: true,
+	})
+	if strings.Contains(viewHidden, "SELECTED VOLUME DETAILS") {
+		t.Errorf("expected details card to be hidden when HideDetails is true")
+	}
+	if !strings.Contains(viewHidden, "pgdata_volume") {
+		t.Errorf("expected volume row to still be rendered when HideDetails is true")
+	}
+}

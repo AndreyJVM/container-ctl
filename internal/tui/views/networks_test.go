@@ -312,3 +312,37 @@ func TestRenderNetworks_WidthClamping(t *testing.T) {
 		}
 	})
 }
+
+func TestRenderNetworks_HideDetails(t *testing.T) {
+	t.Parallel()
+
+	net := testutil.ANetwork(func(n *monitor.DockerNetwork) {
+		n.ID = "net-details-123"
+		n.Name = "production-net"
+	})
+
+	// 1. Details visible
+	viewVisible := RenderNetworks(NetworksContext{
+		Networks:    []monitor.DockerNetwork{net},
+		CursorIdx:   0,
+		Width:       100,
+		HideDetails: false,
+	})
+	if !strings.Contains(viewVisible, "SELECTED NETWORK DETAILS") {
+		t.Errorf("expected details card when HideDetails is false")
+	}
+
+	// 2. Details hidden
+	viewHidden := RenderNetworks(NetworksContext{
+		Networks:    []monitor.DockerNetwork{net},
+		CursorIdx:   0,
+		Width:       100,
+		HideDetails: true,
+	})
+	if strings.Contains(viewHidden, "SELECTED NETWORK DETAILS") {
+		t.Errorf("expected details card to be hidden when HideDetails is true")
+	}
+	if !strings.Contains(viewHidden, "production-net") {
+		t.Errorf("expected network row to still be rendered when HideDetails is true")
+	}
+}

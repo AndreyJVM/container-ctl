@@ -88,3 +88,38 @@ func TestRenderImagesView(t *testing.T) {
 		t.Errorf("expected no images notice in images view, got: %s", emptyView)
 	}
 }
+
+func TestRenderImagesView_HideDetails(t *testing.T) {
+	images := []monitor.DockerImage{
+		testutil.AnImage(
+			testutil.WithImageID("c557bd415052", "sha256:c557bd415052858081f023e8d17500073317df437ae79ea4d2c4077cd9a1a6ae"),
+			testutil.WithRepoTag("sambryx-web", "latest"),
+			testutil.WithImageStatus(true, false, 1),
+		),
+	}
+
+	// 1. Details visible (HideDetails: false)
+	viewVisible := RenderImages(ImagesContext{
+		Images:      images,
+		CursorIdx:   0,
+		Width:       100,
+		HideDetails: false,
+	})
+	if !strings.Contains(viewVisible, "SELECTED IMAGE DETAILS") {
+		t.Errorf("expected image details card when HideDetails is false")
+	}
+
+	// 2. Details hidden (HideDetails: true)
+	viewHidden := RenderImages(ImagesContext{
+		Images:      images,
+		CursorIdx:   0,
+		Width:       100,
+		HideDetails: true,
+	})
+	if strings.Contains(viewHidden, "SELECTED IMAGE DETAILS") {
+		t.Errorf("expected image details card to be hidden when HideDetails is true")
+	}
+	if !strings.Contains(viewHidden, "sambryx-web") {
+		t.Errorf("expected images table row to still be rendered when HideDetails is true")
+	}
+}

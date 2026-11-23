@@ -56,7 +56,7 @@ func RenderHelp(refreshInterval time.Duration, swarmVisible ...bool) string {
 				{key: "[P]", desc: "Restart container"},
 				{key: "[K]", desc: "Force kill container (SIGKILL)"},
 				{key: "[x]", desc: "Remove container"},
-				{key: "[V]", desc: "Toggle lower details card"},
+				{key: "[V]", desc: "Toggle lower details card (Tabs 1, 2, 4, 5)"},
 			},
 		},
 		{

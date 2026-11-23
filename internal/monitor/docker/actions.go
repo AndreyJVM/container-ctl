@@ -68,11 +68,14 @@ func RemoveContainer(containerID string) error {
 		return fmt.Errorf("container ID cannot be empty")
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	sockPath := DockerSocketFinder()
 	if sockPath != "" {
 		client := SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/containers/%s?v=1&force=true", url.PathEscape(containerID))
-		req, err := http.NewRequest(http.MethodDelete, endpoint, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
 		if err == nil {
 			resp, err := client.Do(req)
 			if err == nil {
@@ -85,9 +88,6 @@ func RemoveContainer(containerID string) error {
 			}
 		}
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	out, err := DockerCLIRunner(ctx, "rm", "-f", containerID)
 	if err != nil {
 		return fmt.Errorf("%s", strings.TrimSpace(string(out)))

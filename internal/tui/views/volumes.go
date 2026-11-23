@@ -19,6 +19,7 @@ type VolumesContext struct {
 	IsFiltering       bool
 	FilterQuery       string
 	Width             int
+	HideDetails       bool
 }
 
 // RenderVolumes renders Docker volumes and details for the selected volume.
@@ -91,7 +92,7 @@ func RenderVolumes(ctx VolumesContext) string {
 		}
 	}
 
-	if ctx.CursorIdx >= 0 && ctx.CursorIdx < len(ctx.Volumes) {
+	if !ctx.HideDetails && ctx.CursorIdx >= 0 && ctx.CursorIdx < len(ctx.Volumes) {
 		volume := ctx.Volumes[ctx.CursorIdx]
 		s.WriteString("\n")
 
@@ -125,11 +126,13 @@ func RenderVolumes(ctx VolumesContext) string {
 		s.WriteString(renderDetailRow("Compose project:", valueOrDash(volume.ComposeProject)))
 
 		var actions []string
+		actions = append(actions, theme.BoldStyle.Render("[Enter]")+" Inspect")
 		if volume.RefCount == 0 {
 			actions = append(actions, theme.BoldStyle.Render("[C]")+" Prune", theme.BoldStyle.Render("[y]")+" Copy Name")
 		} else {
 			actions = append(actions, theme.BoldStyle.Render("[y]")+" Copy Name")
 		}
+		actions = append(actions, theme.BoldStyle.Render("[V]")+" Details")
 		s.WriteString(renderDetailRow("Quick Actions:", strings.Join(actions, "  ")))
 
 		s.WriteString("  " + theme.CyanStyle.Render("└"+strings.Repeat("─", cardWidth-2)+"┘") + "\n")

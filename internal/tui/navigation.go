@@ -33,14 +33,6 @@ func (m *Model) clampCursor() {
 		m.composeCursorIdx = 0
 	}
 
-	if len(m.swarm.Services) == 0 {
-		m.swarmCursorIdx = 0
-	} else if m.swarmCursorIdx >= len(m.swarm.Services) {
-		m.swarmCursorIdx = len(m.swarm.Services) - 1
-	} else if m.swarmCursorIdx < 0 {
-		m.swarmCursorIdx = 0
-	}
-
 	networks := m.getFilteredNetworks()
 	if len(networks) == 0 {
 		m.networkCursorIdx = 0
@@ -57,6 +49,14 @@ func (m *Model) clampCursor() {
 		m.volumeCursorIdx = len(volumes) - 1
 	} else if m.volumeCursorIdx < 0 {
 		m.volumeCursorIdx = 0
+	}
+
+	if len(m.swarm.Services) == 0 {
+		m.swarmCursorIdx = 0
+	} else if m.swarmCursorIdx >= len(m.swarm.Services) {
+		m.swarmCursorIdx = len(m.swarm.Services) - 1
+	} else if m.swarmCursorIdx < 0 {
+		m.swarmCursorIdx = 0
 	}
 }
 
