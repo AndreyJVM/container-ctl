@@ -1,4 +1,4 @@
-package docker
+package resources
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
 )
 
 func TestFormatBytes(t *testing.T) {
@@ -174,15 +176,15 @@ func TestParseSystemDFRaw(t *testing.T) {
 }
 
 func TestGetDockerDiskUsage_Socket(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock-docker.sock" }
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock-docker.sock" }
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if strings.Contains(req.URL.Path, "/system/df") {
 				var raw systemDFRaw
@@ -209,15 +211,15 @@ func TestGetDockerDiskUsage_Socket(t *testing.T) {
 }
 
 func TestGetDockerDiskUsage_CLIFallback(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "" }
-	DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+	engine.DockerSocketFinder = func() string { return "" }
+	engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 		lines := []string{
 			`{"Type":"Images","TotalCount":"5","Active":"2","Size":"100MB","Reclaimable":"20MB (20%)"}`,
 			`{"Type":"Containers","TotalCount":"8","Active":"3","Size":"50MB","Reclaimable":"10MB (20%)"}`,
@@ -291,15 +293,15 @@ func TestParseCLISize(t *testing.T) {
 }
 
 func TestGetDockerDiskUsage_Error(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "" }
-	DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+	engine.DockerSocketFinder = func() string { return "" }
+	engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 		return nil, errors.New("command failed")
 	}
 

@@ -1,4 +1,8 @@
-package docker
+package operations
+
+import (
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
+)
 
 import (
 	"strings"
@@ -9,7 +13,7 @@ func TestGetContainerExecCommand_EmptyID(t *testing.T) {
 	if cmd := GetContainerExecCommand("   "); cmd != nil {
 		t.Errorf("expected nil for whitespace ID, got %#v", cmd)
 	}
-	if cmd := GetContainerExecCommandWithOptions("", ExecOptions{}); cmd != nil {
+	if cmd := GetContainerExecCommandWithOptions("", types.ExecOptions{}); cmd != nil {
 		t.Errorf("expected nil for empty ID, got %#v", cmd)
 	}
 }
@@ -39,7 +43,7 @@ func TestGetContainerExecCommand(t *testing.T) {
 
 func TestGetContainerExecCommandWithTerminal(t *testing.T) {
 	containerID := "abc123def456"
-	cmd := GetContainerExecCommandWithOptions(containerID, ExecOptions{
+	cmd := GetContainerExecCommandWithOptions(containerID, types.ExecOptions{
 		Mode:     "auto",
 		Terminal: "xterm-256color",
 	})
@@ -56,7 +60,7 @@ func TestGetContainerExecCommandWithTerminal(t *testing.T) {
 	}
 
 	// Verify Mode: "root" preserves -e TERM while setting -u 0
-	cmdRoot := GetContainerExecCommandWithOptions(containerID, ExecOptions{
+	cmdRoot := GetContainerExecCommandWithOptions(containerID, types.ExecOptions{
 		Mode:     "root",
 		Terminal: "xterm-256color",
 	})
@@ -73,7 +77,7 @@ func TestGetContainerExecCommandModes(t *testing.T) {
 	cID := "c123"
 
 	t.Run("attach", func(t *testing.T) {
-		cmd := GetContainerExecCommandWithOptions(cID, ExecOptions{Mode: "attach"})
+		cmd := GetContainerExecCommandWithOptions(cID, types.ExecOptions{Mode: "attach"})
 		want := []string{"docker", "attach", "--sig-proxy=false", cID}
 		if strings.Join(cmd.Args, " ") != strings.Join(want, " ") {
 			t.Errorf("got %v, want %v", cmd.Args, want)
@@ -81,7 +85,7 @@ func TestGetContainerExecCommandModes(t *testing.T) {
 	})
 
 	t.Run("sh", func(t *testing.T) {
-		cmd := GetContainerExecCommandWithOptions(cID, ExecOptions{Mode: "sh"})
+		cmd := GetContainerExecCommandWithOptions(cID, types.ExecOptions{Mode: "sh"})
 		want := []string{"docker", "exec", "-it", cID, "sh"}
 		if strings.Join(cmd.Args, " ") != strings.Join(want, " ") {
 			t.Errorf("got %v, want %v", cmd.Args, want)
@@ -89,7 +93,7 @@ func TestGetContainerExecCommandModes(t *testing.T) {
 	})
 
 	t.Run("zsh", func(t *testing.T) {
-		cmd := GetContainerExecCommandWithOptions(cID, ExecOptions{Mode: "zsh"})
+		cmd := GetContainerExecCommandWithOptions(cID, types.ExecOptions{Mode: "zsh"})
 		want := []string{"docker", "exec", "-it", cID, "zsh"}
 		if strings.Join(cmd.Args, " ") != strings.Join(want, " ") {
 			t.Errorf("got %v, want %v", cmd.Args, want)
@@ -97,7 +101,7 @@ func TestGetContainerExecCommandModes(t *testing.T) {
 	})
 
 	t.Run("custom command", func(t *testing.T) {
-		cmd := GetContainerExecCommandWithOptions(cID, ExecOptions{Mode: "custom", CustomCmd: "python3 app.py"})
+		cmd := GetContainerExecCommandWithOptions(cID, types.ExecOptions{Mode: "custom", CustomCmd: "python3 app.py"})
 		want := []string{"docker", "exec", "-it", cID, "sh", "-c", "python3 app.py"}
 		if strings.Join(cmd.Args, " ") != strings.Join(want, " ") {
 			t.Errorf("got %v, want %v", cmd.Args, want)
@@ -105,7 +109,7 @@ func TestGetContainerExecCommandModes(t *testing.T) {
 	})
 
 	t.Run("custom empty command falls back to sh", func(t *testing.T) {
-		cmd := GetContainerExecCommandWithOptions(cID, ExecOptions{Mode: "custom", CustomCmd: "   "})
+		cmd := GetContainerExecCommandWithOptions(cID, types.ExecOptions{Mode: "custom", CustomCmd: "   "})
 		want := []string{"docker", "exec", "-it", cID, "sh", "-c", "sh"}
 		if strings.Join(cmd.Args, " ") != strings.Join(want, " ") {
 			t.Errorf("got %v, want %v", cmd.Args, want)
@@ -113,7 +117,7 @@ func TestGetContainerExecCommandModes(t *testing.T) {
 	})
 
 	t.Run("explicit user", func(t *testing.T) {
-		cmd := GetContainerExecCommandWithOptions(cID, ExecOptions{Mode: "sh", User: "1000"})
+		cmd := GetContainerExecCommandWithOptions(cID, types.ExecOptions{Mode: "sh", User: "1000"})
 		want := []string{"docker", "exec", "-it", "-u", "1000", cID, "sh"}
 		if strings.Join(cmd.Args, " ") != strings.Join(want, " ") {
 			t.Errorf("got %v, want %v", cmd.Args, want)

@@ -1,10 +1,12 @@
-package docker
+package resources
 
 import (
 	"errors"
 	"net/http"
 	"reflect"
 	"testing"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
 )
 
 func TestTruncateResourceID(t *testing.T) {
@@ -21,9 +23,9 @@ func TestTruncateResourceID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := truncateResourceID(tt.input)
+		got := TruncateResourceID(tt.input)
 		if got != tt.expected {
-			t.Errorf("truncateResourceID(%q) = %q, want %q", tt.input, got, tt.expected)
+			t.Errorf("TruncateResourceID(%q) = %q, want %q", tt.input, got, tt.expected)
 		}
 	}
 }
@@ -46,9 +48,9 @@ func TestParseBool(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := parseBool(tt.input)
+		got := ParseBool(tt.input)
 		if got != tt.expected {
-			t.Errorf("parseBool(%q) = %v, want %v", tt.input, got, tt.expected)
+			t.Errorf("ParseBool(%q) = %v, want %v", tt.input, got, tt.expected)
 		}
 	}
 }
@@ -65,9 +67,9 @@ func TestNonEmptyLines(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := nonEmptyLines(tt.input)
+		got := NonEmptyLines(tt.input)
 		if !reflect.DeepEqual(got, tt.expected) {
-			t.Errorf("nonEmptyLines(%q) = %v, want %v", tt.input, got, tt.expected)
+			t.Errorf("NonEmptyLines(%q) = %v, want %v", tt.input, got, tt.expected)
 		}
 	}
 }
@@ -88,19 +90,19 @@ func TestLabelValue(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := labelValue(tt.labels, tt.key)
+		got := LabelValue(tt.labels, tt.key)
 		if got != tt.expected {
-			t.Errorf("labelValue(%q, %q) = %q, want %q", tt.labels, tt.key, got, tt.expected)
+			t.Errorf("LabelValue(%q, %q) = %q, want %q", tt.labels, tt.key, got, tt.expected)
 		}
 	}
 }
 
 func TestFetchDockerResourceJSON(t *testing.T) {
-	origFactory := SocketClientFactory
-	defer func() { SocketClientFactory = origFactory }()
+	origFactory := engine.SocketClientFactory
+	defer func() { engine.SocketClientFactory = origFactory }()
 
 	t.Run("successful decode", func(t *testing.T) {
-		SocketClientFactory = func(_ string) *http.Client {
+		engine.SocketClientFactory = func(_ string) *http.Client {
 			return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 				if req.URL.Path == "/test" {
 					return mockStringResponse(http.StatusOK, `{"name":"test-resource"}`), nil
@@ -112,7 +114,7 @@ func TestFetchDockerResourceJSON(t *testing.T) {
 		var target struct {
 			Name string `json:"name"`
 		}
-		err := fetchDockerResourceJSON("/tmp/test.sock", "/test", &target)
+		err := engine.FetchDockerResourceJSON("/tmp/test.sock", "/test", &target)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -122,28 +124,28 @@ func TestFetchDockerResourceJSON(t *testing.T) {
 	})
 
 	t.Run("http client error", func(t *testing.T) {
-		SocketClientFactory = func(_ string) *http.Client {
+		engine.SocketClientFactory = func(_ string) *http.Client {
 			return newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
 				return nil, errors.New("socket dial error")
 			})
 		}
 
 		var target map[string]interface{}
-		err := fetchDockerResourceJSON("/tmp/test.sock", "/test", &target)
+		err := engine.FetchDockerResourceJSON("/tmp/test.sock", "/test", &target)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
 	})
 
 	t.Run("non-200 status code", func(t *testing.T) {
-		SocketClientFactory = func(_ string) *http.Client {
+		engine.SocketClientFactory = func(_ string) *http.Client {
 			return newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
 				return mockStringResponse(http.StatusInternalServerError, "error"), nil
 			})
 		}
 
 		var target map[string]interface{}
-		err := fetchDockerResourceJSON("/tmp/test.sock", "/test", &target)
+		err := engine.FetchDockerResourceJSON("/tmp/test.sock", "/test", &target)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}

@@ -1,10 +1,12 @@
-package docker
+package operations
 
 import (
 	"context"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
 )
 
 func TestContainerOperationsEmptyID(t *testing.T) {
@@ -77,15 +79,15 @@ func TestContainerOperationsInvalidID(t *testing.T) {
 }
 
 func TestContainerActions_Socket(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if strings.Contains(req.URL.Path, "/containers/test-c/") {
 				return mockStringResponse(http.StatusNoContent, ""), nil
@@ -109,16 +111,16 @@ func TestContainerActions_Socket(t *testing.T) {
 }
 
 func TestContainerActions_CLIFallback(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "" }
+	engine.DockerSocketFinder = func() string { return "" }
 	var lastAction string
-	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+	engine.DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
 		if len(args) > 0 {
 			lastAction = args[0]
 		}
@@ -140,15 +142,15 @@ func TestContainerActions_CLIFallback(t *testing.T) {
 }
 
 func TestRemoveContainer_Socket(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if req.Method == http.MethodDelete && strings.Contains(req.URL.Path, "/containers/test-rm") {
 				return mockStringResponse(http.StatusNoContent, ""), nil
@@ -163,15 +165,15 @@ func TestRemoveContainer_Socket(t *testing.T) {
 }
 
 func TestRemoveContainer_CLIFallback(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "" }
-	DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+	engine.DockerSocketFinder = func() string { return "" }
+	engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 		return []byte("test-rm-cli"), nil
 	}
 

@@ -1,4 +1,4 @@
-package docker
+package resources
 
 import (
 	"bytes"
@@ -10,26 +10,14 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
 )
 
-// DockerNetwork describes a Docker network shown in the dashboard.
-type DockerNetwork struct {
-	ID                  string
-	Name                string
-	Driver              string
-	Scope               string
-	Internal            bool
-	Attachable          bool
-	Containers          int
-	ConnectedContainers []string
-	Subnet              string
-	Gateway             string
-	ComposeProject      string
-}
-
 // GetDockerNetworks returns Docker networks without changing daemon state.
-func GetDockerNetworks() ([]DockerNetwork, error) {
-	if sockPath := DockerSocketFinder(); sockPath != "" {
+func GetDockerNetworks() ([]types.DockerNetwork, error) {
+	if sockPath := engine.DockerSocketFinder(); sockPath != "" {
 		var raw []struct {
 			ID         string `json:"Id"`
 			Name       string `json:"Name"`
@@ -49,8 +37,8 @@ func GetDockerNetworks() ([]DockerNetwork, error) {
 				} `json:"Config"`
 			} `json:"IPAM"`
 		}
-		if err := fetchDockerResourceJSON(sockPath, "/networks", &raw); err == nil {
-			networks := make([]DockerNetwork, 0, len(raw))
+		if err := engine.FetchDockerResourceJSON(sockPath, "/networks", &raw); err == nil {
+			networks := make([]types.DockerNetwork, 0, len(raw))
 			for _, item := range raw {
 				subnet, gateway := "", ""
 				if len(item.IPAM.Config) > 0 {
@@ -77,8 +65,8 @@ func GetDockerNetworks() ([]DockerNetwork, error) {
 					sort.Strings(connected)
 				}
 
-				networks = append(networks, DockerNetwork{
-					ID:                  truncateResourceID(item.ID),
+				networks = append(networks, types.DockerNetwork{
+					ID:                  TruncateResourceID(item.ID),
 					Name:                item.Name,
 					Driver:              item.Driver,
 					Scope:               item.Scope,
@@ -88,34 +76,34 @@ func GetDockerNetworks() ([]DockerNetwork, error) {
 					ConnectedContainers: connected,
 					Subnet:              subnet,
 					Gateway:             gateway,
-					ComposeProject:      item.Labels[composeProjectLabel],
+					ComposeProject:      item.Labels[types.ComposeProjectLabel],
 				})
 			}
 			return networks, nil
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), engine.DefaultDockerTimeout)
 	defer cancel()
 	format := "{{.ID}}|{{.Name}}|{{.Driver}}|{{.Scope}}|{{.Internal}}|{{.Labels}}"
-	out, err := DockerCLIRunner(ctx, "network", "ls", "--no-trunc", "--format", format)
+	out, err := engine.DockerCLIRunner(ctx, "network", "ls", "--no-trunc", "--format", format)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list Docker networks: %w", err)
 	}
 
-	var networks []DockerNetwork
-	for _, line := range nonEmptyLines(string(out)) {
+	var networks []types.DockerNetwork
+	for _, line := range NonEmptyLines(string(out)) {
 		parts := strings.SplitN(line, "|", 6)
 		if len(parts) != 6 {
 			continue
 		}
-		networks = append(networks, DockerNetwork{
-			ID:             truncateResourceID(parts[0]),
+		networks = append(networks, types.DockerNetwork{
+			ID:             TruncateResourceID(parts[0]),
 			Name:           parts[1],
 			Driver:         parts[2],
 			Scope:          parts[3],
-			Internal:       parseBool(parts[4]),
-			ComposeProject: labelValue(parts[5], composeProjectLabel),
+			Internal:       ParseBool(parts[4]),
+			ComposeProject: LabelValue(parts[5], types.ComposeProjectLabel),
 		})
 	}
 	return networks, nil
@@ -123,15 +111,16 @@ func GetDockerNetworks() ([]DockerNetwork, error) {
 
 // GetNetworkInspectJSON returns formatted JSON inspection for a Docker network.
 func GetNetworkInspectJSON(idOrName string) (string, error) {
-	if strings.TrimSpace(idOrName) == "" {
+	idOrName = strings.TrimSpace(idOrName)
+	if idOrName == "" {
 		return "", fmt.Errorf("network identifier cannot be empty")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), engine.DefaultDockerTimeout)
 	defer cancel()
 
-	if sockPath := DockerSocketFinder(); sockPath != "" {
-		client := SocketClientFactory(sockPath)
+	if sockPath := engine.DockerSocketFinder(); sockPath != "" {
+		client := engine.SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/networks/%s", url.PathEscape(idOrName))
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 		if err == nil {
@@ -152,7 +141,7 @@ func GetNetworkInspectJSON(idOrName string) (string, error) {
 		}
 	}
 
-	out, err := DockerCLIRunner(ctx, "network", "inspect", idOrName)
+	out, err := engine.DockerCLIRunner(ctx, "network", "inspect", idOrName)
 	if err == nil && len(out) > 0 {
 		var pretty bytes.Buffer
 		if err := json.Indent(&pretty, out, "", "  "); err == nil {
@@ -171,11 +160,11 @@ func RemoveDockerNetwork(idOrName string) error {
 		return fmt.Errorf("network identifier cannot be empty")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), engine.DefaultDockerTimeout)
 	defer cancel()
 
-	if sockPath := DockerSocketFinder(); sockPath != "" {
-		client := SocketClientFactory(sockPath)
+	if sockPath := engine.DockerSocketFinder(); sockPath != "" {
+		client := engine.SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/networks/%s", url.PathEscape(idOrName))
 		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
 		if err == nil {
@@ -191,7 +180,7 @@ func RemoveDockerNetwork(idOrName string) error {
 		}
 	}
 
-	out, err := DockerCLIRunner(ctx, "network", "rm", idOrName)
+	out, err := engine.DockerCLIRunner(ctx, "network", "rm", idOrName)
 	if err != nil {
 		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
 	}

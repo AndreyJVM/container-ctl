@@ -1,4 +1,4 @@
-package docker
+package resources
 
 import (
 	"bytes"
@@ -10,23 +10,14 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
 )
 
-// DockerVolume describes a Docker volume shown in the dashboard.
-type DockerVolume struct {
-	Name           string
-	Driver         string
-	Scope          string
-	Mountpoint     string
-	Size           int64
-	RefCount       int
-	Containers     []string
-	ComposeProject string
-}
-
 // GetDockerVolumes returns Docker volumes without changing daemon state.
-func GetDockerVolumes() ([]DockerVolume, error) {
-	if sockPath := DockerSocketFinder(); sockPath != "" {
+func GetDockerVolumes() ([]types.DockerVolume, error) {
+	if sockPath := engine.DockerSocketFinder(); sockPath != "" {
 		var raw struct {
 			Volumes []struct {
 				Name       string            `json:"Name"`
@@ -40,50 +31,50 @@ func GetDockerVolumes() ([]DockerVolume, error) {
 				} `json:"UsageData"`
 			} `json:"Volumes"`
 		}
-		if err := fetchDockerResourceJSON(sockPath, "/volumes", &raw); err == nil {
-			volumes := make([]DockerVolume, 0, len(raw.Volumes))
+		if err := engine.FetchDockerResourceJSON(sockPath, "/volumes", &raw); err == nil {
+			volumes := make([]types.DockerVolume, 0, len(raw.Volumes))
 			for _, item := range raw.Volumes {
 				size, refCount := int64(-1), -1
 				if item.UsageData != nil {
 					size = item.UsageData.Size
 					refCount = item.UsageData.RefCount
 				}
-				volumes = append(volumes, DockerVolume{
+				volumes = append(volumes, types.DockerVolume{
 					Name:           item.Name,
 					Driver:         item.Driver,
 					Scope:          item.Scope,
 					Mountpoint:     item.Mountpoint,
 					Size:           size,
 					RefCount:       refCount,
-					ComposeProject: item.Labels[composeProjectLabel],
+					ComposeProject: item.Labels[types.ComposeProjectLabel],
 				})
 			}
 			return volumes, nil
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), engine.DefaultDockerTimeout)
 	defer cancel()
 	format := "{{.Name}}|{{.Driver}}|{{.Scope}}|{{.Mountpoint}}|{{.Labels}}"
-	out, err := DockerCLIRunner(ctx, "volume", "ls", "--format", format)
+	out, err := engine.DockerCLIRunner(ctx, "volume", "ls", "--format", format)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list Docker volumes: %w", err)
 	}
 
-	var volumes []DockerVolume
-	for _, line := range nonEmptyLines(string(out)) {
+	var volumes []types.DockerVolume
+	for _, line := range NonEmptyLines(string(out)) {
 		parts := strings.SplitN(line, "|", 5)
 		if len(parts) != 5 {
 			continue
 		}
-		volumes = append(volumes, DockerVolume{
+		volumes = append(volumes, types.DockerVolume{
 			Name:           parts[0],
 			Driver:         parts[1],
 			Scope:          parts[2],
 			Mountpoint:     parts[3],
 			Size:           -1,
 			RefCount:       -1,
-			ComposeProject: labelValue(parts[4], composeProjectLabel),
+			ComposeProject: LabelValue(parts[4], types.ComposeProjectLabel),
 		})
 	}
 	return volumes, nil
@@ -91,15 +82,16 @@ func GetDockerVolumes() ([]DockerVolume, error) {
 
 // GetVolumeInspectJSON returns formatted JSON inspection for a Docker volume.
 func GetVolumeInspectJSON(name string) (string, error) {
-	if strings.TrimSpace(name) == "" {
+	name = strings.TrimSpace(name)
+	if name == "" {
 		return "", fmt.Errorf("volume name cannot be empty")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), engine.DefaultDockerTimeout)
 	defer cancel()
 
-	if sockPath := DockerSocketFinder(); sockPath != "" {
-		client := SocketClientFactory(sockPath)
+	if sockPath := engine.DockerSocketFinder(); sockPath != "" {
+		client := engine.SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/volumes/%s", url.PathEscape(name))
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 		if err == nil {
@@ -120,7 +112,7 @@ func GetVolumeInspectJSON(name string) (string, error) {
 		}
 	}
 
-	out, err := DockerCLIRunner(ctx, "volume", "inspect", name)
+	out, err := engine.DockerCLIRunner(ctx, "volume", "inspect", name)
 	if err == nil && len(out) > 0 {
 		var pretty bytes.Buffer
 		if err := json.Indent(&pretty, out, "", "  "); err == nil {
@@ -139,11 +131,11 @@ func RemoveDockerVolume(name string, force bool) error {
 		return fmt.Errorf("volume name cannot be empty")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), engine.DefaultDockerTimeout)
 	defer cancel()
 
-	if sockPath := DockerSocketFinder(); sockPath != "" {
-		client := SocketClientFactory(sockPath)
+	if sockPath := engine.DockerSocketFinder(); sockPath != "" {
+		client := engine.SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/volumes/%s?force=%t", url.PathEscape(name), force)
 		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
 		if err == nil {
@@ -165,7 +157,7 @@ func RemoveDockerVolume(name string, force bool) error {
 	}
 	args = append(args, name)
 
-	out, err := DockerCLIRunner(ctx, args...)
+	out, err := engine.DockerCLIRunner(ctx, args...)
 	if err != nil {
 		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
 	}
@@ -173,7 +165,7 @@ func RemoveDockerVolume(name string, force bool) error {
 }
 
 // MatchContainersForVolume finds container names that reference the given volume name in their mounts.
-func MatchContainersForVolume(volName string, containers []ContainerItem) []string {
+func MatchContainersForVolume(volName string, containers []types.ContainerItem) []string {
 	if volName == "" {
 		return nil
 	}
@@ -191,11 +183,11 @@ func MatchContainersForVolume(volName string, containers []ContainerItem) []stri
 }
 
 // EnrichVolumesWithContainers populates Containers slice on volumes based on container mounts.
-func EnrichVolumesWithContainers(volumes []DockerVolume, containers []ContainerItem) []DockerVolume {
+func EnrichVolumesWithContainers(volumes []types.DockerVolume, containers []types.ContainerItem) []types.DockerVolume {
 	if len(volumes) == 0 {
 		return volumes
 	}
-	enriched := make([]DockerVolume, len(volumes))
+	enriched := make([]types.DockerVolume, len(volumes))
 	copy(enriched, volumes)
 	for i := range enriched {
 		if len(enriched[i].Containers) == 0 {

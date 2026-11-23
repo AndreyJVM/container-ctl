@@ -1,4 +1,9 @@
-package docker
+package resources
+
+import (
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
+)
 
 import (
 	"context"
@@ -10,21 +15,21 @@ import (
 )
 
 func TestGetDockerVolumesViaSocket(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
 		t.Fatalf("CLI must not run after a successful socket request: %v", args)
 		return nil, errors.New("unexpected CLI call")
 	}
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if req.URL.Path == "/volumes" {
 				return mockStringResponse(http.StatusOK, `{"Volumes":[
@@ -39,22 +44,22 @@ func TestGetDockerVolumesViaSocket(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetDockerVolumes() returned an error: %v", err)
 	}
-	wantVolume := DockerVolume{Name: "shop_data", Driver: "local", Scope: "local", Mountpoint: "/var/lib/docker/volumes/shop_data/_data", Size: 4096, RefCount: 2, ComposeProject: "shop"}
-	if !reflect.DeepEqual(volumes, []DockerVolume{wantVolume}) {
+	wantVolume := types.DockerVolume{Name: "shop_data", Driver: "local", Scope: "local", Mountpoint: "/var/lib/docker/volumes/shop_data/_data", Size: 4096, RefCount: 2, ComposeProject: "shop"}
+	if !reflect.DeepEqual(volumes, []types.DockerVolume{wantVolume}) {
 		t.Fatalf("unexpected volumes: %#v", volumes)
 	}
 }
 
 func TestGetDockerVolumesCLIFallback(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "" }
-	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+	engine.DockerSocketFinder = func() string { return "" }
+	engine.DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
 		if len(args) > 0 && args[0] == "volume" {
 			return []byte("shop_data|local|local|/data|com.docker.compose.project=shop\n"), nil
 		}
@@ -77,15 +82,15 @@ func TestGetVolumeInspectJSON_Empty(t *testing.T) {
 }
 
 func TestGetVolumeInspectJSON_Socket(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if strings.Contains(req.URL.Path, "/volumes/my-vol") {
 				return mockStringResponse(http.StatusOK, `{"Name":"my-vol","Driver":"local"}`), nil
@@ -103,13 +108,13 @@ func TestGetVolumeInspectJSON_Socket(t *testing.T) {
 }
 
 func TestRemoveDockerVolume(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
+		engine.DockerCLIRunner = origRunner
 	}()
 
 	t.Run("empty volume name error", func(t *testing.T) {
@@ -119,8 +124,8 @@ func TestRemoveDockerVolume(t *testing.T) {
 	})
 
 	t.Run("socket success force false", func(t *testing.T) {
-		DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-		SocketClientFactory = func(_ string) *http.Client {
+		engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+		engine.SocketClientFactory = func(_ string) *http.Client {
 			return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 				if req.Method == http.MethodDelete && strings.Contains(req.URL.Path, "/volumes/vol-1") {
 					if !strings.Contains(req.URL.RawQuery, "force=false") {
@@ -137,8 +142,8 @@ func TestRemoveDockerVolume(t *testing.T) {
 	})
 
 	t.Run("socket success force true", func(t *testing.T) {
-		DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-		SocketClientFactory = func(_ string) *http.Client {
+		engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+		engine.SocketClientFactory = func(_ string) *http.Client {
 			return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 				if req.Method == http.MethodDelete && strings.Contains(req.URL.Path, "/volumes/vol-1") {
 					if !strings.Contains(req.URL.RawQuery, "force=true") {
@@ -155,8 +160,8 @@ func TestRemoveDockerVolume(t *testing.T) {
 	})
 
 	t.Run("socket error 409 in use", func(t *testing.T) {
-		DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-		SocketClientFactory = func(_ string) *http.Client {
+		engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+		engine.SocketClientFactory = func(_ string) *http.Client {
 			return newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
 				return mockStringResponse(http.StatusConflict, `{"message":"volume is in use"}`), nil
 			})
@@ -168,8 +173,8 @@ func TestRemoveDockerVolume(t *testing.T) {
 	})
 
 	t.Run("cli fallback success force true", func(t *testing.T) {
-		DockerSocketFinder = func() string { return "" }
-		DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+		engine.DockerSocketFinder = func() string { return "" }
+		engine.DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
 			if len(args) == 4 && args[0] == "volume" && args[1] == "rm" && args[2] == "-f" && args[3] == "custom-vol" {
 				return []byte("custom-vol\n"), nil
 			}
@@ -181,8 +186,8 @@ func TestRemoveDockerVolume(t *testing.T) {
 	})
 
 	t.Run("cli fallback failure", func(t *testing.T) {
-		DockerSocketFinder = func() string { return "" }
-		DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+		engine.DockerSocketFinder = func() string { return "" }
+		engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 			return []byte("Error response from daemon: volume is in use"), errors.New("exit 1")
 		}
 		err := RemoveDockerVolume("locked-vol", false)
@@ -197,7 +202,7 @@ func TestMatchContainersForVolume(t *testing.T) {
 		t.Errorf("expected nil for empty volume name")
 	}
 
-	containers := []ContainerItem{
+	containers := []types.ContainerItem{
 		{Name: "web", Mounts: []string{"app_data:/data", "logs:/var/log"}},
 		{Name: "worker", Mounts: []string{"logs:/var/log"}},
 		{Name: "db", Mounts: []string{"/host/path:/db"}},
@@ -224,13 +229,13 @@ func TestEnrichVolumesWithContainers(t *testing.T) {
 		t.Errorf("expected nil for nil volumes")
 	}
 
-	volumes := []DockerVolume{
+	volumes := []types.DockerVolume{
 		{Name: "app_data"},
 		{Name: "logs", Containers: []string{"pre-existing"}},
 		{Name: "unused"},
 	}
 
-	containers := []ContainerItem{
+	containers := []types.ContainerItem{
 		{Name: "web", Mounts: []string{"app_data:/data"}},
 	}
 

@@ -1,4 +1,4 @@
-package docker
+package operations
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
 )
 
 // containerAction performs a container lifecycle action through the socket with a CLI fallback.
@@ -16,9 +18,9 @@ func containerAction(containerID, action string, validCodes ...int) error {
 		return fmt.Errorf("container ID cannot be empty")
 	}
 
-	sockPath := DockerSocketFinder()
+	sockPath := engine.DockerSocketFinder()
 	if sockPath != "" {
-		client := SocketClientFactory(sockPath)
+		client := engine.SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/containers/%s/%s", url.PathEscape(containerID), url.PathEscape(action))
 		resp, err := client.Post(endpoint, "application/json", nil)
 		if err == nil {
@@ -35,7 +37,7 @@ func containerAction(containerID, action string, validCodes ...int) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	out, err := DockerCLIRunner(ctx, action, containerID)
+	out, err := engine.DockerCLIRunner(ctx, action, containerID)
 	if err != nil {
 		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
 	}
@@ -71,9 +73,9 @@ func RemoveContainer(containerID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	sockPath := DockerSocketFinder()
+	sockPath := engine.DockerSocketFinder()
 	if sockPath != "" {
-		client := SocketClientFactory(sockPath)
+		client := engine.SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/containers/%s?v=1&force=true", url.PathEscape(containerID))
 		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
 		if err == nil {
@@ -88,7 +90,7 @@ func RemoveContainer(containerID string) error {
 			}
 		}
 	}
-	out, err := DockerCLIRunner(ctx, "rm", "-f", containerID)
+	out, err := engine.DockerCLIRunner(ctx, "rm", "-f", containerID)
 	if err != nil {
 		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
 	}

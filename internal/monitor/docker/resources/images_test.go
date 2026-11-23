@@ -1,4 +1,9 @@
-package docker
+package resources
+
+import (
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
+)
 
 import (
 	"context"
@@ -9,21 +14,21 @@ import (
 )
 
 func TestGetDockerImagesViaSocket(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
 		t.Fatalf("CLI must not run after a successful socket request: %v", args)
 		return nil, errors.New("unexpected CLI call")
 	}
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if req.URL.Path == "/images/json" {
 				return mockStringResponse(http.StatusOK, `[
@@ -87,15 +92,15 @@ func TestGetDockerImagesViaSocket(t *testing.T) {
 }
 
 func TestGetDockerImagesCLIFallback(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "" }
-	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+	engine.DockerSocketFinder = func() string { return "" }
+	engine.DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
 		if args[0] == "image" && args[1] == "ls" {
 			output := "sha256:1122334455667788|nginx|alpine|94.5MB|2026-11-05 22:55:10 +0300 MSK|sha256:fed7e14be83cbd2661a75cdc5b872d936cf155d46c327084d30b8df19ae88d72\n" +
 				"sha256:9988776655443322|<none>|<none>|120MB|2026-10-02 11:10:55 +0300 MSK|<none>\n"
@@ -124,15 +129,15 @@ func TestGetDockerImagesCLIFallback(t *testing.T) {
 }
 
 func TestGetDockerImagesError(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "" }
-	DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+	engine.DockerSocketFinder = func() string { return "" }
+	engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 		return nil, errors.New("docker daemon is not running")
 	}
 
@@ -143,16 +148,16 @@ func TestGetDockerImagesError(t *testing.T) {
 }
 
 func TestRemoveDockerImage_Socket(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
 	}()
 
 	var requestedURL string
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			requestedURL = req.URL.String()
 			if req.Method == http.MethodDelete && strings.HasPrefix(req.URL.Path, "/images/") {
@@ -171,16 +176,16 @@ func TestRemoveDockerImage_Socket(t *testing.T) {
 }
 
 func TestRemoveDockerImage_CLIFallback(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "" }
+	engine.DockerSocketFinder = func() string { return "" }
 	var ranArgs []string
-	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+	engine.DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
 		ranArgs = args
 		return []byte("Untagged: nginx:alpine\nDeleted: sha256:123\n"), nil
 	}
@@ -299,7 +304,7 @@ func TestParseRepoTags(t *testing.T) {
 }
 
 func TestSortDockerImages(t *testing.T) {
-	images := []DockerImage{
+	images := []types.DockerImage{
 		{ID: "img-dangling", Repository: "<none>", Tag: "<none>", Dangling: true},
 		{ID: "img-zeta", Repository: "zeta-service", Tag: "1.0", Dangling: false},
 		{ID: "img-alpha-latest", Repository: "alpha-service", Tag: "latest", Dangling: false},

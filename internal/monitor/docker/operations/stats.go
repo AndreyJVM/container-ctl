@@ -1,4 +1,4 @@
-package docker
+package operations
 
 import (
 	"context"
@@ -8,67 +8,16 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
 )
 
-const (
-	containerStatsTimeout = 2 * time.Second
-)
+const containerStatsTimeout = 2 * time.Second
 
-// ContainerStatsRaw represents the Docker Engine API container stats response.
-type ContainerStatsRaw struct {
-	CPUStats struct {
-		CPUUsage struct {
-			TotalUsage uint64 `json:"total_usage"`
-		} `json:"cpu_usage"`
-		SystemCPUUsage uint64 `json:"system_cpu_usage"`
-		OnlineCPUs     int    `json:"online_cpus"`
-	} `json:"cpu_stats"`
-	PreCPUStats struct {
-		CPUUsage struct {
-			TotalUsage uint64 `json:"total_usage"`
-		} `json:"cpu_usage"`
-		SystemCPUUsage uint64 `json:"system_cpu_usage"`
-	} `json:"precpu_stats"`
-	MemoryStats struct {
-		Usage uint64 `json:"usage"`
-		Limit uint64 `json:"limit"`
-		Stats struct {
-			InactiveFile      uint64 `json:"inactive_file"`
-			TotalInactiveFile uint64 `json:"total_inactive_file"`
-		} `json:"stats"`
-	} `json:"memory_stats"`
-	Networks map[string]struct {
-		RxBytes uint64 `json:"rx_bytes"`
-		TxBytes uint64 `json:"tx_bytes"`
-	} `json:"networks"`
-	Network struct {
-		RxBytes uint64 `json:"rx_bytes"`
-		TxBytes uint64 `json:"tx_bytes"`
-	} `json:"network"`
-	BlkioStats struct {
-		IOServiceBytesRecursive []struct {
-			Major uint64 `json:"major"`
-			Minor uint64 `json:"minor"`
-			Op    string `json:"op"`
-			Value uint64 `json:"value"`
-		} `json:"io_service_bytes_recursive"`
-	} `json:"blkio_stats"`
-}
-
-// ContainerStats contains calculated CPU, memory, network, and block I/O metrics.
-type ContainerStats struct {
-	CPUPerc         float64
-	MemUsageMB      float64
-	MemLimitMB      float64
-	MemPerc         float64
-	NetRxBytes      uint64
-	NetTxBytes      uint64
-	BlockReadBytes  uint64
-	BlockWriteBytes uint64
-}
-
-func calculateContainerStats(s ContainerStatsRaw) ContainerStats {
-	var stats ContainerStats
+// CalculateContainerStats calculates CPU, memory, network, and block I/O metrics from raw stats.
+func CalculateContainerStats(s types.ContainerStatsRaw) types.ContainerStats {
+	var stats types.ContainerStats
 	const mebiByte = 1024 * 1024
 
 	// Calculate CPU usage as a percentage.
@@ -121,34 +70,35 @@ func calculateContainerStats(s ContainerStatsRaw) ContainerStats {
 	return stats
 }
 
-func fetchContainerStats(client *http.Client, containerID string) ContainerStats {
+// FetchContainerStats retrieves container performance statistics through the socket.
+func FetchContainerStats(client *http.Client, containerID string) types.ContainerStats {
 	ctx, cancel := context.WithTimeout(context.Background(), containerStatsTimeout)
 	defer cancel()
 
 	endpoint := fmt.Sprintf("http://localhost/containers/%s/stats?stream=false&one-shot=true", url.PathEscape(containerID))
 	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
-		return ContainerStats{}
+		return types.ContainerStats{}
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return ContainerStats{}
+		return types.ContainerStats{}
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return ContainerStats{}
+		return types.ContainerStats{}
 	}
 
-	var s ContainerStatsRaw
+	var s types.ContainerStatsRaw
 	if err := json.NewDecoder(resp.Body).Decode(&s); err != nil {
-		return ContainerStats{}
+		return types.ContainerStats{}
 	}
 
-	return calculateContainerStats(s)
+	return CalculateContainerStats(s)
 }
 
-// fetchContainerInspect reads a compact set of container metadata through the socket.
-func fetchContainerInspect(client *http.Client, containerID string) (restartPolicy, startedAt string) {
+// FetchContainerInspect reads a compact set of container metadata through the socket.
+func FetchContainerInspect(client *http.Client, containerID string) (restartPolicy, startedAt string) {
 	ctx, cancel := context.WithTimeout(context.Background(), containerStatsTimeout)
 	defer cancel()
 
@@ -188,4 +138,19 @@ func fetchContainerInspect(client *http.Client, containerID string) (restartPoli
 		return data.HostConfig.RestartPolicy.Name, started
 	}
 	return "", ""
+}
+
+// GetContainerStats retrieves metrics for a single container.
+func GetContainerStats(containerID string) (types.ContainerStats, error) {
+	if strings.TrimSpace(containerID) == "" {
+		return types.ContainerStats{}, fmt.Errorf("container ID cannot be empty")
+	}
+
+	sockPath := engine.DockerSocketFinder()
+	if sockPath != "" {
+		client := engine.SocketClientFactory(sockPath)
+		return FetchContainerStats(client, containerID), nil
+	}
+
+	return types.ContainerStats{}, fmt.Errorf("Docker socket unavailable for stats")
 }

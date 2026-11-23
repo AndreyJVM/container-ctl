@@ -1,98 +1,46 @@
 package docker
 
-import "time"
+import (
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
+)
 
 const (
 	// Docker daemon statuses
-	DockerStatusRunning      = "running"
-	DockerStatusStopped      = "stopped"
-	DockerStatusNotInstalled = "not_installed"
+	DockerStatusRunning      = types.DockerStatusRunning
+	DockerStatusStopped      = types.DockerStatusStopped
+	DockerStatusNotInstalled = types.DockerStatusNotInstalled
 
 	// Localized status displays
-	DockerStatusDisplayRunning      = "Running"
-	DockerStatusDisplayStopped      = "Stopped"
-	DockerStatusDisplayNotInstalled = "Not installed"
+	DockerStatusDisplayRunning      = types.DockerStatusDisplayRunning
+	DockerStatusDisplayStopped      = types.DockerStatusDisplayStopped
+	DockerStatusDisplayNotInstalled = types.DockerStatusDisplayNotInstalled
 
 	// Healthcheck statuses
-	HealthStatusHealthy   = "healthy"
-	HealthStatusUnhealthy = "unhealthy"
-	HealthStatusStarting  = "starting"
+	HealthStatusHealthy   = types.HealthStatusHealthy
+	HealthStatusUnhealthy = types.HealthStatusUnhealthy
+	HealthStatusStarting  = types.HealthStatusStarting
 
 	// Docker compose label names
-	composeProjectLabel = "com.docker.compose.project"
-	composeServiceLabel = "com.docker.compose.service"
+	composeProjectLabel = types.ComposeProjectLabel
+	composeServiceLabel = types.ComposeServiceLabel
 
 	// Defaults, limits, and timeouts
-	maxConcurrentStatsFetch = 10
-	defaultDockerTimeout    = 5 * time.Second
-	containerTimeFormat     = "2006-01-02 15:04:05"
+	maxConcurrentStatsFetch = types.MaxConcurrentStatsFetch
+	defaultDockerTimeout    = types.DefaultDockerTimeout
+	containerTimeFormat     = types.ContainerTimeFormat
 )
 
-// ContainerItem represents a single container's high-level status and metrics.
-type ContainerItem struct {
-	ID              string
-	Name            string
-	Image           string
-	State           string
-	Status          string
-	Health          string
-	Ports           string
-	ComposeProject  string
-	ComposeService  string
-	Labels          map[string]string
-	Mounts          []string
-	IPAddress       string
-	NetworkName     string
-	Created         string
-	StartedAt       string
-	RestartPolicy   string
-	CPUPerc         float64
-	MemUsageMB      float64
-	MemLimitMB      float64
-	MemPerc         float64
-	NetRxBytes      uint64
-	NetTxBytes      uint64
-	BlockReadBytes  uint64
-	BlockWriteBytes uint64
-	ErrorSnippet    string
-}
-
-// ContainerDetail represents detailed inspection data for a single container.
-type ContainerDetail struct {
-	ID              string
-	Name            string
-	Image           string
-	Created         string
-	State           string
-	Status          string
-	Health          string
-	IP              string
-	Gateway         string
-	MACAddress      string
-	RestartPolicy   string
-	Command         string
-	Mounts          []string
-	Env             []string
-	CPUPerc         float64
-	MemUsageMB      float64
-	MemPerc         float64
-	NetRxBytes      uint64
-	NetTxBytes      uint64
-	BlockReadBytes  uint64
-	BlockWriteBytes uint64
-}
-
-// DockerSummary provides an overview of the Docker daemon state and containers.
-type DockerSummary struct {
-	Status            string // "running", "stopped", "not_installed"
-	StatusDisplay     string
-	RunningContainers int
-	StoppedContainers int
-	TotalContainers   int
-	ImagesCount       int
-	Version           string
-	Containers        []ContainerItem
-	IsPodman          bool
-	IsRootless        bool
-	SocketPath        string
-}
+// Re-export type aliases for backward compatibility.
+type (
+	ContainerItem     = types.ContainerItem
+	ContainerDetail   = types.ContainerDetail
+	DockerSummary     = types.DockerSummary
+	DockerDiskItem    = types.DockerDiskItem
+	DockerDiskUsage   = types.DockerDiskUsage
+	DockerImage       = types.DockerImage
+	DockerVolume      = types.DockerVolume
+	DockerNetwork     = types.DockerNetwork
+	ExecOptions       = types.ExecOptions
+	ContainerStats    = types.ContainerStats
+	ContainerStatsRaw = types.ContainerStatsRaw
+)

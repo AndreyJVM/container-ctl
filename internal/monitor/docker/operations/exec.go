@@ -1,26 +1,21 @@
-package docker
+package operations
 
 import (
 	"os/exec"
 	"strings"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
 )
 
-// ExecOptions specifies options for launching an interactive session in a container.
-type ExecOptions struct {
-	Mode      string // "auto", "sh", "zsh", "root", "attach", "custom"
-	User      string // optional user (e.g., "0" or "root")
-	CustomCmd string // optional custom command when Mode == "custom"
-	Terminal  string // optional TERM value for embedded terminal emulation
-}
-
 // GetContainerExecCommandWithOptions creates an exec.Cmd based on specified ExecOptions.
-func GetContainerExecCommandWithOptions(containerID string, opts ExecOptions) *exec.Cmd {
+func GetContainerExecCommandWithOptions(containerID string, opts types.ExecOptions) *exec.Cmd {
 	cleanID := strings.TrimSpace(containerID)
 	if cleanID == "" {
 		return nil
 	}
 
-	cli := GetContainerCLI()
+	cli := engine.GetContainerCLI()
 
 	if opts.Mode == "attach" {
 		return exec.Command(cli, "attach", "--sig-proxy=false", cleanID)
@@ -61,5 +56,5 @@ func GetContainerExecCommandWithOptions(containerID string, opts ExecOptions) *e
 
 // GetContainerExecCommand creates an exec.Cmd for an interactive container shell.
 func GetContainerExecCommand(containerID string) *exec.Cmd {
-	return GetContainerExecCommandWithOptions(containerID, ExecOptions{Mode: "auto"})
+	return GetContainerExecCommandWithOptions(containerID, types.ExecOptions{Mode: "auto"})
 }

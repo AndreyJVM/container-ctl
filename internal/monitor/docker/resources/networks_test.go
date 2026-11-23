@@ -1,4 +1,9 @@
-package docker
+package resources
+
+import (
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
+)
 
 import (
 	"context"
@@ -10,21 +15,21 @@ import (
 )
 
 func TestGetDockerNetworksViaSocket(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
 		t.Fatalf("CLI must not run after a successful socket request: %v", args)
 		return nil, errors.New("unexpected CLI call")
 	}
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if req.URL.Path == "/networks" {
 				return mockStringResponse(http.StatusOK, `[
@@ -39,22 +44,22 @@ func TestGetDockerNetworksViaSocket(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetDockerNetworks() returned an error: %v", err)
 	}
-	wantNetwork := DockerNetwork{ID: "network12345", Name: "frontend", Driver: "bridge", Scope: "local", Attachable: true, Containers: 1, Subnet: "172.20.0.0/16", Gateway: "172.20.0.1", ComposeProject: "shop"}
-	if !reflect.DeepEqual(networks, []DockerNetwork{wantNetwork}) {
+	wantNetwork := types.DockerNetwork{ID: "network12345", Name: "frontend", Driver: "bridge", Scope: "local", Attachable: true, Containers: 1, Subnet: "172.20.0.0/16", Gateway: "172.20.0.1", ComposeProject: "shop"}
+	if !reflect.DeepEqual(networks, []types.DockerNetwork{wantNetwork}) {
 		t.Fatalf("unexpected networks: %#v", networks)
 	}
 }
 
 func TestGetDockerNetworksCLIFallback(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "" }
-	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+	engine.DockerSocketFinder = func() string { return "" }
+	engine.DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
 		if len(args) > 0 && args[0] == "network" {
 			return []byte("network1234567890|frontend|bridge|local|false|com.docker.compose.project=shop\n"), nil
 		}
@@ -77,15 +82,15 @@ func TestGetNetworkInspectJSON_Empty(t *testing.T) {
 }
 
 func TestGetNetworkInspectJSON_Socket(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if strings.Contains(req.URL.Path, "/networks/net-1") {
 				return mockStringResponse(http.StatusOK, `{"Name":"net-1","Driver":"bridge"}`), nil
@@ -104,15 +109,15 @@ func TestGetNetworkInspectJSON_Socket(t *testing.T) {
 }
 
 func TestGetDockerNetworksConnectedContainers(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if req.URL.Path == "/networks" {
 				return mockStringResponse(http.StatusOK, `[
@@ -161,13 +166,13 @@ func TestGetDockerNetworksConnectedContainers(t *testing.T) {
 }
 
 func TestRemoveDockerNetwork(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
+		engine.DockerCLIRunner = origRunner
 	}()
 
 	t.Run("empty identifier error", func(t *testing.T) {
@@ -177,8 +182,8 @@ func TestRemoveDockerNetwork(t *testing.T) {
 	})
 
 	t.Run("socket success 204", func(t *testing.T) {
-		DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-		SocketClientFactory = func(_ string) *http.Client {
+		engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+		engine.SocketClientFactory = func(_ string) *http.Client {
 			return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 				if req.Method == http.MethodDelete && strings.Contains(req.URL.Path, "/networks/net-1") {
 					return mockStringResponse(http.StatusNoContent, ""), nil
@@ -192,8 +197,8 @@ func TestRemoveDockerNetwork(t *testing.T) {
 	})
 
 	t.Run("socket error 404 with message", func(t *testing.T) {
-		DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-		SocketClientFactory = func(_ string) *http.Client {
+		engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+		engine.SocketClientFactory = func(_ string) *http.Client {
 			return newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
 				return mockStringResponse(http.StatusNotFound, `{"message":"network net-not-found not found"}`), nil
 			})
@@ -205,8 +210,8 @@ func TestRemoveDockerNetwork(t *testing.T) {
 	})
 
 	t.Run("cli fallback success", func(t *testing.T) {
-		DockerSocketFinder = func() string { return "" }
-		DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
+		engine.DockerSocketFinder = func() string { return "" }
+		engine.DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
 			if len(args) == 3 && args[0] == "network" && args[1] == "rm" && args[2] == "custom-net" {
 				return []byte("custom-net\n"), nil
 			}
@@ -218,8 +223,8 @@ func TestRemoveDockerNetwork(t *testing.T) {
 	})
 
 	t.Run("cli fallback failure", func(t *testing.T) {
-		DockerSocketFinder = func() string { return "" }
-		DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+		engine.DockerSocketFinder = func() string { return "" }
+		engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 			return []byte("Error response from daemon: network has active endpoints"), errors.New("exit 1")
 		}
 		err := RemoveDockerNetwork("active-net")

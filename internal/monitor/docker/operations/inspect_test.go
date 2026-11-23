@@ -1,4 +1,8 @@
-package docker
+package operations
+
+import (
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
+)
 
 import (
 	"context"
@@ -9,15 +13,15 @@ import (
 )
 
 func TestGetContainerDetail_Socket(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			path := req.URL.Path
 			if strings.Contains(path, "/containers/detail-c/json") {
@@ -67,15 +71,15 @@ func TestGetContainerDetail_Socket(t *testing.T) {
 }
 
 func TestGetContainerDetail_NetworkFallback(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	SocketClientFactory = func(_ string) *http.Client {
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.SocketClientFactory = func(_ string) *http.Client {
 		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if strings.Contains(req.URL.Path, "/containers/net-fallback/json") {
 				return mockStringResponse(http.StatusOK, `{
@@ -111,15 +115,15 @@ func TestGetContainerDetail_NetworkFallback(t *testing.T) {
 }
 
 func TestGetContainerDetail_CLIFallback(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "" }
-	DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+	engine.DockerSocketFinder = func() string { return "" }
+	engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 		return []byte(`[{"Name":"/cli-app","State":{"Status":"running","Health":{"Status":"healthy"}}}]`), nil
 	}
 
@@ -156,24 +160,24 @@ func TestGetContainerDetail_Validation(t *testing.T) {
 }
 
 func TestGetContainerDetail_Socket_Errors(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origFactory := engine.SocketClientFactory
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.SocketClientFactory = origFactory
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
+	engine.DockerSocketFinder = func() string { return "/tmp/mock.sock" }
 
 	t.Run("http client request error falls back to CLI", func(t *testing.T) {
-		SocketClientFactory = func(_ string) *http.Client {
+		engine.SocketClientFactory = func(_ string) *http.Client {
 			return newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
 				return nil, errors.New("connection refused")
 			})
 		}
-		DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+		engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 			return []byte(`[{"Name":"/fallback-app","State":{"Status":"running"}}]`), nil
 		}
 
@@ -187,12 +191,12 @@ func TestGetContainerDetail_Socket_Errors(t *testing.T) {
 	})
 
 	t.Run("non-200 status code falls back to CLI", func(t *testing.T) {
-		SocketClientFactory = func(_ string) *http.Client {
+		engine.SocketClientFactory = func(_ string) *http.Client {
 			return newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
 				return mockStringResponse(http.StatusNotFound, "no such container"), nil
 			})
 		}
-		DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+		engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 			return []byte(`[{"Name":"/fallback-app-404","State":{"Status":"running"}}]`), nil
 		}
 
@@ -206,12 +210,12 @@ func TestGetContainerDetail_Socket_Errors(t *testing.T) {
 	})
 
 	t.Run("malformed json body falls back to CLI", func(t *testing.T) {
-		SocketClientFactory = func(_ string) *http.Client {
+		engine.SocketClientFactory = func(_ string) *http.Client {
 			return newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
 				return mockStringResponse(http.StatusOK, "{invalid-json"), nil
 			})
 		}
-		DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+		engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 			return []byte(`[{"Name":"/fallback-app-json","State":{"Status":"running"}}]`), nil
 		}
 
@@ -226,17 +230,17 @@ func TestGetContainerDetail_Socket_Errors(t *testing.T) {
 }
 
 func TestGetContainerDetail_CLIFallback_Extended(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origRunner := DockerCLIRunner
+	origFinder := engine.DockerSocketFinder
+	origRunner := engine.DockerCLIRunner
 	defer func() {
-		DockerSocketFinder = origFinder
-		DockerCLIRunner = origRunner
+		engine.DockerSocketFinder = origFinder
+		engine.DockerCLIRunner = origRunner
 	}()
 
-	DockerSocketFinder = func() string { return "" }
+	engine.DockerSocketFinder = func() string { return "" }
 
 	t.Run("cli command error", func(t *testing.T) {
-		DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+		engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 			return nil, errors.New("docker daemon down")
 		}
 
@@ -250,7 +254,7 @@ func TestGetContainerDetail_CLIFallback_Extended(t *testing.T) {
 	})
 
 	t.Run("cli empty json array or invalid format", func(t *testing.T) {
-		DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+		engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 			return []byte(`[]`), nil
 		}
 
@@ -264,7 +268,7 @@ func TestGetContainerDetail_CLIFallback_Extended(t *testing.T) {
 	})
 
 	t.Run("cli full inspect fields with restart policy and network settings", func(t *testing.T) {
-		DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+		engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 			return []byte(`[{
 				"Name": "/db-server",
 				"State": {
@@ -305,7 +309,7 @@ func TestGetContainerDetail_CLIFallback_Extended(t *testing.T) {
 	})
 
 	t.Run("cli health inferred from status string if health block absent", func(t *testing.T) {
-		DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
+		engine.DockerCLIRunner = func(_ context.Context, _ ...string) ([]byte, error) {
 			return []byte(`[{
 				"Name": "/web-status-health",
 				"State": {
@@ -322,98 +326,4 @@ func TestGetContainerDetail_CLIFallback_Extended(t *testing.T) {
 			t.Errorf("expected inferred healthy, got %q", detail.Health)
 		}
 	})
-}
-
-func TestGetNetworkInspectJSON_SocketAndCLI(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
-	origRunner := DockerCLIRunner
-	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
-		DockerCLIRunner = origRunner
-	}()
-
-	if _, err := GetNetworkInspectJSON(""); err == nil {
-		t.Errorf("expected error on empty network id")
-	}
-
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	SocketClientFactory = func(_ string) *http.Client {
-		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
-			if strings.Contains(req.URL.Path, "/networks/net-1") {
-				return mockStringResponse(http.StatusOK, `{"Name":"bridge","Id":"net-1","Driver":"bridge"}`), nil
-			}
-			return mockStringResponse(http.StatusNotFound, "not found"), nil
-		})
-	}
-	out, err := GetNetworkInspectJSON("net-1")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !strings.Contains(out, `"Name": "bridge"`) {
-		t.Errorf("expected pretty JSON output, got: %s", out)
-	}
-
-	DockerSocketFinder = func() string { return "" }
-	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
-		if len(args) >= 3 && args[0] == "network" && args[1] == "inspect" && args[2] == "cli-net" {
-			return []byte(`[{"Name":"cli-bridge"}]`), nil
-		}
-		return nil, errors.New("command failed")
-	}
-	cliOut, err := GetNetworkInspectJSON("cli-net")
-	if err != nil {
-		t.Fatalf("unexpected CLI error: %v", err)
-	}
-	if !strings.Contains(cliOut, "cli-bridge") {
-		t.Errorf("expected cli-bridge in output, got: %s", cliOut)
-	}
-}
-
-func TestGetVolumeInspectJSON_SocketAndCLI(t *testing.T) {
-	origFinder := DockerSocketFinder
-	origFactory := SocketClientFactory
-	origRunner := DockerCLIRunner
-	defer func() {
-		DockerSocketFinder = origFinder
-		SocketClientFactory = origFactory
-		DockerCLIRunner = origRunner
-	}()
-
-	if _, err := GetVolumeInspectJSON(""); err == nil {
-		t.Errorf("expected error on empty volume name")
-	}
-
-	DockerSocketFinder = func() string { return "/tmp/mock.sock" }
-	SocketClientFactory = func(_ string) *http.Client {
-		return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
-			if strings.Contains(req.URL.Path, "/volumes/my-vol") {
-				return mockStringResponse(http.StatusOK, `{"Name":"my-vol","Driver":"local"}`), nil
-			}
-			return mockStringResponse(http.StatusNotFound, "not found"), nil
-		})
-	}
-	out, err := GetVolumeInspectJSON("my-vol")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !strings.Contains(out, `"Name": "my-vol"`) {
-		t.Errorf("expected pretty JSON output, got: %s", out)
-	}
-
-	DockerSocketFinder = func() string { return "" }
-	DockerCLIRunner = func(_ context.Context, args ...string) ([]byte, error) {
-		if len(args) >= 3 && args[0] == "volume" && args[1] == "inspect" && args[2] == "cli-vol" {
-			return []byte(`[{"Name":"cli-vol"}]`), nil
-		}
-		return nil, errors.New("command failed")
-	}
-	cliOut, err := GetVolumeInspectJSON("cli-vol")
-	if err != nil {
-		t.Fatalf("unexpected CLI error: %v", err)
-	}
-	if !strings.Contains(cliOut, "cli-vol") {
-		t.Errorf("expected cli-vol in output, got: %s", cliOut)
-	}
 }

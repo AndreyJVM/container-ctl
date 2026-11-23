@@ -1,4 +1,4 @@
-package docker
+package operations
 
 import (
 	"context"
@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
 )
 
 const defaultTailLines = 100
@@ -25,9 +27,9 @@ func GetContainerLogs(containerID string, tailLines int) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	sockPath := DockerSocketFinder()
+	sockPath := engine.DockerSocketFinder()
 	if sockPath != "" {
-		client := SocketClientFactory(sockPath)
+		client := engine.SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/containers/%s/logs?stdout=1&stderr=1&tail=%d", url.PathEscape(containerID), tailLines)
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 		if err == nil {
@@ -41,7 +43,7 @@ func GetContainerLogs(containerID string, tailLines int) (string, error) {
 		}
 	}
 
-	out, err := DockerCLIRunner(ctx, "logs", "--tail", fmt.Sprintf("%d", tailLines), containerID)
+	out, err := engine.DockerCLIRunner(ctx, "logs", "--tail", fmt.Sprintf("%d", tailLines), containerID)
 	if err != nil {
 		return "", fmt.Errorf("%s", strings.TrimSpace(string(out)))
 	}

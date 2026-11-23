@@ -1,4 +1,4 @@
-package docker
+package operations
 
 import (
 	"context"
@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
 )
 
 type socketInspectData struct {
@@ -48,14 +51,14 @@ type socketInspectData struct {
 	} `json:"Mounts"`
 }
 
-func getContainerDetailViaSocket(sockPath, containerID string) (ContainerDetail, error) {
-	var detail ContainerDetail
+func getContainerDetailViaSocket(sockPath, containerID string) (types.ContainerDetail, error) {
+	var detail types.ContainerDetail
 	detail.ID = containerID
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), engine.DefaultDockerTimeout)
 	defer cancel()
 
-	client := SocketClientFactory(sockPath)
+	client := engine.SocketClientFactory(sockPath)
 	endpoint := fmt.Sprintf("http://localhost/containers/%s/json", url.PathEscape(containerID))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -87,9 +90,9 @@ func getContainerDetailViaSocket(sockPath, containerID string) (ContainerDetail,
 	detail.State = data.State.Status
 	detail.Status = fmt.Sprintf("%s (ExitCode: %d)", data.State.Status, data.State.ExitCode)
 	if data.State.Health != nil && data.State.Health.Status != "" {
-		detail.Health = ParseHealthStatus(data.State.Health.Status)
+		detail.Health = types.ParseHealthStatus(data.State.Health.Status)
 	} else {
-		detail.Health = ParseHealthStatus(detail.Status)
+		detail.Health = types.ParseHealthStatus(detail.Status)
 	}
 	detail.RestartPolicy = data.HostConfig.RestartPolicy.Name
 	detail.IP = data.NetworkSettings.IPAddress
@@ -117,7 +120,7 @@ func getContainerDetailViaSocket(sockPath, containerID string) (ContainerDetail,
 	detail.Env = data.Config.Env
 
 	if detail.State == "running" {
-		stats := fetchContainerStats(client, containerID)
+		stats := FetchContainerStats(client, containerID)
 		detail.CPUPerc = stats.CPUPerc
 		detail.MemUsageMB = stats.MemUsageMB
 		detail.MemPerc = stats.MemPerc
@@ -130,13 +133,13 @@ func getContainerDetailViaSocket(sockPath, containerID string) (ContainerDetail,
 	return detail, nil
 }
 
-func getContainerDetailViaCLI(containerID string) (ContainerDetail, error) {
-	var detail ContainerDetail
+func getContainerDetailViaCLI(containerID string) (types.ContainerDetail, error) {
+	var detail types.ContainerDetail
 	detail.ID = containerID
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), engine.DefaultDockerTimeout)
 	defer cancel()
-	out, err := DockerCLIRunner(ctx, "inspect", containerID)
+	out, err := engine.DockerCLIRunner(ctx, "inspect", containerID)
 	if err != nil {
 		return detail, fmt.Errorf("container not found: %s", containerID)
 	}
@@ -157,7 +160,7 @@ func getContainerDetailViaCLI(containerID string) (ContainerDetail, error) {
 		}
 		if health, ok := state["Health"].(map[string]interface{}); ok {
 			if hStatus, ok := health["Status"].(string); ok {
-				detail.Health = ParseHealthStatus(hStatus)
+				detail.Health = types.ParseHealthStatus(hStatus)
 			}
 		}
 	}
@@ -189,7 +192,7 @@ func getContainerDetailViaCLI(containerID string) (ContainerDetail, error) {
 		}
 	}
 	if detail.Health == "" {
-		detail.Health = ParseHealthStatus(detail.Status)
+		detail.Health = types.ParseHealthStatus(detail.Status)
 	}
 	if created, ok := first["Created"].(string); ok {
 		detail.Created = created
@@ -231,14 +234,14 @@ func getContainerDetailViaCLI(containerID string) (ContainerDetail, error) {
 }
 
 // GetContainerDetail returns detailed inspection data for a container.
-func GetContainerDetail(containerID string) (ContainerDetail, error) {
-	var detail ContainerDetail
+func GetContainerDetail(containerID string) (types.ContainerDetail, error) {
+	var detail types.ContainerDetail
 	if strings.TrimSpace(containerID) == "" {
 		return detail, fmt.Errorf("container ID cannot be empty")
 	}
 	detail.ID = containerID
 
-	sockPath := DockerSocketFinder()
+	sockPath := engine.DockerSocketFinder()
 	if sockPath != "" {
 		if d, err := getContainerDetailViaSocket(sockPath, containerID); err == nil {
 			return d, nil

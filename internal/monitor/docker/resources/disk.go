@@ -1,4 +1,4 @@
-package docker
+package resources
 
 import (
 	"context"
@@ -7,25 +7,10 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
 )
-
-// DockerDiskItem represents disk space information for a single Docker resource category.
-type DockerDiskItem struct {
-	TotalCount  int
-	ActiveCount int
-	TotalSize   int64
-	Reclaimable int64
-}
-
-// DockerDiskUsage describes the total disk space usage across Docker images, containers, volumes, and build cache.
-type DockerDiskUsage struct {
-	Images     DockerDiskItem
-	Containers DockerDiskItem
-	Volumes    DockerDiskItem
-	BuildCache DockerDiskItem
-	TotalSize  int64
-	TotalRecl  int64
-}
 
 // FormatBytes formats an int64 byte count into a human-readable string (B, KB, MB, GB, TB).
 func FormatBytes(b int64) string {
@@ -78,8 +63,8 @@ type systemDFRaw struct {
 }
 
 // ParseSystemDFRaw calculates aggregated disk usage metrics from Docker Engine API system/df response.
-func ParseSystemDFRaw(raw systemDFRaw) DockerDiskUsage {
-	var usage DockerDiskUsage
+func ParseSystemDFRaw(raw systemDFRaw) types.DockerDiskUsage {
+	var usage types.DockerDiskUsage
 
 	// Images
 	usage.Images.TotalCount = len(raw.Images)
@@ -132,11 +117,11 @@ func ParseSystemDFRaw(raw systemDFRaw) DockerDiskUsage {
 }
 
 // GetDockerDiskUsage collects Docker disk usage statistics (system df) via socket or CLI fallback.
-func GetDockerDiskUsage() (DockerDiskUsage, error) {
-	sockPath := DockerSocketFinder()
+func GetDockerDiskUsage() (types.DockerDiskUsage, error) {
+	sockPath := engine.DockerSocketFinder()
 	if sockPath != "" {
-		client := SocketClientFactory(sockPath)
-		ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+		client := engine.SocketClientFactory(sockPath)
+		ctx, cancel := context.WithTimeout(context.Background(), engine.DefaultDockerTimeout)
 		defer cancel()
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost/system/df", nil)
@@ -158,11 +143,11 @@ func GetDockerDiskUsage() (DockerDiskUsage, error) {
 	}
 
 	// CLI fallback
-	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), engine.DefaultDockerTimeout)
 	defer cancel()
-	out, err := DockerCLIRunner(ctx, "system", "df", "--format", "{{json .}}")
+	out, err := engine.DockerCLIRunner(ctx, "system", "df", "--format", "{{json .}}")
 	if err == nil && len(out) > 0 {
-		var usage DockerDiskUsage
+		var usage types.DockerDiskUsage
 		lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 		for _, line := range lines {
 			var item struct {
@@ -202,7 +187,7 @@ func GetDockerDiskUsage() (DockerDiskUsage, error) {
 		return usage, nil
 	}
 
-	return DockerDiskUsage{}, fmt.Errorf("Docker service is unavailable")
+	return types.DockerDiskUsage{}, fmt.Errorf("Docker service is unavailable")
 }
 
 func parseCLIInt(s string) int {

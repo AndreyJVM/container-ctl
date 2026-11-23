@@ -1,4 +1,4 @@
-package docker
+package resources
 
 import (
 	"context"
@@ -10,26 +10,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
 )
 
-// DockerImage describes a Docker image shown in the dashboard.
-type DockerImage struct {
-	ID         string
-	FullID     string
-	Repository string
-	Tag        string
-	AllTags    []string
-	Size       int64
-	Created    string
-	Containers int
-	Digest     string
-	InUse      bool
-	Dangling   bool
-}
-
 // GetDockerImages returns Docker images without changing daemon state.
-func GetDockerImages() ([]DockerImage, error) {
-	if sockPath := DockerSocketFinder(); sockPath != "" {
+func GetDockerImages() ([]types.DockerImage, error) {
+	if sockPath := engine.DockerSocketFinder(); sockPath != "" {
 		var raw []struct {
 			ID          string            `json:"Id"`
 			RepoTags    []string          `json:"RepoTags"`
@@ -39,8 +27,8 @@ func GetDockerImages() ([]DockerImage, error) {
 			Containers  int               `json:"Containers"`
 			Labels      map[string]string `json:"Labels"`
 		}
-		if err := fetchDockerResourceJSON(sockPath, "/images/json", &raw); err == nil {
-			images := make([]DockerImage, 0, len(raw))
+		if err := engine.FetchDockerResourceJSON(sockPath, "/images/json", &raw); err == nil {
+			images := make([]types.DockerImage, 0, len(raw))
 			for _, item := range raw {
 				repo, tag, dangling := parseRepoTags(item.RepoTags)
 				digest := "-"
@@ -51,7 +39,7 @@ func GetDockerImages() ([]DockerImage, error) {
 				if item.Created > 0 {
 					createdStr = time.Unix(item.Created, 0).Format("2006-01-02 15:04")
 				}
-				images = append(images, DockerImage{
+				images = append(images, types.DockerImage{
 					ID:         cleanImageID(item.ID),
 					FullID:     item.ID,
 					Repository: repo,
@@ -70,16 +58,16 @@ func GetDockerImages() ([]DockerImage, error) {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), engine.DefaultDockerTimeout)
 	defer cancel()
 	format := "{{.ID}}|{{.Repository}}|{{.Tag}}|{{.Size}}|{{.CreatedAt}}|{{.Digest}}"
-	out, err := DockerCLIRunner(ctx, "image", "ls", "-a", "--no-trunc", "--format", format)
+	out, err := engine.DockerCLIRunner(ctx, "image", "ls", "-a", "--no-trunc", "--format", format)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list Docker images: %w", err)
 	}
 
-	var images []DockerImage
-	for _, line := range nonEmptyLines(string(out)) {
+	var images []types.DockerImage
+	for _, line := range NonEmptyLines(string(out)) {
 		parts := strings.SplitN(line, "|", 6)
 		if len(parts) != 6 {
 			continue
@@ -90,7 +78,7 @@ func GetDockerImages() ([]DockerImage, error) {
 		digest := cleanImageDigest(parts[5])
 		created := formatCLICreatedAt(parts[4])
 
-		images = append(images, DockerImage{
+		images = append(images, types.DockerImage{
 			ID:         cleanImageID(parts[0]),
 			FullID:     parts[0],
 			Repository: repo,
@@ -117,9 +105,9 @@ func RemoveDockerImage(imageID string, force bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	sockPath := DockerSocketFinder()
+	sockPath := engine.DockerSocketFinder()
 	if sockPath != "" {
-		client := SocketClientFactory(sockPath)
+		client := engine.SocketClientFactory(sockPath)
 		endpoint := fmt.Sprintf("http://localhost/images/%s?force=%t", url.PathEscape(imageID), force)
 		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
 		if err == nil {
@@ -139,7 +127,7 @@ func RemoveDockerImage(imageID string, force bool) error {
 		args = append(args, "-f")
 	}
 	args = append(args, imageID)
-	out, err := DockerCLIRunner(ctx, args...)
+	out, err := engine.DockerCLIRunner(ctx, args...)
 	if err != nil {
 		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
 	}
@@ -196,7 +184,6 @@ func cleanImageDigest(digest string) string {
 
 func formatCLICreatedAt(created string) string {
 	created = strings.TrimSpace(created)
-	// Example CLI format: "2026-11-16 15:23:45 +0300 MSK"
 	if len(created) >= 16 {
 		return created[:16]
 	}
@@ -237,9 +224,8 @@ func parseSizeToBytes(s string) int64 {
 	return int64(f * float64(unit))
 }
 
-func sortDockerImages(images []DockerImage) {
+func sortDockerImages(images []types.DockerImage) {
 	sort.Slice(images, func(i, j int) bool {
-		// Non-dangling first, then by repository, then tag
 		if images[i].Dangling != images[j].Dangling {
 			return !images[i].Dangling
 		}

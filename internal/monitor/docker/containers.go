@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/operations"
 )
 
 type rawPort struct {
@@ -163,7 +165,7 @@ func enrichContainersWithSocketMetrics(client *http.Client, containers []Contain
 			defer wg.Done()
 			defer func() { <-sem }()
 			if state == "running" {
-				stats := fetchContainerStats(client, cID)
+				stats := operations.FetchContainerStats(client, cID)
 				containers[idx].CPUPerc = stats.CPUPerc
 				containers[idx].MemUsageMB = stats.MemUsageMB
 				containers[idx].MemLimitMB = stats.MemLimitMB
@@ -181,7 +183,7 @@ func enrichContainersWithSocketMetrics(client *http.Client, containers []Contain
 				}
 			}
 
-			rp, started := fetchContainerInspect(client, cID)
+			rp, started := operations.FetchContainerInspect(client, cID)
 			if rp != "" {
 				containers[idx].RestartPolicy = rp
 			}
