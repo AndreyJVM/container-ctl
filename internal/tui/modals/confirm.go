@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	"github.com/AndreyJVM/container-ctl/internal/tui/theme"
 )
 
@@ -27,6 +28,29 @@ func RenderRemoveContainer(containerName, containerID string) string {
 	s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.YellowStyle.Render("Warning:"), "The container and all non-persisted state will be permanently deleted (docker rm)."))
 	s.WriteString(fmt.Sprintf("  Are you sure you want to remove container %s?\n\n", theme.BoldStyle.Render(containerName)))
 	s.WriteString(fmt.Sprintf("  %s %s (Remove)    %s %s\n", theme.RedStyle.Render("[Y]"), "Confirm", theme.DimStyle.Render("[N / Esc]"), "Cancel"))
+	return theme.BoxStyle.Render(s.String())
+}
+
+// RenderRemoveContainerBatch renders confirmation modal for removing multiple containers.
+func RenderRemoveContainerBatch(items []monitor.ContainerItem) string {
+	var s strings.Builder
+	title := fmt.Sprintf("CONFIRM REMOVAL OF %d CONTAINERS", len(items))
+	s.WriteString(theme.TitleStyle.Render(title) + "\n\n")
+
+	var names []string
+	const maxNames = 5
+	for i, c := range items {
+		if i >= maxNames {
+			names = append(names, fmt.Sprintf("... (+%d more)", len(items)-maxNames))
+			break
+		}
+		names = append(names, c.Name)
+	}
+
+	s.WriteString(fmt.Sprintf("  Selected: %s\n\n", theme.BoldStyle.Render(strings.Join(names, ", "))))
+	s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.YellowStyle.Render("Warning:"), "All selected containers and their non-persisted state will be permanently deleted."))
+	s.WriteString(fmt.Sprintf("  Are you sure you want to remove %d container(s)?\n\n", len(items)))
+	s.WriteString(fmt.Sprintf("  %s %s (Remove All)    %s %s\n", theme.RedStyle.Render("[Y]"), "Confirm", theme.DimStyle.Render("[N / Esc]"), "Cancel"))
 	return theme.BoxStyle.Render(s.String())
 }
 

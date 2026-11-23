@@ -85,9 +85,20 @@ func (m Model) handleRemoveContainerModalInput(msg tea.KeyMsg) (tea.Model, tea.C
 		m.closeModal()
 		m.removeContainerTargetID = ""
 		m.removeContainerTargetName = ""
+		m.removeContainerBatch = nil
 		return m, nil
 	}
 	if isModalConfirmKey(key) {
+		if len(m.removeContainerBatch) > 0 {
+			batch := m.removeContainerBatch
+			m.closeModal()
+			m.removeContainerTargetID = ""
+			m.removeContainerTargetName = ""
+			m.removeContainerBatch = nil
+			m.clearSelectedContainers()
+			m.showToast(fmt.Sprintf("Removing %d selected container(s)...", len(batch)))
+			return m, batchRemoveContainersCmd(batch)
+		}
 		targetID := m.removeContainerTargetID
 		targetName := m.removeContainerTargetName
 		m.closeModal()

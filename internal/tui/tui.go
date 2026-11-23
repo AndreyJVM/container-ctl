@@ -117,9 +117,10 @@ type NavState struct {
 	containerSortMode int
 	isFiltering       bool
 	filterQuery       string
-	showSwarm         bool
-	hideDetails       bool
-	onlyUnusedImages  bool
+	showSwarm          bool
+	hideDetails        bool
+	onlyUnusedImages   bool
+	selectedContainers map[string]struct{}
 }
 
 // ShellState holds the embedded PTY shell terminal session.
@@ -161,6 +162,7 @@ type ModalState struct {
 	// Remove container modal
 	removeContainerTargetID   string
 	removeContainerTargetName string
+	removeContainerBatch      []monitor.ContainerItem
 
 	// Remove image modal
 	removeImageTargetID    string
@@ -252,6 +254,7 @@ func NewModel(refreshInterval time.Duration, initialTab int, version string, sho
 	m.activeTab = tab
 	m.refreshInterval = refreshInterval
 	m.showSwarm = forceSwarm
+	m.selectedContainers = make(map[string]struct{})
 	m.registry = module.DefaultRegistry()
 	m.fetchAllData()
 	return m

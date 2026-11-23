@@ -99,6 +99,7 @@ func (m Model) View() string {
 		ShellActive:  m.embeddedShell != nil,
 		ShellFocused: m.shellFocused,
 		SwarmVisible: m.IsSwarmVisible(),
+		SelectedCount: len(m.selectedContainers),
 	})
 
 	contentOutput := b.String()
@@ -186,6 +187,7 @@ func (m Model) renderDockerTab() string {
 		Width:                m.width,
 		MaxRows:              m.calculateTableMaxRows(13),
 		HideDetails:          m.hideDetails,
+		SelectedIDs:          m.selectedContainers,
 	})
 }
 
@@ -281,6 +283,9 @@ func (m Model) renderComposeDownModal() string {
 }
 
 func (m Model) renderRemoveContainerModal() string {
+	if len(m.removeContainerBatch) > 0 {
+		return modals.RenderRemoveContainerBatch(m.removeContainerBatch)
+	}
 	return modals.RenderRemoveContainer(m.removeContainerTargetName, m.removeContainerTargetID)
 }
 

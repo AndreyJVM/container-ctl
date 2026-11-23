@@ -3,6 +3,8 @@ package modals
 import (
 	"strings"
 	"testing"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 )
 
 func TestRenderComposeDown(t *testing.T) {
@@ -64,5 +66,24 @@ func TestRenderRemoveVolume(t *testing.T) {
 	viewInUse := RenderRemoveVolume("app_data", true)
 	if !strings.Contains(viewInUse, "Force removal (-f) will be applied") {
 		t.Errorf("expected force removal warning, got: %s", viewInUse)
+	}
+}
+
+func TestRenderRemoveContainerBatch(t *testing.T) {
+	items := []monitor.ContainerItem{
+		{ID: "c1", Name: "api-gateway"},
+		{ID: "c2", Name: "auth-service"},
+		{ID: "c3", Name: "postgres-db"},
+	}
+
+	view := RenderRemoveContainerBatch(items)
+	if !strings.Contains(view, "CONFIRM REMOVAL OF 3 CONTAINERS") {
+		t.Errorf("expected title with count 3, got: %s", view)
+	}
+	if !strings.Contains(view, "api-gateway") || !strings.Contains(view, "auth-service") || !strings.Contains(view, "postgres-db") {
+		t.Errorf("expected container names in batch remove modal, got: %s", view)
+	}
+	if !strings.Contains(view, "permanently deleted") {
+		t.Errorf("expected permanent deletion warning, got: %s", view)
 	}
 }

@@ -70,8 +70,9 @@ type FooterContext struct {
 	FilterQuery  string
 	Width        int
 	ShellActive  bool
-	ShellFocused bool
-	SwarmVisible bool
+	ShellFocused  bool
+	SwarmVisible  bool
+	SelectedCount int
 }
 
 // RenderFooter renders the bottom hotkeys guide.
@@ -132,6 +133,17 @@ func RenderFooter(ctx FooterContext) string {
 		if ctx.IsFiltering {
 			content = theme.BoldStyle.Render("[Enter]") + " Apply Filter  |  " +
 				theme.BoldStyle.Render("[Esc]") + " Cancel"
+		} else if ctx.SelectedCount > 0 {
+			row1 := theme.BoldStyle.Render("[Space]") + " Toggle  |  " +
+				theme.BoldStyle.Render("[A]") + " Select All  |  " +
+				theme.BoldStyle.Render("[Esc]") + " Clear  |  " +
+				theme.BoldStyle.Render("[S]") + fmt.Sprintf(" Start/Stop (%d)  |  ", ctx.SelectedCount) +
+				theme.BoldStyle.Render("[P]") + fmt.Sprintf(" Restart (%d)", ctx.SelectedCount)
+			row2 := theme.BoldStyle.Render("[K]") + fmt.Sprintf(" Kill (%d)  |  ", ctx.SelectedCount) +
+				theme.BoldStyle.Render("[x]") + fmt.Sprintf(" Remove (%d)  |  ", ctx.SelectedCount) +
+				theme.BoldStyle.Render("[?]") + " Help  |  " +
+				theme.BoldStyle.Render("[Q]") + " Quit"
+			content = row1 + "\n" + row2
 		} else if ctx.FilterQuery != "" {
 			row1 := theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[Esc]") + " Clear Filter  |  " +

@@ -158,6 +158,7 @@ type DockerContext struct {
 	Width                int
 	MaxRows              int
 	HideDetails          bool
+	SelectedIDs          map[string]struct{}
 }
 
 // RenderDocker renders the Docker Containers tab.
@@ -218,6 +219,9 @@ func renderDockerHeader(ctx *DockerContext, s *strings.Builder) {
 
 		if len(badges) > 0 {
 			summaryLine += "    " + strings.Join(badges, "   ")
+		}
+		if len(ctx.SelectedIDs) > 0 {
+			summaryLine += "   " + theme.CyanStyle.Render(fmt.Sprintf("● %d selected", len(ctx.SelectedIDs)))
 		}
 		if ctx.MaxRows > 0 && len(ctx.Containers) > ctx.MaxRows {
 			start, end := components.CalculateTableWindow(len(ctx.Containers), ctx.CursorIdx, ctx.MaxRows)
@@ -286,7 +290,11 @@ func renderContainerTable(ctx *DockerContext, s *strings.Builder) {
 	for i := start; i < end; i++ {
 		c := ctx.Containers[i]
 		isSelected := (i == ctx.CursorIdx)
-		s.WriteString(renderContainerRow(c, isSelected, layout))
+		isMarked := false
+		if ctx.SelectedIDs != nil {
+			_, isMarked = ctx.SelectedIDs[c.ID]
+		}
+		s.WriteString(renderContainerRow(c, isSelected, isMarked, layout))
 	}
 
 	if start > 0 || end < len(ctx.Containers) {
@@ -316,9 +324,13 @@ func formatContainerMetrics(c monitor.ContainerItem) (string, string) {
 	return cpuRaw, memRaw
 }
 
-func renderContainerRow(c monitor.ContainerItem, isSelected bool, layout containerTableLayout) string {
+func renderContainerRow(c monitor.ContainerItem, isSelected, isMarked bool, layout containerTableLayout) string {
 	prefix := "  "
-	if isSelected {
+	if isMarked && isSelected {
+		prefix = theme.CyanStyle.Render("►●")
+	} else if isMarked {
+		prefix = theme.CyanStyle.Render("● ")
+	} else if isSelected {
 		prefix = theme.GreenStyle.Render("► ")
 	}
 

@@ -95,10 +95,28 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.clampCursor()
 			return m, nil
 		}
+		if len(m.selectedContainers) > 0 {
+			m.clearSelectedContainers()
+			m.showToast("Selection cleared")
+			return m, nil
+		}
 		if m.activeTab == TabImages && m.onlyUnusedImages {
 			m.onlyUnusedImages = false
 			m.clampCursor()
 			m.showToast("Showing all images")
+			return m, nil
+		}
+
+	// Multi-select toggle and select-all on Docker tab.
+	case " ":
+		if m.activeTab == TabDocker && !m.isFiltering {
+			m.toggleContainerSelection()
+			return m, nil
+		}
+
+	case "a", "A", "ctrl+a":
+		if m.activeTab == TabDocker && !m.isFiltering {
+			m.toggleSelectAllContainers()
 			return m, nil
 		}
 
@@ -146,6 +164,9 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "s", "S":
 		switch m.activeTab {
 		case TabDocker:
+			if len(m.selectedContainers) > 0 {
+				return m.handleDockerBatchStartStop()
+			}
 			return m.handleDockerStartStop()
 		case TabCompose:
 			return m.handleComposeStop()
@@ -180,6 +201,9 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if !m.isFiltering {
 			switch m.activeTab {
 			case TabDocker:
+				if len(m.selectedContainers) > 0 {
+					return m.handleDockerBatchRemoveModal()
+				}
 				return m.handleDockerRemoveModal()
 			case TabImages:
 				return m.handleImagesRemoveModal()
@@ -201,6 +225,9 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Force-kill a container with SIGKILL.
 	case "K":
 		if m.activeTab == TabDocker && !m.isFiltering {
+			if len(m.selectedContainers) > 0 {
+				return m.handleDockerBatchKill()
+			}
 			return m.handleDockerKill()
 		}
 
@@ -209,6 +236,9 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if !m.isFiltering {
 			switch m.activeTab {
 			case TabDocker:
+				if len(m.selectedContainers) > 0 {
+					return m.handleDockerBatchRemoveModal()
+				}
 				return m.handleDockerRemoveModal()
 			case TabImages:
 				return m.handleImagesRemoveModal()
@@ -223,6 +253,9 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "p", "P":
 		switch m.activeTab {
 		case TabDocker:
+			if len(m.selectedContainers) > 0 {
+				return m.handleDockerBatchRestart()
+			}
 			return m.handleDockerRestart()
 		case TabCompose:
 			return m.handleComposeRestart()

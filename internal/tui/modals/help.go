@@ -45,6 +45,8 @@ func RenderHelp(refreshInterval time.Duration, swarmVisible ...bool) string {
 		{
 			title: "CONTAINER ACTIONS (Containers Tab)",
 			items: []helpItem{
+				{key: "[Space]", desc: "Toggle selection for batch operations (multi-select)"},
+				{key: "[a] / [Ctrl+A]", desc: "Select / deselect all visible containers"},
 				{key: "[/]", desc: "Filter containers by name, image, or ID"},
 				{key: "[O]", desc: "Cycle container sorting (CPU, Memory, Name, Status)"},
 				{key: "[L]", desc: "View container logs (regex search with [/], syntax highlighting)"},
@@ -52,10 +54,10 @@ func RenderHelp(refreshInterval time.Duration, swarmVisible ...bool) string {
 				{key: "[w]", desc: "Open port URL in browser / copy"},
 				{key: "[y]", desc: "Copy docker exec cmd / ID to clipboard"},
 				{key: "[E]", desc: "Interactive shell inside container (bash / sh)"},
-				{key: "[S]", desc: "Start / Stop container"},
-				{key: "[P]", desc: "Restart container"},
-				{key: "[K]", desc: "Force kill container (SIGKILL)"},
-				{key: "[x]", desc: "Remove container"},
+				{key: "[S]", desc: "Start / Stop container (or selected)"},
+				{key: "[P]", desc: "Restart container (or selected)"},
+				{key: "[K]", desc: "Force kill container (or selected)"},
+				{key: "[x]", desc: "Remove container (or selected)"},
 				{key: "[V]", desc: "Toggle lower details card (Tabs 1, 2, 4, 5)"},
 			},
 		},

@@ -55,6 +55,26 @@ func removeContainerCmd(id, name string) tea.Cmd {
 	return wrapAction(actions.RemoveContainer(id, name))
 }
 
+func batchStartContainersCmd(items []monitor.ContainerItem) tea.Cmd {
+	return wrapAction(actions.BatchStartContainers(items))
+}
+
+func batchStopContainersCmd(items []monitor.ContainerItem) tea.Cmd {
+	return wrapAction(actions.BatchStopContainers(items))
+}
+
+func batchRestartContainersCmd(items []monitor.ContainerItem) tea.Cmd {
+	return wrapAction(actions.BatchRestartContainers(items))
+}
+
+func batchKillContainersCmd(items []monitor.ContainerItem) tea.Cmd {
+	return wrapAction(actions.BatchKillContainers(items))
+}
+
+func batchRemoveContainersCmd(items []monitor.ContainerItem) tea.Cmd {
+	return wrapAction(actions.BatchRemoveContainers(items))
+}
+
 func removeImageCmd(id, name string, force bool) tea.Cmd {
 	return wrapAction(actions.RemoveImage(id, name, force))
 }

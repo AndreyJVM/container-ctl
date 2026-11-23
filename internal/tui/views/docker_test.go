@@ -488,3 +488,27 @@ func formatTestName(i int) string {
 	return "container-" + string(rune('0'+i/10)) + string(rune('0'+i%10))
 }
 
+func TestRenderDocker_MultiSelectRendering(t *testing.T) {
+	t.Parallel()
+
+	c1 := testutil.AContainer(testutil.WithID("c1"), testutil.WithName("frontend"))
+	c2 := testutil.AContainer(testutil.WithID("c2"), testutil.WithName("backend"))
+	c3 := testutil.AContainer(testutil.WithID("c3"), testutil.WithName("database"))
+	containers := []monitor.ContainerItem{c1, c2, c3}
+
+	view := RenderDocker(DockerContext{
+		DockerInfo:  monitor.DockerSummary{Status: "running", Containers: containers},
+		Containers:  containers,
+		CursorIdx:   0, // Cursor on c1
+		SelectedIDs: map[string]struct{}{"c1": {}, "c2": {}},
+		Width:       100,
+	})
+
+	testutil.AssertContainsAll(t, view, "● 2 selected")
+	testutil.AssertContainsAll(t, view, "►●")
+	testutil.AssertContainsAll(t, view, "frontend")
+	testutil.AssertContainsAll(t, view, "backend")
+	testutil.AssertContainsAll(t, view, "database")
+}
+
+
