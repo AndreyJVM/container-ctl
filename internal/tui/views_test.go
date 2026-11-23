@@ -610,6 +610,20 @@ func TestViewModel_FooterVariations(t *testing.T) {
 			wantContains: []string{"[Y]", "Confirm (Remove Image)", "[N / Esc] Cancel"},
 		},
 		{
+			name: "modal remove network footer options",
+			setup: func(m *Model) {
+				m.activeModal = ModalRemoveNetwork
+			},
+			wantContains: []string{"[Y]", "Confirm (Remove Network)", "[N / Esc] Cancel"},
+		},
+		{
+			name: "modal remove volume footer options",
+			setup: func(m *Model) {
+				m.activeModal = ModalRemoveVolume
+			},
+			wantContains: []string{"[Y]", "Confirm (Remove Volume)", "[N / Esc] Cancel"},
+		},
+		{
 			name: "embedded shell focused footer",
 			setup: func(m *Model) {
 				m.embeddedShell = &fakeEmbeddedShell{}
@@ -697,4 +711,85 @@ func TestView_ModuleRegistryActiveTabHighlight(t *testing.T) {
 	if !strings.Contains(view2, "2: Containers") {
 		t.Errorf("expected 2: Containers in view, got: %s", view2)
 	}
+}
+
+func TestViewModel_RemoveModalsAndVolumeContainerMatching(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ModalRemoveNetwork rendering", func(t *testing.T) {
+		t.Parallel()
+		m := newFastTestModel()
+		m.activeModal = ModalRemoveNetwork
+		m.removeNetworkTargetID = "net-12345"
+		m.removeNetworkTargetName = "frontend"
+		m.removeNetworkContainersCount = 2
+
+		v := m.View()
+		if !strings.Contains(v, "CONFIRM NETWORK REMOVAL") || !strings.Contains(v, "frontend (net-12345)") {
+			t.Errorf("expected network removal modal in view, got: %s", v)
+		}
+		if !strings.Contains(v, "currently in use by 2 container(s)") {
+			t.Errorf("expected in use warning in modal view, got: %s", v)
+		}
+	})
+
+	t.Run("ModalRemoveVolume rendering", func(t *testing.T) {
+		t.Parallel()
+		m := newFastTestModel()
+		m.activeModal = ModalRemoveVolume
+		m.removeVolumeTargetName = "db_data"
+		m.removeVolumeTargetInUse = true
+
+		v := m.View()
+		if !strings.Contains(v, "CONFIRM VOLUME REMOVAL") || !strings.Contains(v, "db_data") {
+			t.Errorf("expected volume removal modal in view, got: %s", v)
+		}
+		if !strings.Contains(v, "Force removal (-f) will be applied") {
+			t.Errorf("expected force removal warning in modal view, got: %s", v)
+		}
+	})
+
+	t.Run("matchContainersForVolume helper", func(t *testing.T) {
+		t.Parallel()
+		if matchContainersForVolume("", nil) != nil {
+			t.Errorf("expected nil for empty volume name")
+		}
+
+		containers := []monitor.ContainerItem{
+			{Name: "web", Mounts: []string{"app_data:/data", "logs:/var/log"}},
+			{Name: "worker", Mounts: []string{"logs:/var/log"}},
+			{Name: "db", Mounts: []string{"/host/path:/db"}},
+		}
+
+		matchedApp := matchContainersForVolume("app_data", containers)
+		if len(matchedApp) != 1 || matchedApp[0] != "web" {
+			t.Errorf("expected ['web'] for app_data, got: %v", matchedApp)
+		}
+
+		matchedLogs := matchContainersForVolume("logs", containers)
+		if len(matchedLogs) != 2 || matchedLogs[0] != "web" || matchedLogs[1] != "worker" {
+			t.Errorf("expected ['web', 'worker'] for logs, got: %v", matchedLogs)
+		}
+
+		matchedMissing := matchContainersForVolume("unrelated", containers)
+		if len(matchedMissing) != 0 {
+			t.Errorf("expected empty for unrelated volume, got: %v", matchedMissing)
+		}
+	})
+
+	t.Run("renderVolumesTab enriches containers from dockerInfo", func(t *testing.T) {
+		t.Parallel()
+		m := newFastTestModel()
+		m.activeTab = TabVolumes
+		m.volumes = []monitor.DockerVolume{
+			{Name: "pg_data", Driver: "local", RefCount: 1},
+		}
+		m.dockerInfo.Containers = []monitor.ContainerItem{
+			{Name: "postgres", Mounts: []string{"pg_data:/var/lib/postgresql/data"}},
+		}
+		v := m.View()
+		if !strings.Contains(v, "pg_data") || !strings.Contains(v, "postgres") {
+			t.Errorf("expected volume pg_data and matched container postgres in view, got: %s", v)
+		}
+	})
 }

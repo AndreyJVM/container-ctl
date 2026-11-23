@@ -535,7 +535,7 @@ func TestResourcesActions_EmptyListSafety(t *testing.T) {
 		m.networks = nil
 		m.networkCursorIdx = 0
 
-		for _, k := range []string{"enter", "i", "I", "y", "Y"} {
+		for _, k := range []string{"enter", "i", "I", "y", "Y", "x", "X", "d", "D"} {
 			res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
 			updated := res.(Model)
 			if cmd != nil {
@@ -553,7 +553,7 @@ func TestResourcesActions_EmptyListSafety(t *testing.T) {
 		m.volumes = nil
 		m.volumeCursorIdx = 0
 
-		for _, k := range []string{"enter", "i", "I", "y", "Y"} {
+		for _, k := range []string{"enter", "i", "I", "y", "Y", "x", "X", "d", "D"} {
 			res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
 			updated := res.(Model)
 			if cmd != nil {
@@ -579,6 +579,67 @@ func TestResourcesActions_EmptyListSafety(t *testing.T) {
 			}
 			if updated.activeModal != "" {
 				t.Errorf("expected no modal opened for key %q on empty swarm services", k)
+			}
+		}
+	})
+}
+
+func TestNetworksAndVolumesRemoveHotkeys(t *testing.T) {
+	t.Parallel()
+
+	t.Run("networks tab opens remove modal on x and d", func(t *testing.T) {
+		t.Parallel()
+		for _, k := range []string{"x", "X", "d", "D"} {
+			m := newFastNetworksTestModel()
+			m.networks = []monitor.DockerNetwork{
+				{
+					ID:         "net-abc-123",
+					Name:       "production-net",
+					Containers: 3,
+				},
+			}
+			m.networkCursorIdx = 0
+
+			res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
+			updated := res.(Model)
+			if updated.activeModal != ModalRemoveNetwork {
+				t.Errorf("key %q: expected activeModal %s, got %s", k, ModalRemoveNetwork, updated.activeModal)
+			}
+			if updated.removeNetworkTargetID != "net-abc-123" {
+				t.Errorf("key %q: expected removeNetworkTargetID 'net-abc-123', got %s", k, updated.removeNetworkTargetID)
+			}
+			if updated.removeNetworkTargetName != "production-net" {
+				t.Errorf("key %q: expected removeNetworkTargetName 'production-net', got %s", k, updated.removeNetworkTargetName)
+			}
+			if updated.removeNetworkContainersCount != 3 {
+				t.Errorf("key %q: expected removeNetworkContainersCount 3, got %d", k, updated.removeNetworkContainersCount)
+			}
+		}
+	})
+
+	t.Run("volumes tab opens remove modal on x and d", func(t *testing.T) {
+		t.Parallel()
+		for _, k := range []string{"x", "X", "d", "D"} {
+			m := newFastVolumesTestModel()
+			m.volumes = []monitor.DockerVolume{
+				{
+					Name:       "postgres_data",
+					RefCount:   1,
+					Containers: []string{"db"},
+				},
+			}
+			m.volumeCursorIdx = 0
+
+			res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
+			updated := res.(Model)
+			if updated.activeModal != ModalRemoveVolume {
+				t.Errorf("key %q: expected activeModal %s, got %s", k, ModalRemoveVolume, updated.activeModal)
+			}
+			if updated.removeVolumeTargetName != "postgres_data" {
+				t.Errorf("key %q: expected removeVolumeTargetName 'postgres_data', got %s", k, updated.removeVolumeTargetName)
+			}
+			if !updated.removeVolumeTargetInUse {
+				t.Errorf("key %q: expected removeVolumeTargetInUse true, got false", k)
 			}
 		}
 	})

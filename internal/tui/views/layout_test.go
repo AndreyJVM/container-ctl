@@ -153,6 +153,16 @@ func TestRenderFooter_Modals(t *testing.T) {
 			wantContains: []string{"[Y]", "Confirm (Remove Image)", "[N / Esc]", "Cancel"},
 		},
 		{
+			name:         "remove network confirmation",
+			ctx:          FooterContext{ActiveModal: "remove_network", Width: 80},
+			wantContains: []string{"[Y]", "Confirm (Remove Network)", "[N / Esc]", "Cancel"},
+		},
+		{
+			name:         "remove volume confirmation",
+			ctx:          FooterContext{ActiveModal: "remove_volume", Width: 80},
+			wantContains: []string{"[Y]", "Confirm (Remove Volume)", "[N / Esc]", "Cancel"},
+		},
+		{
 			name:         "exec selection",
 			ctx:          FooterContext{ActiveModal: "exec", Width: 80},
 			wantContains: []string{"[1-7 / Enter]", "Select Action", "[Esc / Q]", "Cancel"},
@@ -293,10 +303,10 @@ func TestRenderFooter_TabsAndFiltering(t *testing.T) {
 			testutil.AssertContainsAll(t, fFiltering, "Apply Filter", "Cancel")
 
 			fApplied := RenderFooter(FooterContext{ActiveTab: tab, FilterQuery: "bridge", Width: 80})
-			testutil.AssertContainsAll(t, fApplied, "Select", "Inspect", "Reset Filter", "Copy", "Prune")
+			testutil.AssertContainsAll(t, fApplied, "Select", "Inspect", "Reset Filter", "Copy", "Remove", "Prune")
 
 			fNormal := RenderFooter(FooterContext{ActiveTab: tab, Width: 80})
-			testutil.AssertContainsAll(t, fNormal, "Select", "Inspect", "Search", "Copy", "Prune", "Refresh")
+			testutil.AssertContainsAll(t, fNormal, "Select", "Inspect", "Search", "Copy", "Remove", "Prune", "Refresh")
 		}
 	})
 

@@ -191,6 +191,24 @@ func RemoveImage(id, name string, force bool) tea.Cmd {
 	)
 }
 
+// RemoveNetwork returns a command to remove a Docker network.
+func RemoveNetwork(id, name string) tea.Cmd {
+	return MakeActionCmd(
+		func() error { return monitor.RemoveDockerNetwork(id) },
+		"Error removing network: ",
+		fmt.Sprintf("Network %s removed successfully", name),
+	)
+}
+
+// RemoveVolume returns a command to remove a Docker volume.
+func RemoveVolume(name string, force bool) tea.Cmd {
+	return MakeActionCmd(
+		func() error { return monitor.RemoveDockerVolume(name, force) },
+		"Error removing volume: ",
+		fmt.Sprintf("Volume %s removed successfully", name),
+	)
+}
+
 // StartCompose returns a command to start a Compose project.
 func StartCompose(name string, containers []monitor.ContainerItem) tea.Cmd {
 	return MakeActionCmd(

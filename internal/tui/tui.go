@@ -65,6 +65,10 @@ const (
 	ModalRemoveContainer ModalType = "remove_container"
 	// ModalRemoveImage displays confirmation for removing a Docker image.
 	ModalRemoveImage ModalType = "remove_image"
+	// ModalRemoveNetwork displays confirmation for removing a Docker network.
+	ModalRemoveNetwork ModalType = "remove_network"
+	// ModalRemoveVolume displays confirmation for removing a Docker volume.
+	ModalRemoveVolume ModalType = "remove_volume"
 	// ModalExec displays the interactive container shell launcher.
 	ModalExec ModalType = "exec"
 	// ModalSwarmScale displays interactive service replica scaling.
@@ -139,6 +143,15 @@ type Model struct {
 	removeImageTargetID    string
 	removeImageTargetName  string
 	removeImageTargetInUse bool
+
+	// Remove network modal.
+	removeNetworkTargetID        string
+	removeNetworkTargetName      string
+	removeNetworkContainersCount int
+
+	// Remove volume modal.
+	removeVolumeTargetName  string
+	removeVolumeTargetInUse bool
 
 	// Prune modal.
 	pruneUsage    monitor.DockerDiskUsage

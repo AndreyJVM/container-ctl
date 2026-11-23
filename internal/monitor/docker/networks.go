@@ -8,36 +8,41 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 )
 
 // DockerNetwork describes a Docker network shown in the dashboard.
 type DockerNetwork struct {
-	ID             string
-	Name           string
-	Driver         string
-	Scope          string
-	Internal       bool
-	Attachable     bool
-	Containers     int
-	Subnet         string
-	Gateway        string
-	ComposeProject string
+	ID                  string
+	Name                string
+	Driver              string
+	Scope               string
+	Internal            bool
+	Attachable          bool
+	Containers          int
+	ConnectedContainers []string
+	Subnet              string
+	Gateway             string
+	ComposeProject      string
 }
 
 // GetDockerNetworks returns Docker networks without changing daemon state.
 func GetDockerNetworks() ([]DockerNetwork, error) {
 	if sockPath := DockerSocketFinder(); sockPath != "" {
 		var raw []struct {
-			ID         string                 `json:"Id"`
-			Name       string                 `json:"Name"`
-			Driver     string                 `json:"Driver"`
-			Scope      string                 `json:"Scope"`
-			Internal   bool                   `json:"Internal"`
-			Attachable bool                   `json:"Attachable"`
-			Containers map[string]interface{} `json:"Containers"`
-			Labels     map[string]string      `json:"Labels"`
-			IPAM       struct {
+			ID         string `json:"Id"`
+			Name       string `json:"Name"`
+			Driver     string `json:"Driver"`
+			Scope      string `json:"Scope"`
+			Internal   bool   `json:"Internal"`
+			Attachable bool   `json:"Attachable"`
+			Containers map[string]struct {
+				Name        string `json:"Name"`
+				IPv4Address string `json:"IPv4Address"`
+			} `json:"Containers"`
+			Labels map[string]string `json:"Labels"`
+			IPAM   struct {
 				Config []struct {
 					Subnet  string `json:"Subnet"`
 					Gateway string `json:"Gateway"`
@@ -52,17 +57,38 @@ func GetDockerNetworks() ([]DockerNetwork, error) {
 					subnet = item.IPAM.Config[0].Subnet
 					gateway = item.IPAM.Config[0].Gateway
 				}
+				var connected []string
+				for _, cInfo := range item.Containers {
+					cName := cInfo.Name
+					if cName == "" {
+						continue
+					}
+					ip := cInfo.IPv4Address
+					if ip != "" {
+						if idx := strings.IndexByte(ip, '/'); idx != -1 {
+							ip = ip[:idx]
+						}
+						connected = append(connected, fmt.Sprintf("%s (%s)", cName, ip))
+					} else {
+						connected = append(connected, cName)
+					}
+				}
+				if len(connected) > 0 {
+					sort.Strings(connected)
+				}
+
 				networks = append(networks, DockerNetwork{
-					ID:             truncateResourceID(item.ID),
-					Name:           item.Name,
-					Driver:         item.Driver,
-					Scope:          item.Scope,
-					Internal:       item.Internal,
-					Attachable:     item.Attachable,
-					Containers:     len(item.Containers),
-					Subnet:         subnet,
-					Gateway:        gateway,
-					ComposeProject: item.Labels[composeProjectLabel],
+					ID:                  truncateResourceID(item.ID),
+					Name:                item.Name,
+					Driver:              item.Driver,
+					Scope:               item.Scope,
+					Internal:            item.Internal,
+					Attachable:          item.Attachable,
+					Containers:          len(item.Containers),
+					ConnectedContainers: connected,
+					Subnet:              subnet,
+					Gateway:             gateway,
+					ComposeProject:      item.Labels[composeProjectLabel],
 				})
 			}
 			return networks, nil
@@ -136,4 +162,38 @@ func GetNetworkInspectJSON(idOrName string) (string, error) {
 	}
 
 	return "", fmt.Errorf("network not found: %s", idOrName)
+}
+
+// RemoveDockerNetwork removes a Docker network by ID or name.
+func RemoveDockerNetwork(idOrName string) error {
+	idOrName = strings.TrimSpace(idOrName)
+	if idOrName == "" {
+		return fmt.Errorf("network identifier cannot be empty")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	defer cancel()
+
+	if sockPath := DockerSocketFinder(); sockPath != "" {
+		client := SocketClientFactory(sockPath)
+		endpoint := fmt.Sprintf("http://localhost/networks/%s", url.PathEscape(idOrName))
+		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
+		if err == nil {
+			resp, err := client.Do(req)
+			if err == nil {
+				defer resp.Body.Close()
+				if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK {
+					return nil
+				}
+				body, _ := io.ReadAll(resp.Body)
+				return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
+			}
+		}
+	}
+
+	out, err := DockerCLIRunner(ctx, "network", "rm", idOrName)
+	if err != nil {
+		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
+	}
+	return nil
 }

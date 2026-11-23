@@ -45,6 +45,18 @@ func (m Model) handleNetworksCopy() (Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) handleNetworksRemoveModal() (Model, tea.Cmd) {
+	networks := m.getFilteredNetworks()
+	if len(networks) > 0 && m.networkCursorIdx < len(networks) {
+		net := networks[m.networkCursorIdx]
+		m.removeNetworkTargetID = net.ID
+		m.removeNetworkTargetName = net.Name
+		m.removeNetworkContainersCount = net.Containers
+		m.openModal(ModalRemoveNetwork)
+	}
+	return m, nil
+}
+
 func (m Model) handleVolumesInspect() (Model, tea.Cmd) {
 	volumes := m.getFilteredVolumes()
 	if len(volumes) > 0 && m.volumeCursorIdx < len(volumes) {
@@ -74,6 +86,17 @@ func (m Model) handleVolumesCopy() (Model, tea.Cmd) {
 	if len(volumes) > 0 && m.volumeCursorIdx < len(volumes) {
 		vol := volumes[m.volumeCursorIdx]
 		m.copyToClipboard(vol.Name)
+	}
+	return m, nil
+}
+
+func (m Model) handleVolumesRemoveModal() (Model, tea.Cmd) {
+	volumes := m.getFilteredVolumes()
+	if len(volumes) > 0 && m.volumeCursorIdx < len(volumes) {
+		vol := volumes[m.volumeCursorIdx]
+		m.removeVolumeTargetName = vol.Name
+		m.removeVolumeTargetInUse = vol.RefCount > 0 || len(vol.Containers) > 0
+		m.openModal(ModalRemoveVolume)
 	}
 	return m, nil
 }

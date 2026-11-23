@@ -123,6 +123,8 @@ func TestFacadeExports(t *testing.T) {
 	_, _ = monitor.GetContainerLogs("non-existent-id", 5)
 	_, _ = monitor.GetDockerImages()
 	_ = monitor.RemoveDockerImage("non-existent-id", false)
+	_ = monitor.RemoveDockerNetwork("non-existent-net")
+	_ = monitor.RemoveDockerVolume("non-existent-vol", false)
 	_, _ = monitor.GetDockerNetworks()
 	_, _ = monitor.GetDockerVolumes()
 	_, _ = monitor.GetDockerDiskUsage()

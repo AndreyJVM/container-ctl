@@ -324,6 +324,83 @@ func TestModalConfirmDialogs(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("ModalRemoveNetwork cancel variants and confirm", func(t *testing.T) {
+		cancelKeys := []string{"esc", "q", "n", "N"}
+		for _, k := range cancelKeys {
+			m := newFastTestModel()
+			m.activeModal = ModalRemoveNetwork
+			m.removeNetworkTargetID = "net1"
+			m.removeNetworkTargetName = "app-network"
+			m.removeNetworkContainersCount = 2
+
+			var msg tea.KeyMsg
+			if k == "esc" {
+				msg = tea.KeyMsg{Type: tea.KeyEsc}
+			} else {
+				msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)}
+			}
+			res, cmd := m.handleModalInput(msg)
+			m = res.(Model)
+			if m.activeModal != "" || m.removeNetworkTargetID != "" || m.removeNetworkContainersCount != 0 || cmd != nil {
+				t.Errorf("key %q: expected ModalRemoveNetwork cancelled cleanly", k)
+			}
+		}
+
+		// Confirm with y and Y
+		for _, k := range []string{"y", "Y"} {
+			m := newFastTestModel()
+			m.activeModal = ModalRemoveNetwork
+			m.removeNetworkTargetID = "net1"
+			m.removeNetworkTargetName = "app-network"
+			res, cmd := m.handleModalInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
+			m = res.(Model)
+			if m.activeModal != "" || cmd == nil {
+				t.Errorf("key %q: expected ModalRemoveNetwork confirmed and returned cmd", k)
+			}
+			if !strings.Contains(m.actionMessage, "Removing network app-network") {
+				t.Errorf("expected toast for removing network, got %q", m.actionMessage)
+			}
+		}
+	})
+
+	t.Run("ModalRemoveVolume cancel variants and confirm", func(t *testing.T) {
+		cancelKeys := []string{"esc", "q", "n", "N"}
+		for _, k := range cancelKeys {
+			m := newFastTestModel()
+			m.activeModal = ModalRemoveVolume
+			m.removeVolumeTargetName = "db-data"
+			m.removeVolumeTargetInUse = true
+
+			var msg tea.KeyMsg
+			if k == "esc" {
+				msg = tea.KeyMsg{Type: tea.KeyEsc}
+			} else {
+				msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)}
+			}
+			res, cmd := m.handleModalInput(msg)
+			m = res.(Model)
+			if m.activeModal != "" || m.removeVolumeTargetName != "" || m.removeVolumeTargetInUse || cmd != nil {
+				t.Errorf("key %q: expected ModalRemoveVolume cancelled cleanly", k)
+			}
+		}
+
+		// Confirm with y and Y
+		for _, k := range []string{"y", "Y"} {
+			m := newFastTestModel()
+			m.activeModal = ModalRemoveVolume
+			m.removeVolumeTargetName = "db-data"
+			m.removeVolumeTargetInUse = false
+			res, cmd := m.handleModalInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
+			m = res.(Model)
+			if m.activeModal != "" || cmd == nil {
+				t.Errorf("key %q: expected ModalRemoveVolume confirmed and returned cmd", k)
+			}
+			if !strings.Contains(m.actionMessage, "Removing volume db-data") {
+				t.Errorf("expected toast for removing volume, got %q", m.actionMessage)
+			}
+		}
+	})
 }
 
 func TestModalPrune(t *testing.T) {

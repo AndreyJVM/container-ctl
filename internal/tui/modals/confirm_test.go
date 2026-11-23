@@ -32,3 +32,37 @@ func TestRenderRemoveImage(t *testing.T) {
 		t.Errorf("expected in-use warning in modal, got: %s", viewInUse)
 	}
 }
+
+func TestRenderRemoveNetwork(t *testing.T) {
+	// Unused network
+	view := RenderRemoveNetwork("frontend", "net12345", 0)
+	if !strings.Contains(view, "CONFIRM NETWORK REMOVAL") || !strings.Contains(view, "frontend (net12345)") {
+		t.Errorf("expected network name, id and title, got: %s", view)
+	}
+	if !strings.Contains(view, "docker network rm") {
+		t.Errorf("expected docker network rm warning, got: %s", view)
+	}
+
+	// In use network with container count warning
+	viewInUse := RenderRemoveNetwork("backend", "net67890", 3)
+	if !strings.Contains(viewInUse, "currently in use by 3 container(s)") {
+		t.Errorf("expected in-use warning with count 3, got: %s", viewInUse)
+	}
+}
+
+func TestRenderRemoveVolume(t *testing.T) {
+	// Unused volume
+	view := RenderRemoveVolume("pg_data", false)
+	if !strings.Contains(view, "CONFIRM VOLUME REMOVAL") || !strings.Contains(view, "pg_data") {
+		t.Errorf("expected volume name and title, got: %s", view)
+	}
+	if !strings.Contains(view, "persistent data will be permanently deleted") {
+		t.Errorf("expected permanent deletion warning, got: %s", view)
+	}
+
+	// In use volume with force removal warning
+	viewInUse := RenderRemoveVolume("app_data", true)
+	if !strings.Contains(viewInUse, "Force removal (-f) will be applied") {
+		t.Errorf("expected force removal warning, got: %s", viewInUse)
+	}
+}

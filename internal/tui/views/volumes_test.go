@@ -356,3 +356,25 @@ func TestRenderVolumes_HideDetails(t *testing.T) {
 		t.Errorf("expected volume row to still be rendered when HideDetails is true")
 	}
 }
+
+func TestRenderVolumes_UsedByContainersAndActions(t *testing.T) {
+	t.Parallel()
+
+	vol := testutil.AVolume(func(v *monitor.DockerVolume) {
+		v.Name = "app_data"
+		v.Containers = []string{"web", "worker"}
+		v.RefCount = 2
+	})
+
+	view := RenderVolumes(VolumesContext{
+		Volumes:   []monitor.DockerVolume{vol},
+		CursorIdx: 0,
+		Width:     100,
+	})
+
+	testutil.AssertContainsAll(t, view,
+		"In Use (2 container reference(s)): web, worker",
+		"[x]",
+		"Remove",
+	)
+}

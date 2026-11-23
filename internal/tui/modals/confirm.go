@@ -47,3 +47,39 @@ func RenderRemoveImage(imageName, imageID string, inUse bool) string {
 	s.WriteString(fmt.Sprintf("  %s %s (Remove Image)    %s %s\n", theme.RedStyle.Render("[Y]"), "Confirm", theme.DimStyle.Render("[N / Esc]"), "Cancel"))
 	return theme.BoxStyle.Render(s.String())
 }
+
+// RenderRemoveNetwork renders the Docker network deletion confirmation modal.
+func RenderRemoveNetwork(networkName, networkID string, containersCount int) string {
+	var s strings.Builder
+	s.WriteString(theme.TitleStyle.Render("CONFIRM NETWORK REMOVAL") + "\n\n")
+
+	if containersCount > 0 {
+		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.RedStyle.Render("Warning:"), fmt.Sprintf("Network is currently in use by %d container(s). Removal may fail until disconnected.", containersCount)))
+	} else {
+		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.YellowStyle.Render("Warning:"), "The Docker network configuration will be permanently removed (docker network rm)."))
+	}
+
+	label := networkName
+	if networkID != "" && networkID != networkName {
+		label = fmt.Sprintf("%s (%s)", networkName, networkID)
+	}
+	s.WriteString(fmt.Sprintf("  Are you sure you want to remove network %s?\n\n", theme.BoldStyle.Render(label)))
+	s.WriteString(fmt.Sprintf("  %s %s (Remove Network)    %s %s\n", theme.RedStyle.Render("[Y]"), "Confirm", theme.DimStyle.Render("[N / Esc]"), "Cancel"))
+	return theme.BoxStyle.Render(s.String())
+}
+
+// RenderRemoveVolume renders the Docker volume deletion confirmation modal.
+func RenderRemoveVolume(volumeName string, inUse bool) string {
+	var s strings.Builder
+	s.WriteString(theme.TitleStyle.Render("CONFIRM VOLUME REMOVAL") + "\n\n")
+
+	if inUse {
+		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.RedStyle.Render("Warning:"), "Volume is currently referenced by container(s). Force removal (-f) will be applied."))
+	} else {
+		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.YellowStyle.Render("Warning:"), "The volume and all stored persistent data will be permanently deleted (docker volume rm)."))
+	}
+
+	s.WriteString(fmt.Sprintf("  Are you sure you want to remove volume %s?\n\n", theme.BoldStyle.Render(volumeName)))
+	s.WriteString(fmt.Sprintf("  %s %s (Remove Volume)    %s %s\n", theme.RedStyle.Render("[Y]"), "Confirm", theme.DimStyle.Render("[N / Esc]"), "Cancel"))
+	return theme.BoxStyle.Render(s.String())
+}

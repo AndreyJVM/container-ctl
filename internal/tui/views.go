@@ -1,9 +1,11 @@
 package tui
 
 import (
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	"github.com/AndreyJVM/container-ctl/internal/tui/modals"
 	"github.com/AndreyJVM/container-ctl/internal/tui/theme"
 	"github.com/AndreyJVM/container-ctl/internal/tui/views"
@@ -52,6 +54,10 @@ func (m Model) View() string {
 		content = m.renderRemoveContainerModal()
 	case ModalRemoveImage:
 		content = m.renderRemoveImageModal()
+	case ModalRemoveNetwork:
+		content = m.renderRemoveNetworkModal()
+	case ModalRemoveVolume:
+		content = m.renderRemoveVolumeModal()
 	case ModalExec:
 		content = m.renderExecModal()
 	case ModalPrune:
@@ -193,10 +199,35 @@ func (m Model) renderNetworksTab() string {
 	})
 }
 
+func matchContainersForVolume(volName string, containers []monitor.ContainerItem) []string {
+	if volName == "" {
+		return nil
+	}
+	var matched []string
+	for _, c := range containers {
+		for _, mount := range c.Mounts {
+			if strings.Contains(mount, volName) {
+				matched = append(matched, c.Name)
+				break
+			}
+		}
+	}
+	sort.Strings(matched)
+	return matched
+}
+
 func (m Model) renderVolumesTab() string {
 	volumes := m.getFilteredVolumes()
+	enriched := make([]monitor.DockerVolume, len(volumes))
+	copy(enriched, volumes)
+	for i := range enriched {
+		if len(enriched[i].Containers) == 0 {
+			enriched[i].Containers = matchContainersForVolume(enriched[i].Name, m.dockerInfo.Containers)
+		}
+	}
+
 	return views.RenderVolumes(views.VolumesContext{
-		Volumes:           volumes,
+		Volumes:           enriched,
 		TotalVolumesCount: len(m.volumes),
 		CursorIdx:         m.volumeCursorIdx,
 		Error:             m.volumeErr,
@@ -245,6 +276,14 @@ func (m Model) renderRemoveContainerModal() string {
 
 func (m Model) renderRemoveImageModal() string {
 	return modals.RenderRemoveImage(m.removeImageTargetName, m.removeImageTargetID, m.removeImageTargetInUse)
+}
+
+func (m Model) renderRemoveNetworkModal() string {
+	return modals.RenderRemoveNetwork(m.removeNetworkTargetName, m.removeNetworkTargetID, m.removeNetworkContainersCount)
+}
+
+func (m Model) renderRemoveVolumeModal() string {
+	return modals.RenderRemoveVolume(m.removeVolumeTargetName, m.removeVolumeTargetInUse)
 }
 
 func (m Model) renderExecModal() string {

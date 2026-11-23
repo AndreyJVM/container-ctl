@@ -113,10 +113,18 @@ func RenderVolumes(ctx VolumesContext) string {
 		s.WriteString(renderDetailRow("Size:", sizeDisplay))
 
 		var statusDisplay string
-		if volume.RefCount > 0 {
-			statusDisplay = theme.GreenStyle.Render(fmt.Sprintf("● In Use (%d container reference(s))", volume.RefCount))
+		if volume.RefCount > 0 || len(volume.Containers) > 0 {
+			count := volume.RefCount
+			if count <= 0 {
+				count = len(volume.Containers)
+			}
+			msg := fmt.Sprintf("● In Use (%d container reference(s))", count)
+			if len(volume.Containers) > 0 {
+				msg += ": " + strings.Join(volume.Containers, ", ")
+			}
+			statusDisplay = theme.GreenStyle.Render(msg)
 		} else if volume.RefCount == 0 {
-			statusDisplay = theme.YellowStyle.Render("○ Unused (reclaimable) — Press 'C' to prune")
+			statusDisplay = theme.YellowStyle.Render("○ Unused (reclaimable) — Press 'C' to prune or 'x' to remove")
 		} else {
 			statusDisplay = theme.DimStyle.Render("Unknown")
 		}
@@ -126,7 +134,7 @@ func RenderVolumes(ctx VolumesContext) string {
 		s.WriteString(renderDetailRow("Compose project:", valueOrDash(volume.ComposeProject)))
 
 		var actions []string
-		actions = append(actions, theme.BoldStyle.Render("[Enter]")+" Inspect")
+		actions = append(actions, theme.BoldStyle.Render("[Enter]")+" Inspect", theme.BoldStyle.Render("[x]")+" Remove")
 		if volume.RefCount == 0 {
 			actions = append(actions, theme.BoldStyle.Render("[C]")+" Prune", theme.BoldStyle.Render("[y]")+" Copy Name")
 		} else {

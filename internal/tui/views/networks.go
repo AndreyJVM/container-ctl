@@ -102,7 +102,11 @@ func RenderNetworks(ctx NetworksContext) string {
 
 		var containersDisplay string
 		if network.Containers > 0 {
-			containersDisplay = theme.GreenStyle.Render(fmt.Sprintf("● %d container(s) connected", network.Containers))
+			if len(network.ConnectedContainers) > 0 {
+				containersDisplay = theme.GreenStyle.Render(fmt.Sprintf("● %d container(s): ", network.Containers)) + strings.Join(network.ConnectedContainers, ", ")
+			} else {
+				containersDisplay = theme.GreenStyle.Render(fmt.Sprintf("● %d container(s) connected", network.Containers))
+			}
 		} else {
 			containersDisplay = theme.DimStyle.Render("○ 0 containers connected (unused)")
 		}
@@ -123,6 +127,7 @@ func RenderNetworks(ctx NetworksContext) string {
 
 		actions := []string{
 			theme.BoldStyle.Render("[Enter]") + " Inspect",
+			theme.BoldStyle.Render("[x]") + " Remove",
 			theme.BoldStyle.Render("[y]") + " Copy Name",
 			theme.BoldStyle.Render("[C]") + " Prune Unused",
 			theme.BoldStyle.Render("[V]") + " Details",

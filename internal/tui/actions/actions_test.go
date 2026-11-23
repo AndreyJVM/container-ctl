@@ -61,6 +61,18 @@ func TestContainerAndComposeCommands(t *testing.T) {
 		t.Errorf("unexpected RemoveImage msg: %+v", msg)
 	}
 
+	// RemoveNetwork
+	msg = RemoveNetwork("net1", "frontend")().(FinishedMsg)
+	if msg.Err == nil && !strings.Contains(msg.Message, "frontend removed") {
+		t.Errorf("unexpected RemoveNetwork msg: %+v", msg)
+	}
+
+	// RemoveVolume
+	msg = RemoveVolume("data_vol", false)().(FinishedMsg)
+	if msg.Err == nil && !strings.Contains(msg.Message, "data_vol removed") {
+		t.Errorf("unexpected RemoveVolume msg: %+v", msg)
+	}
+
 	containers := []monitor.ContainerItem{{ID: "c1", ComposeProject: "proj"}}
 
 	// StartCompose

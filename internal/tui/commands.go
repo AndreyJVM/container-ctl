@@ -81,6 +81,14 @@ func removeImageCmd(id, name string, force bool) tea.Cmd {
 	return wrapAction(actions.RemoveImage(id, name, force))
 }
 
+func removeNetworkCmd(id, name string) tea.Cmd {
+	return wrapAction(actions.RemoveNetwork(id, name))
+}
+
+func removeVolumeCmd(name string, force bool) tea.Cmd {
+	return wrapAction(actions.RemoveVolume(name, force))
+}
+
 func startComposeCmd(name string, containers []monitor.ContainerItem) tea.Cmd {
 	return wrapAction(actions.StartCompose(name, containers))
 }

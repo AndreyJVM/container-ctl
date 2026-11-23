@@ -19,6 +19,7 @@ type DockerVolume struct {
 	Mountpoint     string
 	Size           int64
 	RefCount       int
+	Containers     []string
 	ComposeProject string
 }
 
@@ -128,4 +129,44 @@ func GetVolumeInspectJSON(name string) (string, error) {
 	}
 
 	return "", fmt.Errorf("volume not found: %s", name)
+}
+
+// RemoveDockerVolume removes a Docker volume by name.
+func RemoveDockerVolume(name string, force bool) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("volume name cannot be empty")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultDockerTimeout)
+	defer cancel()
+
+	if sockPath := DockerSocketFinder(); sockPath != "" {
+		client := SocketClientFactory(sockPath)
+		endpoint := fmt.Sprintf("http://localhost/volumes/%s?force=%t", url.PathEscape(name), force)
+		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
+		if err == nil {
+			resp, err := client.Do(req)
+			if err == nil {
+				defer resp.Body.Close()
+				if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK {
+					return nil
+				}
+				body, _ := io.ReadAll(resp.Body)
+				return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
+			}
+		}
+	}
+
+	args := []string{"volume", "rm"}
+	if force {
+		args = append(args, "-f")
+	}
+	args = append(args, name)
+
+	out, err := DockerCLIRunner(ctx, args...)
+	if err != nil {
+		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
+	}
+	return nil
 }

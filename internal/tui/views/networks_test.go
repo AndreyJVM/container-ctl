@@ -346,3 +346,28 @@ func TestRenderNetworks_HideDetails(t *testing.T) {
 		t.Errorf("expected network row to still be rendered when HideDetails is true")
 	}
 }
+
+func TestRenderNetworks_ConnectedContainersAndActions(t *testing.T) {
+	t.Parallel()
+
+	net := testutil.ANetwork(func(n *monitor.DockerNetwork) {
+		n.ID = "net-10"
+		n.Name = "app-bridge"
+		n.Containers = 2
+		n.ConnectedContainers = []string{"web (172.20.0.2)", "redis (172.20.0.3)"}
+	})
+
+	view := RenderNetworks(NetworksContext{
+		Networks:  []monitor.DockerNetwork{net},
+		CursorIdx: 0,
+		Width:     100,
+	})
+
+	testutil.AssertContainsAll(t, view,
+		"2 container(s):",
+		"web (172.20.0.2)",
+		"redis (172.20.0.3)",
+		"[x]",
+		"Remove",
+	)
+}

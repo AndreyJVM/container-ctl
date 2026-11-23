@@ -116,9 +116,19 @@ func GetNetworkInspectJSON(idOrName string) (string, error) {
 	return docker.GetNetworkInspectJSON(idOrName)
 }
 
+// RemoveDockerNetwork removes a Docker network by ID or name.
+func RemoveDockerNetwork(idOrName string) error {
+	return docker.RemoveDockerNetwork(idOrName)
+}
+
 // GetVolumeInspectJSON returns formatted JSON inspection for a Docker volume.
 func GetVolumeInspectJSON(name string) (string, error) {
 	return docker.GetVolumeInspectJSON(name)
+}
+
+// RemoveDockerVolume removes a Docker volume by name, with optional force.
+func RemoveDockerVolume(name string, force bool) error {
+	return docker.RemoveDockerVolume(name, force)
 }
 
 // GetDockerDiskUsage collects Docker disk usage statistics (system df) via socket or CLI fallback.

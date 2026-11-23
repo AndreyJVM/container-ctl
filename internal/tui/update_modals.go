@@ -65,6 +65,46 @@ func (m Model) handleModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if m.activeModal == ModalRemoveNetwork {
+		switch msg.String() {
+		case "esc", "q", "n", "N":
+			m.closeModal()
+			m.removeNetworkTargetID = ""
+			m.removeNetworkTargetName = ""
+			m.removeNetworkContainersCount = 0
+			return m, nil
+		case "y", "Y":
+			targetID := m.removeNetworkTargetID
+			targetName := m.removeNetworkTargetName
+			m.closeModal()
+			m.removeNetworkTargetID = ""
+			m.removeNetworkTargetName = ""
+			m.removeNetworkContainersCount = 0
+			m.showToast(fmt.Sprintf("Removing network %s...", targetName))
+			return m, removeNetworkCmd(targetID, targetName)
+		}
+		return m, nil
+	}
+
+	if m.activeModal == ModalRemoveVolume {
+		switch msg.String() {
+		case "esc", "q", "n", "N":
+			m.closeModal()
+			m.removeVolumeTargetName = ""
+			m.removeVolumeTargetInUse = false
+			return m, nil
+		case "y", "Y":
+			targetName := m.removeVolumeTargetName
+			inUse := m.removeVolumeTargetInUse
+			m.closeModal()
+			m.removeVolumeTargetName = ""
+			m.removeVolumeTargetInUse = false
+			m.showToast(fmt.Sprintf("Removing volume %s...", targetName))
+			return m, removeVolumeCmd(targetName, inUse)
+		}
+		return m, nil
+	}
+
 	if m.activeModal == ModalExec {
 		return m.handleExecModalInput(msg)
 	}

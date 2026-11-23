@@ -84,6 +84,7 @@ func RenderHelp(refreshInterval time.Duration, swarmVisible ...bool) string {
 			items: []helpItem{
 				{key: "[Enter] / [i]", desc: "Inspect network or volume JSON details"},
 				{key: "[/]", desc: "Search and filter networks or volumes"},
+				{key: "[x]", desc: "Remove selected network or volume"},
 				{key: "[y]", desc: "Copy network or volume name to clipboard"},
 				{key: "[C]", desc: "Prune unused networks or volumes"},
 			},

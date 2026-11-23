@@ -175,7 +175,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	// Down Compose, Remove Container, Remove Image.
+	// Down Compose, Remove Container, Remove Image, Remove Network, Remove Volume.
 	case "d", "D":
 		if !m.isFiltering {
 			switch m.activeTab {
@@ -185,6 +185,10 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m.handleImagesRemoveModal()
 			case TabCompose:
 				return m.handleComposeDownModal()
+			case TabNetworks:
+				return m.handleNetworksRemoveModal()
+			case TabVolumes:
+				return m.handleVolumesRemoveModal()
 			}
 		}
 
@@ -200,7 +204,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.handleDockerKill()
 		}
 
-	// Remove a container or an image.
+	// Remove a container, image, network, or volume.
 	case "x", "X":
 		if !m.isFiltering {
 			switch m.activeTab {
@@ -208,6 +212,10 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m.handleDockerRemoveModal()
 			case TabImages:
 				return m.handleImagesRemoveModal()
+			case TabNetworks:
+				return m.handleNetworksRemoveModal()
+			case TabVolumes:
+				return m.handleVolumesRemoveModal()
 			}
 		}
 

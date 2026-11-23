@@ -88,6 +88,12 @@ func RenderFooter(ctx FooterContext) string {
 		} else if ctx.ActiveModal == "remove_image" {
 			content = theme.RedStyle.Render("[Y]") + " Confirm (Remove Image)  |  " +
 				theme.BoldStyle.Render("[N / Esc]") + " Cancel"
+		} else if ctx.ActiveModal == "remove_network" {
+			content = theme.RedStyle.Render("[Y]") + " Confirm (Remove Network)  |  " +
+				theme.BoldStyle.Render("[N / Esc]") + " Cancel"
+		} else if ctx.ActiveModal == "remove_volume" {
+			content = theme.RedStyle.Render("[Y]") + " Confirm (Remove Volume)  |  " +
+				theme.BoldStyle.Render("[N / Esc]") + " Cancel"
 		} else if ctx.ActiveModal == "exec" {
 			content = theme.BoldStyle.Render("[1-7 / Enter]") + " Select Action  |  " +
 				theme.BoldStyle.Render("[Esc / Q]") + " Cancel"
@@ -269,6 +275,7 @@ func RenderFooter(ctx FooterContext) string {
 				theme.BoldStyle.Render("[Esc]") + " Reset Filter  |  " +
 				theme.BoldStyle.Render("[V]") + " Details  |  " +
 				theme.BoldStyle.Render("[y]") + " Copy  |  " +
+				theme.BoldStyle.Render("[x]") + " Remove  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
 				theme.BoldStyle.Render("[R]") + " Refresh  |  " +
 				theme.BoldStyle.Render("[?]") + " Help  |  " +
@@ -279,6 +286,7 @@ func RenderFooter(ctx FooterContext) string {
 				theme.BoldStyle.Render("[/]") + " Search  |  " +
 				theme.BoldStyle.Render("[V]") + " Details  |  " +
 				theme.BoldStyle.Render("[y]") + " Copy  |  " +
+				theme.BoldStyle.Render("[x]") + " Remove  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
 				theme.BoldStyle.Render("[R]") + " Refresh  |  " +
 				theme.BoldStyle.Render("[?]") + " Help  |  " +
