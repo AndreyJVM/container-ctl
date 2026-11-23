@@ -194,7 +194,7 @@ func TestRemoveDockerNetwork(t *testing.T) {
 	t.Run("socket error 404 with message", func(t *testing.T) {
 		DockerSocketFinder = func() string { return "/tmp/mock.sock" }
 		SocketClientFactory = func(_ string) *http.Client {
-			return newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
+			return newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
 				return mockStringResponse(http.StatusNotFound, `{"message":"network net-not-found not found"}`), nil
 			})
 		}
