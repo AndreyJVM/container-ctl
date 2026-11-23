@@ -16,14 +16,14 @@ type EmbeddedShellContext struct {
 	Focused       bool
 }
 
-// RenderEmbeddedShell renders an interactive terminal pane inside Dockpulse.
+// RenderEmbeddedShell renders an interactive terminal pane inside container-ctl.
 func RenderEmbeddedShell(ctx EmbeddedShellContext) string {
 	width := max(20, ctx.Width)
 	height := max(6, ctx.Height)
 	innerWidth := max(1, width-2)
 	innerHeight := max(1, height-2)
 
-	status := "DOCKPULSE FOCUSED"
+	status := "CONTAINER-CTL FOCUSED"
 	statusStyle := theme.DimStyle
 	borderColor := lipgloss.Color("#6B7280")
 	if ctx.Focused {

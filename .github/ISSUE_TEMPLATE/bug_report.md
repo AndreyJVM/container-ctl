@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug or unexpected behavior in Dockpulse
+about: Report a bug or unexpected behavior in container-ctl
 title: 'fix: '
 labels: 'bug'
 assignees: ''
@@ -12,7 +12,7 @@ assignees: ''
 
 ### Steps to Reproduce
 
-1. Start Dockpulse: `...`
+1. Start container-ctl: `...`
 2. Press a key or open a screen: `...`
 3. Observe the error or unexpected behavior.
 
@@ -26,7 +26,7 @@ assignees: ''
 
 ### Environment
 
-- **Dockpulse Version**: (for example, `container-ctl --version` or `git rev-parse --short HEAD`)
+- **container-ctl Version**: (for example, `container-ctl --version` or `git rev-parse --short HEAD`)
 - **OS**: (for example, `Ubuntu 24.04` or `Debian 12`)
 - **Terminal Emulator**: (for example, `kitty`, `alacritty`, `gnome-terminal`, or `tmux`)
 - **Docker Version**: (for example, `Docker Engine 27.0.3`)

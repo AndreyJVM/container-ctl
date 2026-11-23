@@ -1,6 +1,6 @@
-# Contributing to Dockpulse
+# Contributing to container-ctl
 
-Thank you for your interest in contributing to **Dockpulse**! We welcome all contributions: bug reports, documentation enhancements, feature proposals, and pull requests.
+Thank you for your interest in contributing to **container-ctl**! We welcome all contributions: bug reports, documentation enhancements, feature proposals, and pull requests.
 
 ### Prerequisites
 
@@ -31,7 +31,7 @@ Thank you for your interest in contributing to **Dockpulse**! We welcome all con
 
 ### Project Architecture & Codebase Structure
 
-Dockpulse is structured into clear and modular packages:
+container-ctl is structured into clear and modular packages:
 
 ```text
 container-ctl/

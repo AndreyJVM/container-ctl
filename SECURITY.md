@@ -2,26 +2,26 @@
 
 ## Supported Versions
 
-We provide security updates and patches for the current and previous minor versions of Dockpulse:
+We provide security updates and patches for the current and previous minor versions of container-ctl:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.12.x  | :white_check_mark: |
-| < 0.12  | :x:                |
+| 0.22.x  | :white_check_mark: |
+| < 0.22  | :x:                |
 
 ## Reporting a Vulnerability
 
-We take the security of Dockpulse seriously. If you believe you have found a security vulnerability in Dockpulse, please report it responsibly so that we can address it before public disclosure.
+We take the security of container-ctl seriously. If you believe you have found a security vulnerability in container-ctl, please report it responsibly so that we can address it before public disclosure.
 
 ### How to Report
 
 - **Preferred Method**: Use GitHub [Private Vulnerability Reporting](https://github.com/AndreyJVM/container-ctl/security/advisories/new) directly in this repository.
-- **Alternative Method**: If you cannot use GitHub Advisories, email the maintainers at `andrey.vorobev.aqa@gmail.com` with the subject line `[SECURITY] Dockpulse Vulnerability Report`.
+- **Alternative Method**: If you cannot use GitHub Advisories, email the maintainers at `andrey.vorobev.aqa@gmail.com` with the subject line `[SECURITY] container-ctl Vulnerability Report`.
 
 Please include in your report:
 - A description of the vulnerability and its potential impact.
 - Clear steps to reproduce the issue (proof-of-concept script, terminal commands, or Docker configuration).
-- The version of Dockpulse, Docker engine, and host operating system where the issue was observed.
+- The version of container-ctl, Docker engine, and host operating system where the issue was observed.
 
 ### What to Expect
 

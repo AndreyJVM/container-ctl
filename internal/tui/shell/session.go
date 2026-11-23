@@ -32,7 +32,7 @@ type ptyFactory func(width, height int) (ptyBackend, error)
 type terminalFactory func(width, height int) terminalBackend
 
 // Session owns one interactive process, its PTY, and the virtual terminal
-// used to render process output inside Dockpulse.
+// used to render process output inside container-ctl.
 type Session struct {
 	mu       sync.Mutex
 	pty      ptyBackend

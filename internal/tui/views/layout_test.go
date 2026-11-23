@@ -21,7 +21,7 @@ func TestRenderHeader(t *testing.T) {
 		})
 
 		testutil.AssertContainsAll(t, hdr,
-			"Dockpulse",
+			"container-ctl",
 			"v0.9.1",
 			"12:34:56",
 			"Containers: 5 active, 2 stopped",
@@ -40,8 +40,8 @@ func TestRenderHeader(t *testing.T) {
 			FormattedDockerStatus: "Stopped",
 		})
 
-		if !strings.Contains(hdr, "v0.4.0") {
-			t.Errorf("expected fallback version 'v0.4.0' when Version is empty, got: %s", hdr)
+		if !strings.Contains(hdr, "v0.22.0") {
+			t.Errorf("expected fallback version 'v0.22.0' when Version is empty, got: %s", hdr)
 		}
 	})
 
@@ -218,7 +218,7 @@ func TestRenderFooter_EmbeddedShell(t *testing.T) {
 			ShellFocused: true,
 			Width:        80,
 		})
-		testutil.AssertContainsAll(t, footer, "[Ctrl+X]", "Close terminal", "[Ctrl+]]", "Return to Dockpulse", "[Ctrl+D]", "Exit shell")
+		testutil.AssertContainsAll(t, footer, "[Ctrl+X]", "Close terminal", "[Ctrl+]]", "Return to container-ctl", "[Ctrl+D]", "Exit shell")
 	})
 
 	t.Run("unfocused embedded shell hints", func(t *testing.T) {

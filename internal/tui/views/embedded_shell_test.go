@@ -8,7 +8,7 @@ import (
 func TestRenderEmbeddedShell_FocusAndStatus(t *testing.T) {
 	t.Parallel()
 
-	t.Run("unfocused shell displays DOCKPULSE FOCUSED status badge", func(t *testing.T) {
+	t.Run("unfocused shell displays CONTAINER-CTL FOCUSED status badge", func(t *testing.T) {
 		t.Parallel()
 		view := RenderEmbeddedShell(EmbeddedShellContext{
 			ContainerName: "backend-api",
@@ -21,8 +21,8 @@ func TestRenderEmbeddedShell_FocusAndStatus(t *testing.T) {
 		if !strings.Contains(view, "TERMINAL: backend-api") {
 			t.Errorf("expected header with container name in view, got: %s", view)
 		}
-		if !strings.Contains(view, "[DOCKPULSE FOCUSED]") {
-			t.Errorf("expected unfocused badge '[DOCKPULSE FOCUSED]', got: %s", view)
+		if !strings.Contains(view, "[CONTAINER-CTL FOCUSED]") {
+			t.Errorf("expected unfocused badge '[CONTAINER-CTL FOCUSED]', got: %s", view)
 		}
 	})
 
@@ -42,8 +42,8 @@ func TestRenderEmbeddedShell_FocusAndStatus(t *testing.T) {
 		if !strings.Contains(view, "[FOCUSED]") {
 			t.Errorf("expected focused badge '[FOCUSED]', got: %s", view)
 		}
-		if strings.Contains(view, "DOCKPULSE FOCUSED") {
-			t.Errorf("expected no 'DOCKPULSE FOCUSED' when shell is focused, got: %s", view)
+		if strings.Contains(view, "CONTAINER-CTL FOCUSED") {
+			t.Errorf("expected no 'CONTAINER-CTL FOCUSED' when shell is focused, got: %s", view)
 		}
 	})
 }

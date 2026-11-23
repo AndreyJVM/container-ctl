@@ -29,17 +29,17 @@ func GetExecMenuItems() []ExecMenuItem {
 		{
 			Key:         "1",
 			Title:       "Embedded Bash / Sh",
-			Description: "Recommended: integrated terminal inside Dockpulse",
+			Description: "Recommended: integrated terminal inside container-ctl",
 		},
 		{
 			Key:         "2",
 			Title:       "POSIX Shell (/bin/sh)",
-			Description: "Interactive POSIX shell inside Dockpulse",
+			Description: "Interactive POSIX shell inside container-ctl",
 		},
 		{
 			Key:         "3",
 			Title:       "Zsh Shell (/bin/zsh)",
-			Description: "Interactive Z shell inside Dockpulse",
+			Description: "Interactive Z shell inside container-ctl",
 		},
 		{
 			Key:         "4",
@@ -59,7 +59,7 @@ func GetExecMenuItems() []ExecMenuItem {
 		{
 			Key:         "7",
 			Title:       "External Bash / Sh",
-			Description: "Suspends Dockpulse and runs in your host terminal",
+			Description: "Suspends container-ctl and runs in your host terminal",
 		},
 	}
 }

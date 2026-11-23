@@ -95,7 +95,7 @@ func RenderHelp(refreshInterval time.Duration, swarmVisible ...bool) string {
 				{key: "[C]", desc: "Prune unused Docker resources (interactive menu)"},
 				{key: "[R]", desc: "Force refresh all Docker metrics immediately"},
 				{key: "[?]", desc: "Toggle this help window"},
-				{key: "[Q] / [Ctrl+C]", desc: "Exit Dockpulse"},
+				{key: "[Q] / [Ctrl+C]", desc: "Exit container-ctl"},
 			},
 		},
 	}

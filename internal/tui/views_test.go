@@ -629,7 +629,7 @@ func TestViewModel_FooterVariations(t *testing.T) {
 				m.embeddedShell = &fakeEmbeddedShell{}
 				m.shellFocused = true
 			},
-			wantContains: []string{"[Ctrl+]]", "Return to Dockpulse", "[Ctrl+D]", "Exit shell"},
+			wantContains: []string{"[Ctrl+]]", "Return to container-ctl", "[Ctrl+D]", "Exit shell"},
 		},
 		{
 			name: "embedded shell unfocused footer",

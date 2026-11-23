@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest an idea or feature enhancement for Dockpulse
+about: Suggest an idea or feature enhancement for container-ctl
 title: 'feat: '
 labels: 'enhancement'
 assignees: ''

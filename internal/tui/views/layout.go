@@ -20,9 +20,9 @@ type HeaderContext struct {
 func RenderHeader(ctx HeaderContext) string {
 	verStr := ctx.Version
 	if verStr == "" {
-		verStr = "v0.4.0"
+		verStr = "v0.22.0"
 	}
-	appLine := theme.HeaderStyle.Render("Dockpulse") +
+	appLine := theme.HeaderStyle.Render("container-ctl") +
 		theme.DimStyle.Render(fmt.Sprintf("  %s  ", verStr)) +
 		theme.GreenStyle.Render("["+ctx.LastUpdate+"]")
 	engineLabel := "Docker:"
@@ -121,7 +121,7 @@ func RenderFooter(ctx FooterContext) string {
 	} else if ctx.ShellActive {
 		if ctx.ShellFocused {
 			content = theme.BoldStyle.Render("[Ctrl+X]") + " Close terminal  |  " +
-				theme.BoldStyle.Render("[Ctrl+]]") + " Return to Dockpulse  |  " +
+				theme.BoldStyle.Render("[Ctrl+]]") + " Return to container-ctl  |  " +
 				theme.BoldStyle.Render("[Ctrl+D]") + " Exit shell"
 		} else {
 			content = theme.BoldStyle.Render("[E]") + " Focus terminal  |  " +

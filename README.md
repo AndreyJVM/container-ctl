@@ -114,7 +114,7 @@ Options:
 
 ### Configuration File (`config.yaml`)
 
-Dockpulse automatically detects and loads a configuration file from standard locations:
+container-ctl automatically detects and loads a configuration file from standard locations:
 - `$XDG_CONFIG_HOME/container-ctl/config.yaml` or `~/.config/container-ctl/config.yaml`
 - `~/.container-ctl.yaml`
 - `./container-ctl.yaml` (local workspace override)
@@ -173,7 +173,7 @@ ui:
 
 #### Modular Constructor Setup
 
-Dockpulse can be tailored specifically to your server requirements. You can selectively enable or disable modules, change tab display order, or assign custom titles:
+container-ctl can be tailored specifically to your server requirements. You can selectively enable or disable modules, change tab display order, or assign custom titles:
 
 | Module ID | Description | Default State |
 |---|---|---|
@@ -220,7 +220,7 @@ modules:
 | `L` | View logs (regex search with `/`, syntax highlighting, scroll with `↑`/`↓`/`PgUp`/`PgDn`) |
 | `Enter` / `I` | Inspect container (details, mounts, network, ports, health, masked env vars) |
 | `E` | Open or focus the embedded container terminal (`/bin/bash` or `/bin/sh`) |
-| `Ctrl+]` | Return focus from the embedded terminal to Dockpulse |
+| `Ctrl+]` | Return focus from the embedded terminal to container-ctl |
 | `Ctrl+D` | Exit the current shell session while the terminal is focused |
 | `Ctrl+X` | Close an unfocused embedded terminal |
 | `s`, `S` | Start / Stop container or Compose stack; Scale service replicas (on Swarm tab) |
@@ -239,7 +239,7 @@ modules:
 - **Contributing**: Please review [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, architectural guidelines, and test instructions.
 - **Code of Conduct**: We follow the [Contributor Covenant](CODE_OF_CONDUCT.md) to ensure an open and welcoming community.
 - **Security Policy**: Read [SECURITY.md](SECURITY.md) for instructions on reporting vulnerabilities responsibly.
-- **License**: Dockpulse is released under the [MIT License](LICENSE).
+- **License**: container-ctl is released under the [MIT License](LICENSE).
 
 ---
 

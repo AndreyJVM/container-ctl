@@ -40,7 +40,7 @@ type Context struct {
 	IsSwarmActive bool
 }
 
-// Module represents a pluggable functional unit (tab / monitor) in Dockpulse.
+// Module represents a pluggable functional unit (tab / monitor) in container-ctl.
 type Module interface {
 	// ID returns the unique system identifier for this module.
 	ID() ID

@@ -1,6 +1,6 @@
-# Dockpulse Screenshots & Visual Guide
+# container-ctl Screenshots & Visual Guide
 
-A gallery of the Dockpulse terminal user interface across all dashboard tabs and management modals.
+A gallery of the container-ctl terminal user interface across all dashboard tabs and management modals.
 
 ---
 

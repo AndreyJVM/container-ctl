@@ -365,7 +365,7 @@ func TestInitConfigFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read created file: %v", err)
 	}
-	if !strings.Contains(string(data), "Dockpulse Configuration File") {
+	if !strings.Contains(string(data), "container-ctl Configuration File") {
 		t.Errorf("file does not contain expected header")
 	}
 

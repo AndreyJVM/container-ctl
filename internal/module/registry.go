@@ -33,7 +33,7 @@ func NewRegistry() *Registry {
 	}
 }
 
-// DefaultRegistry creates and populates a Registry with standard Dockpulse built-in modules.
+// DefaultRegistry creates and populates a Registry with standard container-ctl built-in modules.
 func DefaultRegistry() *Registry {
 	r := NewRegistry()
 	r.Register(ContainersModule)

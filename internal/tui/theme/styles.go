@@ -4,7 +4,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Lip Gloss styles for Dockpulse TUI.
+// Lip Gloss styles for container-ctl TUI.
 var (
 	HeaderStyle = lipgloss.NewStyle().
 			Bold(true).

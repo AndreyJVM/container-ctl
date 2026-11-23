@@ -352,7 +352,7 @@ func Validate(cfg *Config) error {
 
 // GenerateDefaultConfig returns a well-commented sample YAML configuration string.
 func GenerateDefaultConfig() string {
-	return `# Dockpulse Configuration File
+	return `# container-ctl Configuration File
 # Save this file to ~/.config/container-ctl/config.yaml or ./container-ctl.yaml
 
 # Metrics auto-refresh interval (for example: 1s, 2s, 500ms)

@@ -94,7 +94,7 @@ func TestEmbeddedShellLifecycleAndFocus(t *testing.T) {
 	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyCtrlCloseBracket})
 	m = updated.(Model)
 	if m.shellFocused {
-		t.Fatal("expected Ctrl+] to return focus to Dockpulse")
+		t.Fatal("expected Ctrl+] to return focus to container-ctl")
 	}
 	if len(fake.writes) != 1 {
 		t.Fatal("expected Ctrl+] not to be forwarded to the shell")
@@ -523,7 +523,7 @@ func TestViewRendersEmbeddedShellAndFocusHelp(t *testing.T) {
 			"TERMINAL: api",
 			"root@api:/app# pwd",
 			"Ctrl+]",
-			"Return to Dockpulse",
+			"Return to container-ctl",
 			"Ctrl+D",
 			"Exit shell",
 		} {
