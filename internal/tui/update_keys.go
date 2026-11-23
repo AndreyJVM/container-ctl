@@ -84,7 +84,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	// Search & filter on Docker, Images, Compose, Networks, and Volumes tabs.
 	case "/":
-		if m.activeTab == TabDocker || m.activeTab == TabImages || m.activeTab == TabCompose || m.activeTab == TabNetworks || m.activeTab == TabVolumes {
+		if m.isFilterableTab() {
 			m.isFiltering = true
 			return m, nil
 		}
@@ -230,7 +230,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	// Prune unused Docker resources.
 	case "c", "C":
-		if (m.activeTab == TabDocker || m.activeTab == TabImages || m.activeTab == TabCompose || m.activeTab == TabNetworks || m.activeTab == TabVolumes) && !m.isFiltering {
+		if m.isFilterableTab() && !m.isFiltering {
 			m.openModal(ModalPrune)
 			m.pruneConfirm = 0
 			usage, err := getDockerDiskUsage()
@@ -281,4 +281,13 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+func (m Model) isFilterableTab() bool {
+	switch m.activeTab {
+	case TabDocker, TabImages, TabCompose, TabNetworks, TabVolumes:
+		return true
+	default:
+		return false
+	}
 }

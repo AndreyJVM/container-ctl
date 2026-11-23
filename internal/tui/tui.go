@@ -270,12 +270,6 @@ func (m *Model) applyActionsData(d actions.DataFetchedMsg) {
 	m.lastUpdate = d.Timestamp
 
 	m.clampCursor()
-	if m.composeCursorIdx >= len(m.compose) {
-		m.composeCursorIdx = max(0, len(m.compose)-1)
-	}
-	if m.swarmCursorIdx >= len(m.swarm.Services) {
-		m.swarmCursorIdx = max(0, len(m.swarm.Services)-1)
-	}
 
 	if m.registry != nil {
 		currID, hasID := ModuleIDFromTabID(m.activeTab)

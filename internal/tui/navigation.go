@@ -4,60 +4,37 @@ import (
 	"github.com/AndreyJVM/container-ctl/internal/module"
 )
 
+// clamp keeps idx within [0, count-1]. If count <= 0 or idx < 0, it returns 0.
+func clamp(idx, count int) int {
+	if count <= 0 || idx < 0 {
+		return 0
+	}
+	if idx >= count {
+		return count - 1
+	}
+	return idx
+}
+
+// cycleIndex offsets idx by delta with cyclic wrapping within [0, count-1].
+func cycleIndex(idx, delta, count int) int {
+	if count <= 0 {
+		return 0
+	}
+	newIdx := (idx + delta) % count
+	if newIdx < 0 {
+		newIdx += count
+	}
+	return newIdx
+}
+
 // clampCursor ensures all tab cursor indices remain within bounds after updates or filtering.
 func (m *Model) clampCursor() {
-	containers := m.getFilteredContainers()
-	if len(containers) == 0 {
-		m.cursorIdx = 0
-	} else if m.cursorIdx >= len(containers) {
-		m.cursorIdx = len(containers) - 1
-	} else if m.cursorIdx < 0 {
-		m.cursorIdx = 0
-	}
-
-	images := m.getFilteredImages()
-	if len(images) == 0 {
-		m.imageCursorIdx = 0
-	} else if m.imageCursorIdx >= len(images) {
-		m.imageCursorIdx = len(images) - 1
-	} else if m.imageCursorIdx < 0 {
-		m.imageCursorIdx = 0
-	}
-
-	compose := m.getFilteredCompose()
-	if len(compose) == 0 {
-		m.composeCursorIdx = 0
-	} else if m.composeCursorIdx >= len(compose) {
-		m.composeCursorIdx = len(compose) - 1
-	} else if m.composeCursorIdx < 0 {
-		m.composeCursorIdx = 0
-	}
-
-	networks := m.getFilteredNetworks()
-	if len(networks) == 0 {
-		m.networkCursorIdx = 0
-	} else if m.networkCursorIdx >= len(networks) {
-		m.networkCursorIdx = len(networks) - 1
-	} else if m.networkCursorIdx < 0 {
-		m.networkCursorIdx = 0
-	}
-
-	volumes := m.getFilteredVolumes()
-	if len(volumes) == 0 {
-		m.volumeCursorIdx = 0
-	} else if m.volumeCursorIdx >= len(volumes) {
-		m.volumeCursorIdx = len(volumes) - 1
-	} else if m.volumeCursorIdx < 0 {
-		m.volumeCursorIdx = 0
-	}
-
-	if len(m.swarm.Services) == 0 {
-		m.swarmCursorIdx = 0
-	} else if m.swarmCursorIdx >= len(m.swarm.Services) {
-		m.swarmCursorIdx = len(m.swarm.Services) - 1
-	} else if m.swarmCursorIdx < 0 {
-		m.swarmCursorIdx = 0
-	}
+	m.cursorIdx = clamp(m.cursorIdx, len(m.getFilteredContainers()))
+	m.imageCursorIdx = clamp(m.imageCursorIdx, len(m.getFilteredImages()))
+	m.composeCursorIdx = clamp(m.composeCursorIdx, len(m.getFilteredCompose()))
+	m.networkCursorIdx = clamp(m.networkCursorIdx, len(m.getFilteredNetworks()))
+	m.volumeCursorIdx = clamp(m.volumeCursorIdx, len(m.getFilteredVolumes()))
+	m.swarmCursorIdx = clamp(m.swarmCursorIdx, len(m.swarm.Services))
 }
 
 // TabIDFromModuleID maps a module ID to its legacy TabID enum.
@@ -125,13 +102,21 @@ func (m *Model) maxTab() TabID {
 	return TabVolumes
 }
 
-// nextTab switches to the next tab cyclically based on visible tabs.
-func (m *Model) nextTab() {
+// cycleTab advances or retreats the active tab cyclically by delta (+1 for next, -1 for prev).
+func (m *Model) cycleTab(delta int) {
 	visible := m.visibleModules()
 	if len(visible) == 0 {
-		m.activeTab++
-		if m.activeTab > m.maxTab() {
-			m.activeTab = TabDocker
+		maxT := m.maxTab()
+		if delta > 0 {
+			m.activeTab++
+			if m.activeTab > maxT {
+				m.activeTab = TabDocker
+			}
+		} else {
+			m.activeTab--
+			if m.activeTab < TabDocker {
+				m.activeTab = maxT
+			}
 		}
 		return
 	}
@@ -150,41 +135,20 @@ func (m *Model) nextTab() {
 		return
 	}
 
-	nextIdx := (currIdx + 1) % len(visible)
+	nextIdx := cycleIndex(currIdx, delta, len(visible))
 	if tabID, ok := TabIDFromModuleID(visible[nextIdx].ID); ok {
 		m.activeTab = tabID
 	}
 }
 
+// nextTab switches to the next tab cyclically based on visible tabs.
+func (m *Model) nextTab() {
+	m.cycleTab(1)
+}
+
 // prevTab switches to the previous tab cyclically based on visible tabs.
 func (m *Model) prevTab() {
-	visible := m.visibleModules()
-	if len(visible) == 0 {
-		m.activeTab--
-		if m.activeTab < TabDocker {
-			m.activeTab = m.maxTab()
-		}
-		return
-	}
-
-	currIdx := -1
-	for i, v := range visible {
-		if tabID, ok := TabIDFromModuleID(v.ID); ok && tabID == m.activeTab {
-			currIdx = i
-			break
-		}
-	}
-	if currIdx == -1 {
-		if tabID, ok := TabIDFromModuleID(visible[0].ID); ok {
-			m.activeTab = tabID
-		}
-		return
-	}
-
-	prevIdx := (currIdx - 1 + len(visible)) % len(visible)
-	if tabID, ok := TabIDFromModuleID(visible[prevIdx].ID); ok {
-		m.activeTab = tabID
-	}
+	m.cycleTab(-1)
 }
 
 // setTabByIndex switches directly to the module at 1-based index if visible.
@@ -208,103 +172,81 @@ func (m *Model) setTab(tab TabID) {
 	}
 }
 
-// moveCursor adjusts cursor index for the active tab list by delta with cyclic wrapping.
-func (m *Model) moveCursor(delta int) {
+// activeListLength returns the item count of the currently active tab.
+func (m Model) activeListLength() int {
 	switch m.activeTab {
 	case TabDocker:
-		containers := m.getFilteredContainers()
-		if len(containers) > 0 {
-			m.cursorIdx = (m.cursorIdx + delta) % len(containers)
-			if m.cursorIdx < 0 {
-				m.cursorIdx += len(containers)
-			}
-		}
+		return len(m.getFilteredContainers())
 	case TabImages:
-		images := m.getFilteredImages()
-		if len(images) > 0 {
-			m.imageCursorIdx = (m.imageCursorIdx + delta) % len(images)
-			if m.imageCursorIdx < 0 {
-				m.imageCursorIdx += len(images)
-			}
-		}
+		return len(m.getFilteredImages())
 	case TabCompose:
-		compose := m.getFilteredCompose()
-		if len(compose) > 0 {
-			m.composeCursorIdx = (m.composeCursorIdx + delta) % len(compose)
-			if m.composeCursorIdx < 0 {
-				m.composeCursorIdx += len(compose)
-			}
-		}
+		return len(m.getFilteredCompose())
 	case TabNetworks:
-		networks := m.getFilteredNetworks()
-		if len(networks) > 0 {
-			m.networkCursorIdx = (m.networkCursorIdx + delta) % len(networks)
-			if m.networkCursorIdx < 0 {
-				m.networkCursorIdx += len(networks)
-			}
-		}
+		return len(m.getFilteredNetworks())
 	case TabVolumes:
-		volumes := m.getFilteredVolumes()
-		if len(volumes) > 0 {
-			m.volumeCursorIdx = (m.volumeCursorIdx + delta) % len(volumes)
-			if m.volumeCursorIdx < 0 {
-				m.volumeCursorIdx += len(volumes)
-			}
-		}
+		return len(m.getFilteredVolumes())
 	case TabSwarm:
-		if len(m.swarm.Services) > 0 {
-			m.swarmCursorIdx = (m.swarmCursorIdx + delta) % len(m.swarm.Services)
-			if m.swarmCursorIdx < 0 {
-				m.swarmCursorIdx += len(m.swarm.Services)
-			}
-		}
+		return len(m.swarm.Services)
+	default:
+		return 0
+	}
+}
+
+// activeCursor returns the cursor index of the currently active tab.
+func (m Model) activeCursor() int {
+	switch m.activeTab {
+	case TabDocker:
+		return m.cursorIdx
+	case TabImages:
+		return m.imageCursorIdx
+	case TabCompose:
+		return m.composeCursorIdx
+	case TabNetworks:
+		return m.networkCursorIdx
+	case TabVolumes:
+		return m.volumeCursorIdx
+	case TabSwarm:
+		return m.swarmCursorIdx
+	default:
+		return 0
+	}
+}
+
+// setActiveCursor sets the cursor index of the currently active tab.
+func (m *Model) setActiveCursor(idx int) {
+	switch m.activeTab {
+	case TabDocker:
+		m.cursorIdx = idx
+	case TabImages:
+		m.imageCursorIdx = idx
+	case TabCompose:
+		m.composeCursorIdx = idx
+	case TabNetworks:
+		m.networkCursorIdx = idx
+	case TabVolumes:
+		m.volumeCursorIdx = idx
+	case TabSwarm:
+		m.swarmCursorIdx = idx
+	}
+}
+
+// moveCursor adjusts cursor index for the active tab list by delta with cyclic wrapping.
+func (m *Model) moveCursor(delta int) {
+	count := m.activeListLength()
+	if count > 0 {
+		m.setActiveCursor(cycleIndex(m.activeCursor(), delta, count))
 	}
 }
 
 // cursorToStart sets the cursor index of the active tab to 0.
 func (m *Model) cursorToStart() {
-	switch m.activeTab {
-	case TabDocker:
-		m.cursorIdx = 0
-	case TabImages:
-		m.imageCursorIdx = 0
-	case TabCompose:
-		m.composeCursorIdx = 0
-	case TabNetworks:
-		m.networkCursorIdx = 0
-	case TabVolumes:
-		m.volumeCursorIdx = 0
-	case TabSwarm:
-		m.swarmCursorIdx = 0
-	}
+	m.setActiveCursor(0)
 }
 
 // cursorToEnd sets the cursor index of the active tab to the last item.
 func (m *Model) cursorToEnd() {
-	switch m.activeTab {
-	case TabDocker:
-		if n := len(m.getFilteredContainers()); n > 0 {
-			m.cursorIdx = n - 1
-		}
-	case TabImages:
-		if n := len(m.getFilteredImages()); n > 0 {
-			m.imageCursorIdx = n - 1
-		}
-	case TabCompose:
-		if n := len(m.getFilteredCompose()); n > 0 {
-			m.composeCursorIdx = n - 1
-		}
-	case TabNetworks:
-		if n := len(m.getFilteredNetworks()); n > 0 {
-			m.networkCursorIdx = n - 1
-		}
-	case TabVolumes:
-		if n := len(m.getFilteredVolumes()); n > 0 {
-			m.volumeCursorIdx = n - 1
-		}
-	case TabSwarm:
-		if n := len(m.swarm.Services); n > 0 {
-			m.swarmCursorIdx = n - 1
-		}
+	count := m.activeListLength()
+	if count > 0 {
+		m.setActiveCursor(count - 1)
 	}
 }
