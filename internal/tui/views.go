@@ -89,6 +89,18 @@ func (m Model) View() string {
 	b.WriteString(content)
 
 	// 4. Footer
+	selectedCount := 0
+	switch m.activeTab {
+	case TabDocker:
+		selectedCount = len(m.selectedContainers)
+	case TabImages:
+		selectedCount = len(m.selectedImages)
+	case TabNetworks:
+		selectedCount = len(m.selectedNetworks)
+	case TabVolumes:
+		selectedCount = len(m.selectedVolumes)
+	}
+
 	footer := views.RenderFooter(views.FooterContext{
 		ActiveTab:     int(m.activeTab),
 		ActiveModal:   string(m.activeModal),
@@ -99,7 +111,7 @@ func (m Model) View() string {
 		ShellActive:   m.embeddedShell != nil,
 		ShellFocused:  m.shellFocused,
 		SwarmVisible:  m.IsSwarmVisible(),
-		SelectedCount: len(m.selectedContainers),
+		SelectedCount: selectedCount,
 	})
 
 	contentOutput := b.String()
@@ -205,6 +217,7 @@ func (m Model) renderImagesTab() string {
 		Width:            m.width,
 		MaxRows:          m.calculateTableMaxRows(8),
 		HideDetails:      m.hideDetails,
+		SelectedIDs:      m.selectedImages,
 	})
 }
 
@@ -233,6 +246,7 @@ func (m Model) renderNetworksTab() string {
 		Width:              m.width,
 		MaxRows:            m.calculateTableMaxRows(8),
 		HideDetails:        m.hideDetails,
+		SelectedIDs:        m.selectedNetworks,
 	})
 }
 
@@ -247,6 +261,7 @@ func (m Model) renderVolumesTab() string {
 		Width:             m.width,
 		MaxRows:           m.calculateTableMaxRows(8),
 		HideDetails:       m.hideDetails,
+		SelectedNames:     m.selectedVolumes,
 	})
 }
 
@@ -290,14 +305,23 @@ func (m Model) renderRemoveContainerModal() string {
 }
 
 func (m Model) renderRemoveImageModal() string {
+	if len(m.removeImageBatch) > 0 {
+		return modals.RenderRemoveImageBatch(m.removeImageBatch, m.removeImageTargetInUse)
+	}
 	return modals.RenderRemoveImage(m.removeImageTargetName, m.removeImageTargetID, m.removeImageTargetInUse)
 }
 
 func (m Model) renderRemoveNetworkModal() string {
+	if len(m.removeNetworkBatch) > 0 {
+		return modals.RenderRemoveNetworkBatch(m.removeNetworkBatch, m.removeNetworkContainersCount)
+	}
 	return modals.RenderRemoveNetwork(m.removeNetworkTargetName, m.removeNetworkTargetID, m.removeNetworkContainersCount)
 }
 
 func (m Model) renderRemoveVolumeModal() string {
+	if len(m.removeVolumeBatch) > 0 {
+		return modals.RenderRemoveVolumeBatch(m.removeVolumeBatch, m.removeVolumeTargetInUse)
+	}
 	return modals.RenderRemoveVolume(m.removeVolumeTargetName, m.removeVolumeTargetInUse)
 }
 

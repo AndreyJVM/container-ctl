@@ -31,6 +31,7 @@ type ImagesContext struct {
 	Width            int
 	MaxRows          int
 	HideDetails      bool
+	SelectedIDs      map[string]struct{}
 }
 
 // RenderImages renders Docker images and details for the selected image.
@@ -69,6 +70,9 @@ func RenderImages(ctx ImagesContext) string {
 			theme.GreenStyle.Render("● "+fmt.Sprintf("In Use: %d (%s)", inUseCount, monitor.FormatBytes(inUseSize))),
 			theme.YellowStyle.Render("○ "+fmt.Sprintf("Reclaimable: %d (%s)", unusedCount, monitor.FormatBytes(unusedSize))),
 		)
+	}
+	if len(ctx.SelectedIDs) > 0 {
+		headerLine += "   " + theme.CyanStyle.Render(fmt.Sprintf("● %d selected", len(ctx.SelectedIDs)))
 	}
 	if ctx.MaxRows > 0 && len(ctx.Images) > ctx.MaxRows {
 		start, end := components.CalculateTableWindow(len(ctx.Images), ctx.CursorIdx, ctx.MaxRows)
@@ -150,10 +154,23 @@ func RenderImages(ctx ImagesContext) string {
 		sizePadded := components.PadRight(components.Truncate(sizeStr, colWidthImageSize), colWidthImageSize)
 		datePadded := components.PadRight(components.Truncate(img.Created, colWidthImageDate), colWidthImageDate)
 
+		isMarked := false
+		if ctx.SelectedIDs != nil {
+			_, isMarked = ctx.SelectedIDs[img.ID]
+		}
+		prefix := "  "
+		if isMarked && index == ctx.CursorIdx {
+			prefix = theme.CyanStyle.Render("►●")
+		} else if isMarked {
+			prefix = theme.CyanStyle.Render("● ")
+		} else if index == ctx.CursorIdx {
+			prefix = theme.GreenStyle.Render("► ")
+		}
+
 		if index == ctx.CursorIdx {
 			plainRow := fmt.Sprintf("%-12s  %-*s  %-*s  %-10s  %-16s  %s",
 				idPadded, repoWidth, repoPadded, tagWidth, tagPadded, sizePadded, datePadded, plainStatus)
-			s.WriteString(theme.GreenStyle.Render("► ") + theme.SelectedRowStyle.Render(plainRow) + "\n")
+			s.WriteString(prefix + theme.SelectedRowStyle.Render(plainRow) + "\n")
 		} else {
 			displaySize := sizePadded
 			if !img.InUse {
@@ -161,7 +178,7 @@ func RenderImages(ctx ImagesContext) string {
 			}
 			coloredRow := fmt.Sprintf("%-12s  %-*s  %-*s  %-10s  %-16s  %s",
 				idPadded, repoWidth, repoPadded, tagWidth, tagPadded, displaySize, datePadded, statusBadge)
-			s.WriteString("  " + coloredRow + "\n")
+			s.WriteString(prefix + coloredRow + "\n")
 		}
 	}
 

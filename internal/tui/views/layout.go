@@ -224,6 +224,13 @@ func RenderFooter(ctx FooterContext) string {
 		if ctx.IsFiltering {
 			content = theme.BoldStyle.Render("[Enter]") + " Apply Filter  |  " +
 				theme.BoldStyle.Render("[Esc]") + " Cancel"
+		} else if ctx.SelectedCount > 0 {
+			content = theme.BoldStyle.Render("[Space]") + " Toggle  |  " +
+				theme.BoldStyle.Render("[A]") + " Select All  |  " +
+				theme.BoldStyle.Render("[Esc]") + " Clear  |  " +
+				theme.BoldStyle.Render("[x]") + fmt.Sprintf(" Remove (%d)  |  ", ctx.SelectedCount) +
+				theme.BoldStyle.Render("[?]") + " Help  |  " +
+				theme.BoldStyle.Render("[Q]") + " Quit"
 		} else if ctx.FilterQuery != "" {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[Esc]") + " Reset Filter  |  " +
@@ -281,6 +288,13 @@ func RenderFooter(ctx FooterContext) string {
 		if ctx.IsFiltering {
 			content = theme.BoldStyle.Render("[Enter]") + " Apply Filter  |  " +
 				theme.BoldStyle.Render("[Esc]") + " Cancel"
+		} else if ctx.SelectedCount > 0 {
+			content = theme.BoldStyle.Render("[Space]") + " Toggle  |  " +
+				theme.BoldStyle.Render("[A]") + " Select All  |  " +
+				theme.BoldStyle.Render("[Esc]") + " Clear  |  " +
+				theme.BoldStyle.Render("[x]") + fmt.Sprintf(" Remove (%d)  |  ", ctx.SelectedCount) +
+				theme.BoldStyle.Render("[?]") + " Help  |  " +
+				theme.BoldStyle.Render("[Q]") + " Quit"
 		} else if ctx.FilterQuery != "" {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[Enter/I]") + " Inspect  |  " +

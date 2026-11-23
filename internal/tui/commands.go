@@ -87,6 +87,18 @@ func removeVolumeCmd(name string, force bool) tea.Cmd {
 	return wrapAction(actions.RemoveVolume(name, force))
 }
 
+func batchRemoveImagesCmd(items []monitor.DockerImage, force bool) tea.Cmd {
+	return wrapAction(actions.BatchRemoveImages(items, force))
+}
+
+func batchRemoveNetworksCmd(items []monitor.DockerNetwork) tea.Cmd {
+	return wrapAction(actions.BatchRemoveNetworks(items))
+}
+
+func batchRemoveVolumesCmd(items []monitor.DockerVolume, force bool) tea.Cmd {
+	return wrapAction(actions.BatchRemoveVolumes(items, force))
+}
+
 func startComposeCmd(name string, containers []monitor.ContainerItem) tea.Cmd {
 	return wrapAction(actions.StartCompose(name, containers))
 }

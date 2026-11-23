@@ -95,10 +95,31 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.clampCursor()
 			return m, nil
 		}
-		if len(m.selectedContainers) > 0 {
-			m.clearSelectedContainers()
-			m.showToast("Selection cleared")
-			return m, nil
+		switch m.activeTab {
+		case TabDocker:
+			if len(m.selectedContainers) > 0 {
+				m.clearSelectedContainers()
+				m.showToast("Selection cleared")
+				return m, nil
+			}
+		case TabImages:
+			if len(m.selectedImages) > 0 {
+				m.clearSelectedImages()
+				m.showToast("Selection cleared")
+				return m, nil
+			}
+		case TabNetworks:
+			if len(m.selectedNetworks) > 0 {
+				m.clearSelectedNetworks()
+				m.showToast("Selection cleared")
+				return m, nil
+			}
+		case TabVolumes:
+			if len(m.selectedVolumes) > 0 {
+				m.clearSelectedVolumes()
+				m.showToast("Selection cleared")
+				return m, nil
+			}
 		}
 		if m.activeTab == TabImages && m.onlyUnusedImages {
 			m.onlyUnusedImages = false
@@ -107,17 +128,41 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-	// Multi-select toggle and select-all on Docker tab.
+	// Multi-select toggle and select-all.
 	case " ":
-		if m.activeTab == TabDocker && !m.isFiltering {
-			m.toggleContainerSelection()
-			return m, nil
+		if !m.isFiltering {
+			switch m.activeTab {
+			case TabDocker:
+				m.toggleContainerSelection()
+				return m, nil
+			case TabImages:
+				m.toggleImageSelection()
+				return m, nil
+			case TabNetworks:
+				m.toggleNetworkSelection()
+				return m, nil
+			case TabVolumes:
+				m.toggleVolumeSelection()
+				return m, nil
+			}
 		}
 
 	case "a", "A", "ctrl+a":
-		if m.activeTab == TabDocker && !m.isFiltering {
-			m.toggleSelectAllContainers()
-			return m, nil
+		if !m.isFiltering {
+			switch m.activeTab {
+			case TabDocker:
+				m.toggleSelectAllContainers()
+				return m, nil
+			case TabImages:
+				m.toggleSelectAllImages()
+				return m, nil
+			case TabNetworks:
+				m.toggleSelectAllNetworks()
+				return m, nil
+			case TabVolumes:
+				m.toggleSelectAllVolumes()
+				return m, nil
+			}
 		}
 
 	// List navigation across all tabs.
@@ -206,12 +251,21 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				return m.handleDockerRemoveModal()
 			case TabImages:
+				if len(m.selectedImages) > 0 {
+					return m.handleImagesBatchRemoveModal()
+				}
 				return m.handleImagesRemoveModal()
 			case TabCompose:
 				return m.handleComposeDownModal()
 			case TabNetworks:
+				if len(m.selectedNetworks) > 0 {
+					return m.handleNetworksBatchRemoveModal()
+				}
 				return m.handleNetworksRemoveModal()
 			case TabVolumes:
+				if len(m.selectedVolumes) > 0 {
+					return m.handleVolumesBatchRemoveModal()
+				}
 				return m.handleVolumesRemoveModal()
 			}
 		}
@@ -241,10 +295,19 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				return m.handleDockerRemoveModal()
 			case TabImages:
+				if len(m.selectedImages) > 0 {
+					return m.handleImagesBatchRemoveModal()
+				}
 				return m.handleImagesRemoveModal()
 			case TabNetworks:
+				if len(m.selectedNetworks) > 0 {
+					return m.handleNetworksBatchRemoveModal()
+				}
 				return m.handleNetworksRemoveModal()
 			case TabVolumes:
+				if len(m.selectedVolumes) > 0 {
+					return m.handleVolumesBatchRemoveModal()
+				}
 				return m.handleVolumesRemoveModal()
 			}
 		}

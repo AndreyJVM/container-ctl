@@ -21,6 +21,7 @@ type VolumesContext struct {
 	Width             int
 	MaxRows           int
 	HideDetails       bool
+	SelectedNames     map[string]struct{}
 }
 
 // RenderVolumes renders Docker volumes and details for the selected volume.
@@ -33,13 +34,17 @@ func RenderVolumes(ctx VolumesContext) string {
 	}
 
 	headerText := fmt.Sprintf("DOCKER VOLUMES (%d)", count)
+	summaryLine := theme.TitleStyle.Render(headerText)
+	if len(ctx.SelectedNames) > 0 {
+		summaryLine += "   " + theme.CyanStyle.Render(fmt.Sprintf("● %d selected", len(ctx.SelectedNames)))
+	}
 	if ctx.MaxRows > 0 && len(ctx.Volumes) > ctx.MaxRows {
 		start, end := components.CalculateTableWindow(len(ctx.Volumes), ctx.CursorIdx, ctx.MaxRows)
 		if badge := components.FormatWindowBadge(start, end, len(ctx.Volumes)); badge != "" {
-			headerText += "   " + theme.CyanStyle.Render(badge)
+			summaryLine += "   " + theme.CyanStyle.Render(badge)
 		}
 	}
-	s.WriteString(theme.TitleStyle.Render(headerText) + "\n\n")
+	s.WriteString(summaryLine + "\n\n")
 
 	if ctx.Error != "" {
 		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("Docker volumes are unavailable: %s", ctx.Error)) + "\n")
@@ -100,10 +105,23 @@ func RenderVolumes(ctx VolumesContext) string {
 			refPadded,
 			size,
 		)
+		isMarked := false
+		if ctx.SelectedNames != nil {
+			_, isMarked = ctx.SelectedNames[volume.Name]
+		}
+		prefix := "  "
+		if isMarked && index == ctx.CursorIdx {
+			prefix = theme.CyanStyle.Render("►●")
+		} else if isMarked {
+			prefix = theme.CyanStyle.Render("● ")
+		} else if index == ctx.CursorIdx {
+			prefix = theme.GreenStyle.Render("► ")
+		}
+
 		if index == ctx.CursorIdx {
-			s.WriteString(theme.GreenStyle.Render("► ") + theme.SelectedRowStyle.Render(row) + "\n")
+			s.WriteString(prefix + theme.SelectedRowStyle.Render(row) + "\n")
 		} else {
-			s.WriteString("  " + row + "\n")
+			s.WriteString(prefix + row + "\n")
 		}
 	}
 

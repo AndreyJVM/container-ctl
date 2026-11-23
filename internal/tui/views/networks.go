@@ -21,6 +21,7 @@ type NetworksContext struct {
 	Width              int
 	MaxRows            int
 	HideDetails        bool
+	SelectedIDs        map[string]struct{}
 }
 
 // RenderNetworks renders Docker networks and details for the selected network.
@@ -33,13 +34,17 @@ func RenderNetworks(ctx NetworksContext) string {
 	}
 
 	headerText := fmt.Sprintf("DOCKER NETWORKS (%d)", count)
+	summaryLine := theme.TitleStyle.Render(headerText)
+	if len(ctx.SelectedIDs) > 0 {
+		summaryLine += "   " + theme.CyanStyle.Render(fmt.Sprintf("● %d selected", len(ctx.SelectedIDs)))
+	}
 	if ctx.MaxRows > 0 && len(ctx.Networks) > ctx.MaxRows {
 		start, end := components.CalculateTableWindow(len(ctx.Networks), ctx.CursorIdx, ctx.MaxRows)
 		if badge := components.FormatWindowBadge(start, end, len(ctx.Networks)); badge != "" {
-			headerText += "   " + theme.CyanStyle.Render(badge)
+			summaryLine += "   " + theme.CyanStyle.Render(badge)
 		}
 	}
-	s.WriteString(theme.TitleStyle.Render(headerText) + "\n\n")
+	s.WriteString(summaryLine + "\n\n")
 
 	if ctx.Error != "" {
 		s.WriteString("  " + theme.YellowStyle.Render(fmt.Sprintf("Docker networks are unavailable: %s", ctx.Error)) + "\n")
@@ -92,10 +97,23 @@ func RenderNetworks(ctx NetworksContext) string {
 			network.Containers,
 			subnetPadded,
 		)
+		isMarked := false
+		if ctx.SelectedIDs != nil {
+			_, isMarked = ctx.SelectedIDs[network.ID]
+		}
+		prefix := "  "
+		if isMarked && index == ctx.CursorIdx {
+			prefix = theme.CyanStyle.Render("►●")
+		} else if isMarked {
+			prefix = theme.CyanStyle.Render("● ")
+		} else if index == ctx.CursorIdx {
+			prefix = theme.GreenStyle.Render("► ")
+		}
+
 		if index == ctx.CursorIdx {
-			s.WriteString(theme.GreenStyle.Render("► ") + theme.SelectedRowStyle.Render(row) + "\n")
+			s.WriteString(prefix + theme.SelectedRowStyle.Render(row) + "\n")
 		} else {
-			s.WriteString("  " + row + "\n")
+			s.WriteString(prefix + row + "\n")
 		}
 	}
 

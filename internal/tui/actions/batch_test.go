@@ -15,12 +15,18 @@ func TestBatchActions(t *testing.T) {
 	origRestart := restartContainerFunc
 	origKill := killContainerFunc
 	origRemove := removeContainerFunc
+	origRemoveImg := removeImageFunc
+	origRemoveNet := removeNetworkFunc
+	origRemoveVol := removeVolumeFunc
 	defer func() {
 		startContainerFunc = origStart
 		stopContainerFunc = origStop
 		restartContainerFunc = origRestart
 		killContainerFunc = origKill
 		removeContainerFunc = origRemove
+		removeImageFunc = origRemoveImg
+		removeNetworkFunc = origRemoveNet
+		removeVolumeFunc = origRemoveVol
 	}()
 
 	c1 := monitor.ContainerItem{ID: "c1", Name: "app1", State: "stopped"}
@@ -139,6 +145,73 @@ func TestBatchActions(t *testing.T) {
 			t.Errorf("expected 2 removed, got %v", removedIDs)
 		}
 		if !strings.Contains(msg.Message, "Removed 2 container(s) successfully") {
+			t.Errorf("unexpected msg: %s", msg.Message)
+		}
+	})
+
+	t.Run("BatchRemoveImages removes images", func(t *testing.T) {
+		removedIDs := []string{}
+		removeImageFunc = func(id string, force bool) error {
+			removedIDs = append(removedIDs, id)
+			return nil
+		}
+
+		imgs := []monitor.DockerImage{
+			{ID: "img1", Repository: "alpine"},
+			{ID: "img2", Repository: "busybox"},
+		}
+		msg := BatchRemoveImages(imgs, false)().(FinishedMsg)
+		if msg.Err != nil {
+			t.Errorf("unexpected error: %v", msg.Err)
+		}
+		if len(removedIDs) != 2 {
+			t.Errorf("expected 2 removed, got %v", removedIDs)
+		}
+		if !strings.Contains(msg.Message, "Removed 2 image(s) successfully") {
+			t.Errorf("unexpected msg: %s", msg.Message)
+		}
+	})
+
+	t.Run("BatchRemoveNetworks removes networks", func(t *testing.T) {
+		removedIDs := []string{}
+		removeNetworkFunc = func(id string) error {
+			removedIDs = append(removedIDs, id)
+			return nil
+		}
+
+		nets := []monitor.DockerNetwork{
+			{ID: "net1", Name: "custom-net"},
+		}
+		msg := BatchRemoveNetworks(nets)().(FinishedMsg)
+		if msg.Err != nil {
+			t.Errorf("unexpected error: %v", msg.Err)
+		}
+		if len(removedIDs) != 1 || removedIDs[0] != "net1" {
+			t.Errorf("expected net1 removed, got %v", removedIDs)
+		}
+		if !strings.Contains(msg.Message, "Removed 1 network(s) successfully") {
+			t.Errorf("unexpected msg: %s", msg.Message)
+		}
+	})
+
+	t.Run("BatchRemoveVolumes removes volumes", func(t *testing.T) {
+		removedNames := []string{}
+		removeVolumeFunc = func(name string, force bool) error {
+			removedNames = append(removedNames, name)
+			return nil
+		}
+
+		vols := []monitor.DockerVolume{
+			{Name: "data-vol"},
+		}
+		msg := BatchRemoveVolumes(vols, false)().(FinishedMsg)
+		if msg.Err != nil {
+			t.Errorf("unexpected error: %v", msg.Err)
+		}
+		if len(removedNames) != 1 || removedNames[0] != "data-vol" {
+			t.Errorf("expected data-vol removed, got %v", removedNames)
+		}
+		if !strings.Contains(msg.Message, "Removed 1 volume(s) successfully") {
 			t.Errorf("unexpected msg: %s", msg.Message)
 		}
 	})

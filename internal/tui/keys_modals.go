@@ -117,9 +117,22 @@ func (m Model) handleRemoveImageModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 		m.removeImageTargetID = ""
 		m.removeImageTargetName = ""
 		m.removeImageTargetInUse = false
+		m.removeImageBatch = nil
 		return m, nil
 	}
 	if isModalConfirmKey(key) {
+		if len(m.removeImageBatch) > 0 {
+			batch := m.removeImageBatch
+			inUse := m.removeImageTargetInUse
+			m.closeModal()
+			m.removeImageTargetID = ""
+			m.removeImageTargetName = ""
+			m.removeImageTargetInUse = false
+			m.removeImageBatch = nil
+			m.clearSelectedImages()
+			m.showToast(fmt.Sprintf("Removing %d selected image(s)...", len(batch)))
+			return m, batchRemoveImagesCmd(batch, inUse)
+		}
 		targetID := m.removeImageTargetID
 		targetName := m.removeImageTargetName
 		inUse := m.removeImageTargetInUse
@@ -140,9 +153,21 @@ func (m Model) handleRemoveNetworkModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd
 		m.removeNetworkTargetID = ""
 		m.removeNetworkTargetName = ""
 		m.removeNetworkContainersCount = 0
+		m.removeNetworkBatch = nil
 		return m, nil
 	}
 	if isModalConfirmKey(key) {
+		if len(m.removeNetworkBatch) > 0 {
+			batch := m.removeNetworkBatch
+			m.closeModal()
+			m.removeNetworkTargetID = ""
+			m.removeNetworkTargetName = ""
+			m.removeNetworkContainersCount = 0
+			m.removeNetworkBatch = nil
+			m.clearSelectedNetworks()
+			m.showToast(fmt.Sprintf("Removing %d selected network(s)...", len(batch)))
+			return m, batchRemoveNetworksCmd(batch)
+		}
 		targetID := m.removeNetworkTargetID
 		targetName := m.removeNetworkTargetName
 		m.closeModal()
@@ -161,9 +186,21 @@ func (m Model) handleRemoveVolumeModalInput(msg tea.KeyMsg) (tea.Model, tea.Cmd)
 		m.closeModal()
 		m.removeVolumeTargetName = ""
 		m.removeVolumeTargetInUse = false
+		m.removeVolumeBatch = nil
 		return m, nil
 	}
 	if isModalConfirmKey(key) {
+		if len(m.removeVolumeBatch) > 0 {
+			batch := m.removeVolumeBatch
+			inUse := m.removeVolumeTargetInUse
+			m.closeModal()
+			m.removeVolumeTargetName = ""
+			m.removeVolumeTargetInUse = false
+			m.removeVolumeBatch = nil
+			m.clearSelectedVolumes()
+			m.showToast(fmt.Sprintf("Removing %d selected volume(s)...", len(batch)))
+			return m, batchRemoveVolumesCmd(batch, inUse)
+		}
 		targetName := m.removeVolumeTargetName
 		inUse := m.removeVolumeTargetInUse
 		m.closeModal()

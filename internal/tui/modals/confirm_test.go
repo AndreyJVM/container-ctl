@@ -87,3 +87,57 @@ func TestRenderRemoveContainerBatch(t *testing.T) {
 		t.Errorf("expected permanent deletion warning, got: %s", view)
 	}
 }
+
+func TestRenderRemoveImageBatch(t *testing.T) {
+	items := []monitor.DockerImage{
+		{ID: "img1", Repository: "redis", Tag: "alpine", InUse: false},
+		{ID: "img2", Repository: "postgres", Tag: "16", InUse: true},
+	}
+
+	view := RenderRemoveImageBatch(items, true)
+	if !strings.Contains(view, "CONFIRM REMOVAL OF 2 IMAGES") {
+		t.Errorf("expected title with count 2, got: %s", view)
+	}
+	if !strings.Contains(view, "redis:alpine") || !strings.Contains(view, "postgres:16") {
+		t.Errorf("expected image names in batch modal, got: %s", view)
+	}
+	if !strings.Contains(view, "Force removal (-f) will be applied") {
+		t.Errorf("expected force removal warning, got: %s", view)
+	}
+}
+
+func TestRenderRemoveNetworkBatch(t *testing.T) {
+	items := []monitor.DockerNetwork{
+		{ID: "net1", Name: "frontend", Containers: 0},
+		{ID: "net2", Name: "backend", Containers: 2},
+	}
+
+	view := RenderRemoveNetworkBatch(items, 2)
+	if !strings.Contains(view, "CONFIRM REMOVAL OF 2 NETWORKS") {
+		t.Errorf("expected title with count 2, got: %s", view)
+	}
+	if !strings.Contains(view, "frontend") || !strings.Contains(view, "backend") {
+		t.Errorf("expected network names in batch modal, got: %s", view)
+	}
+	if !strings.Contains(view, "currently in use by 2 container(s)") {
+		t.Errorf("expected container count warning, got: %s", view)
+	}
+}
+
+func TestRenderRemoveVolumeBatch(t *testing.T) {
+	items := []monitor.DockerVolume{
+		{Name: "data-1", RefCount: 0},
+		{Name: "data-2", RefCount: 1},
+	}
+
+	view := RenderRemoveVolumeBatch(items, true)
+	if !strings.Contains(view, "CONFIRM REMOVAL OF 2 VOLUMES") {
+		t.Errorf("expected title with count 2, got: %s", view)
+	}
+	if !strings.Contains(view, "data-1") || !strings.Contains(view, "data-2") {
+		t.Errorf("expected volume names in batch modal, got: %s", view)
+	}
+	if !strings.Contains(view, "Force removal (-f) will be applied") {
+		t.Errorf("expected force removal warning, got: %s", view)
+	}
+}

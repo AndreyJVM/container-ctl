@@ -107,3 +107,90 @@ func RenderRemoveVolume(volumeName string, inUse bool) string {
 	s.WriteString(fmt.Sprintf("  %s %s (Remove Volume)    %s %s\n", theme.RedStyle.Render("[Y]"), "Confirm", theme.DimStyle.Render("[N / Esc]"), "Cancel"))
 	return theme.BoxStyle.Render(s.String())
 }
+
+// RenderRemoveImageBatch renders confirmation modal for removing multiple Docker images.
+func RenderRemoveImageBatch(items []monitor.DockerImage, anyInUse bool) string {
+	var s strings.Builder
+	title := fmt.Sprintf("CONFIRM REMOVAL OF %d IMAGES", len(items))
+	s.WriteString(theme.TitleStyle.Render(title) + "\n\n")
+
+	var names []string
+	const maxNames = 5
+	for i, img := range items {
+		if i >= maxNames {
+			names = append(names, fmt.Sprintf("... (+%d more)", len(items)-maxNames))
+			break
+		}
+		repo := img.Repository
+		if repo == "" || repo == "<none>" {
+			repo = img.ID
+		} else if img.Tag != "" && img.Tag != "<none>" {
+			repo = fmt.Sprintf("%s:%s", repo, img.Tag)
+		}
+		names = append(names, repo)
+	}
+
+	s.WriteString(fmt.Sprintf("  Selected: %s\n\n", theme.BoldStyle.Render(strings.Join(names, ", "))))
+	if anyInUse {
+		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.RedStyle.Render("Warning:"), "Some images are currently referenced by containers. Force removal (-f) will be applied."))
+	} else {
+		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.YellowStyle.Render("Warning:"), "All selected Docker images will be permanently deleted (docker rmi)."))
+	}
+	s.WriteString(fmt.Sprintf("  Are you sure you want to remove %d image(s)?\n\n", len(items)))
+	s.WriteString(fmt.Sprintf("  %s %s (Remove All)    %s %s\n", theme.RedStyle.Render("[Y]"), "Confirm", theme.DimStyle.Render("[N / Esc]"), "Cancel"))
+	return theme.BoxStyle.Render(s.String())
+}
+
+// RenderRemoveNetworkBatch renders confirmation modal for removing multiple Docker networks.
+func RenderRemoveNetworkBatch(items []monitor.DockerNetwork, totalContainers int) string {
+	var s strings.Builder
+	title := fmt.Sprintf("CONFIRM REMOVAL OF %d NETWORKS", len(items))
+	s.WriteString(theme.TitleStyle.Render(title) + "\n\n")
+
+	var names []string
+	const maxNames = 5
+	for i, net := range items {
+		if i >= maxNames {
+			names = append(names, fmt.Sprintf("... (+%d more)", len(items)-maxNames))
+			break
+		}
+		names = append(names, net.Name)
+	}
+
+	s.WriteString(fmt.Sprintf("  Selected: %s\n\n", theme.BoldStyle.Render(strings.Join(names, ", "))))
+	if totalContainers > 0 {
+		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.RedStyle.Render("Warning:"), fmt.Sprintf("Selected networks are currently in use by %d container(s). Removal may fail until disconnected.", totalContainers)))
+	} else {
+		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.YellowStyle.Render("Warning:"), "All selected Docker networks will be permanently deleted (docker network rm)."))
+	}
+	s.WriteString(fmt.Sprintf("  Are you sure you want to remove %d network(s)?\n\n", len(items)))
+	s.WriteString(fmt.Sprintf("  %s %s (Remove All)    %s %s\n", theme.RedStyle.Render("[Y]"), "Confirm", theme.DimStyle.Render("[N / Esc]"), "Cancel"))
+	return theme.BoxStyle.Render(s.String())
+}
+
+// RenderRemoveVolumeBatch renders confirmation modal for removing multiple Docker volumes.
+func RenderRemoveVolumeBatch(items []monitor.DockerVolume, anyInUse bool) string {
+	var s strings.Builder
+	title := fmt.Sprintf("CONFIRM REMOVAL OF %d VOLUMES", len(items))
+	s.WriteString(theme.TitleStyle.Render(title) + "\n\n")
+
+	var names []string
+	const maxNames = 5
+	for i, vol := range items {
+		if i >= maxNames {
+			names = append(names, fmt.Sprintf("... (+%d more)", len(items)-maxNames))
+			break
+		}
+		names = append(names, vol.Name)
+	}
+
+	s.WriteString(fmt.Sprintf("  Selected: %s\n\n", theme.BoldStyle.Render(strings.Join(names, ", "))))
+	if anyInUse {
+		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.RedStyle.Render("Warning:"), "Some volumes are referenced by container(s). Force removal (-f) will be applied."))
+	} else {
+		s.WriteString(fmt.Sprintf("  %s %s\n\n", theme.YellowStyle.Render("Warning:"), "All selected volumes and stored persistent data will be permanently deleted (docker volume rm)."))
+	}
+	s.WriteString(fmt.Sprintf("  Are you sure you want to remove %d volume(s)?\n\n", len(items)))
+	s.WriteString(fmt.Sprintf("  %s %s (Remove All)    %s %s\n", theme.RedStyle.Render("[Y]"), "Confirm", theme.DimStyle.Render("[N / Esc]"), "Cancel"))
+	return theme.BoxStyle.Render(s.String())
+}

@@ -121,6 +121,9 @@ type NavState struct {
 	hideDetails        bool
 	onlyUnusedImages   bool
 	selectedContainers map[string]struct{}
+	selectedImages     map[string]struct{}
+	selectedNetworks   map[string]struct{}
+	selectedVolumes    map[string]struct{}
 }
 
 // ShellState holds the embedded PTY shell terminal session.
@@ -168,15 +171,18 @@ type ModalState struct {
 	removeImageTargetID    string
 	removeImageTargetName  string
 	removeImageTargetInUse bool
+	removeImageBatch       []monitor.DockerImage
 
 	// Remove network modal
 	removeNetworkTargetID        string
 	removeNetworkTargetName      string
 	removeNetworkContainersCount int
+	removeNetworkBatch           []monitor.DockerNetwork
 
 	// Remove volume modal
 	removeVolumeTargetName  string
 	removeVolumeTargetInUse bool
+	removeVolumeBatch       []monitor.DockerVolume
 
 	// Prune modal
 	pruneUsage    monitor.DockerDiskUsage
@@ -255,6 +261,9 @@ func NewModel(refreshInterval time.Duration, initialTab int, version string, sho
 	m.refreshInterval = refreshInterval
 	m.showSwarm = forceSwarm
 	m.selectedContainers = make(map[string]struct{})
+	m.selectedImages = make(map[string]struct{})
+	m.selectedNetworks = make(map[string]struct{})
+	m.selectedVolumes = make(map[string]struct{})
 	m.registry = module.DefaultRegistry()
 	m.fetchAllData()
 	return m

@@ -14,6 +14,9 @@ var (
 	restartContainerFunc = monitor.RestartContainer
 	killContainerFunc    = monitor.KillContainer
 	removeContainerFunc  = monitor.RemoveContainer
+	removeImageFunc      = monitor.RemoveDockerImage
+	removeNetworkFunc    = monitor.RemoveDockerNetwork
+	removeVolumeFunc     = monitor.RemoveDockerVolume
 )
 
 // BatchStartContainers starts all specified containers that are not currently running.
@@ -162,6 +165,97 @@ func BatchRemoveContainers(items []monitor.ContainerItem) tea.Cmd {
 		}
 		return FinishedMsg{
 			Message: fmt.Sprintf("Removed %d container(s) successfully", removed),
+			Refresh: true,
+		}
+	}
+}
+
+// BatchRemoveImages removes all specified Docker images.
+func BatchRemoveImages(items []monitor.DockerImage, force bool) tea.Cmd {
+	return func() tea.Msg {
+		if len(items) == 0 {
+			return FinishedMsg{Message: "No images selected"}
+		}
+		var errs []string
+		removed := 0
+		for _, img := range items {
+			name := img.Repository
+			if name == "" || name == "<none>" {
+				name = img.ID
+			}
+			if err := removeImageFunc(img.ID, force); err != nil {
+				errs = append(errs, fmt.Sprintf("%s: %v", name, err))
+			} else {
+				removed++
+			}
+		}
+		if len(errs) > 0 {
+			return FinishedMsg{
+				Message: fmt.Sprintf("Removed %d image(s), %d failed", removed, len(errs)),
+				Err:     fmt.Errorf("remove errors: %s", strings.Join(errs, "; ")),
+				Refresh: true,
+			}
+		}
+		return FinishedMsg{
+			Message: fmt.Sprintf("Removed %d image(s) successfully", removed),
+			Refresh: true,
+		}
+	}
+}
+
+// BatchRemoveNetworks removes all specified Docker networks.
+func BatchRemoveNetworks(items []monitor.DockerNetwork) tea.Cmd {
+	return func() tea.Msg {
+		if len(items) == 0 {
+			return FinishedMsg{Message: "No networks selected"}
+		}
+		var errs []string
+		removed := 0
+		for _, net := range items {
+			if err := removeNetworkFunc(net.ID); err != nil {
+				errs = append(errs, fmt.Sprintf("%s: %v", net.Name, err))
+			} else {
+				removed++
+			}
+		}
+		if len(errs) > 0 {
+			return FinishedMsg{
+				Message: fmt.Sprintf("Removed %d network(s), %d failed", removed, len(errs)),
+				Err:     fmt.Errorf("remove errors: %s", strings.Join(errs, "; ")),
+				Refresh: true,
+			}
+		}
+		return FinishedMsg{
+			Message: fmt.Sprintf("Removed %d network(s) successfully", removed),
+			Refresh: true,
+		}
+	}
+}
+
+// BatchRemoveVolumes removes all specified Docker volumes.
+func BatchRemoveVolumes(items []monitor.DockerVolume, force bool) tea.Cmd {
+	return func() tea.Msg {
+		if len(items) == 0 {
+			return FinishedMsg{Message: "No volumes selected"}
+		}
+		var errs []string
+		removed := 0
+		for _, vol := range items {
+			if err := removeVolumeFunc(vol.Name, force); err != nil {
+				errs = append(errs, fmt.Sprintf("%s: %v", vol.Name, err))
+			} else {
+				removed++
+			}
+		}
+		if len(errs) > 0 {
+			return FinishedMsg{
+				Message: fmt.Sprintf("Removed %d volume(s), %d failed", removed, len(errs)),
+				Err:     fmt.Errorf("remove errors: %s", strings.Join(errs, "; ")),
+				Refresh: true,
+			}
+		}
+		return FinishedMsg{
+			Message: fmt.Sprintf("Removed %d volume(s) successfully", removed),
 			Refresh: true,
 		}
 	}
