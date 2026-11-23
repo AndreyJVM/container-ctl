@@ -249,6 +249,8 @@ func TestCleanTablePorts(t *testing.T) {
 		{"0.0.0.0:8080->8080/tcp, :::8080->8080/tcp", "8080->8080/tcp"},
 		{"0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp", "80->80/tcp, 443->443/tcp"},
 		{"127.0.0.1:5432->5432/tcp", "127.0.0.1:5432->5432/tcp"},
+		{"0.0.0.0:80->80/tcp, , 0.0.0.0:443->443/tcp", "80->80/tcp, 443->443/tcp"},
+		{"0.0.0.0:8080->8080/tcp, 0.0.0.0:8080->8080/tcp", "8080->8080/tcp"},
 	}
 
 	for _, c := range cases {
@@ -360,5 +362,41 @@ func TestRenderDockerView_HideDetails(t *testing.T) {
 	}
 	if !strings.Contains(viewWithoutDetails, "api-server") {
 		t.Errorf("expected container row to still be rendered when HideDetails is true")
+	}
+}
+
+func TestVisualPadding(t *testing.T) {
+	// padRightVisual
+	if got := padRightVisual("hello", 0); got != "" {
+		t.Errorf("expected empty string for width 0, got %q", got)
+	}
+	if got := padRightVisual("hello", -5); got != "" {
+		t.Errorf("expected empty string for negative width, got %q", got)
+	}
+	if got := padRightVisual("hello", 5); got != "hello" {
+		t.Errorf("expected unchanged string when width == len, got %q", got)
+	}
+	if got := padRightVisual("hello", 3); got != "hello" {
+		t.Errorf("expected unchanged string when width < len, got %q", got)
+	}
+	if got := padRightVisual("hi", 5); got != "hi   " {
+		t.Errorf("expected padded string, got %q", got)
+	}
+
+	// padLeftVisual
+	if got := padLeftVisual("hello", 0); got != "" {
+		t.Errorf("expected empty string for width 0, got %q", got)
+	}
+	if got := padLeftVisual("hello", -5); got != "" {
+		t.Errorf("expected empty string for negative width, got %q", got)
+	}
+	if got := padLeftVisual("hello", 5); got != "hello" {
+		t.Errorf("expected unchanged string when width == len, got %q", got)
+	}
+	if got := padLeftVisual("hello", 3); got != "hello" {
+		t.Errorf("expected unchanged string when width < len, got %q", got)
+	}
+	if got := padLeftVisual("hi", 5); got != "   hi" {
+		t.Errorf("expected padded string, got %q", got)
 	}
 }

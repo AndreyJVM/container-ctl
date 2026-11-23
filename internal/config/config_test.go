@@ -72,14 +72,25 @@ func TestParseTab(t *testing.T) {
 }
 
 func TestTabName(t *testing.T) {
-	if got := TabName(1); got != "docker" {
-		t.Errorf("TabName(1) = %q, want 'docker'", got)
+	tests := []struct {
+		tab  int
+		want string
+	}{
+		{1, "docker"},
+		{2, "images"},
+		{3, "compose"},
+		{4, "networks"},
+		{5, "volumes"},
+		{6, "swarm"},
+		{0, "unknown"},
+		{99, "unknown"},
+		{-1, "unknown"},
 	}
-	if got := TabName(6); got != "swarm" {
-		t.Errorf("TabName(6) = %q, want 'swarm'", got)
-	}
-	if got := TabName(99); got != "unknown" {
-		t.Errorf("TabName(99) = %q, want 'unknown'", got)
+
+	for _, tt := range tests {
+		if got := TabName(tt.tab); got != tt.want {
+			t.Errorf("TabName(%d) = %q, want %q", tt.tab, got, tt.want)
+		}
 	}
 }
 
@@ -368,6 +379,20 @@ func TestInitConfigFile(t *testing.T) {
 	_, err = InitConfigFile(target, true)
 	if err != nil {
 		t.Fatalf("InitConfigFile with overwrite failed: %v", err)
+	}
+
+	// 4. Creation with empty destPath (resolves via UserHomeDir)
+	origHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", origHome)
+	os.Setenv("HOME", tempDir)
+
+	defaultPath, err := InitConfigFile("", true)
+	if err != nil {
+		t.Fatalf("InitConfigFile with default path failed: %v", err)
+	}
+	expectedDefault := filepath.Join(tempDir, ".config", "container-ctl", ConfigFileName)
+	if defaultPath != expectedDefault {
+		t.Errorf("expected default path %s, got %s", expectedDefault, defaultPath)
 	}
 }
 

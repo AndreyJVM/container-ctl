@@ -319,6 +319,10 @@ func TestValidateConfig(t *testing.T) {
 			}
 		})
 	}
+
+	if err := validateConfig(nil); err == nil {
+		t.Error("expected error for validateConfig(nil), got nil")
+	}
 }
 
 func TestRun_Help(t *testing.T) {

@@ -440,13 +440,26 @@ func TestDynamicModuleNavigation_ReorderingAndDisabling(t *testing.T) {
 	t.Parallel()
 
 	// 1. Test TabIDFromModuleID and ModuleIDFromTabID mapping
-	tabID, ok := TabIDFromModuleID(module.IDContainers)
-	if !ok || tabID != TabDocker {
-		t.Fatalf("expected TabDocker for IDContainers, got %v", tabID)
+	tabMappings := []struct {
+		tab TabID
+		mod module.ID
+	}{
+		{TabDocker, module.IDContainers},
+		{TabImages, module.IDImages},
+		{TabCompose, module.IDCompose},
+		{TabNetworks, module.IDNetworks},
+		{TabVolumes, module.IDVolumes},
+		{TabSwarm, module.IDSwarm},
 	}
-	modID, ok := ModuleIDFromTabID(TabSwarm)
-	if !ok || modID != module.IDSwarm {
-		t.Fatalf("expected IDSwarm for TabSwarm, got %v", modID)
+	for _, m := range tabMappings {
+		modID, ok := ModuleIDFromTabID(m.tab)
+		if !ok || modID != m.mod {
+			t.Errorf("ModuleIDFromTabID(%v) = (%v, %v), want (%v, true)", m.tab, modID, ok, m.mod)
+		}
+		tabID, ok := TabIDFromModuleID(m.mod)
+		if !ok || tabID != m.tab {
+			t.Errorf("TabIDFromModuleID(%v) = (%v, %v), want (%v, true)", m.mod, tabID, ok, m.tab)
+		}
 	}
 	if _, ok := TabIDFromModuleID(module.ID("unknown")); ok {
 		t.Errorf("expected false for unknown module ID")
@@ -528,5 +541,43 @@ func TestDynamicModuleNavigation_ReorderingAndDisabling(t *testing.T) {
 	m = res.(Model)
 	if m.activeTab != TabDocker {
 		t.Errorf("expected pressing '2' to switch to second visible module (Containers), got %v", m.activeTab)
+	}
+}
+
+func TestNavigation_EmptyVisibleAndActiveNotInVisible(t *testing.T) {
+	t.Parallel()
+
+	// 1. Empty visible modules (all modules disabled or empty registry)
+	m := newFastTestModel()
+	emptyReg := module.NewRegistry()
+	m.SetRegistry(emptyReg)
+
+	m.activeTab = TabVolumes
+	m.nextTab()
+	if m.activeTab != TabDocker {
+		t.Errorf("expected nextTab with empty visible modules to wrap around to TabDocker, got %v", m.activeTab)
+	}
+
+	m.activeTab = TabDocker
+	m.prevTab()
+	if m.activeTab != TabVolumes {
+		t.Errorf("expected prevTab with empty visible modules to wrap around to TabVolumes, got %v", m.activeTab)
+	}
+
+	// 2. Active tab not in visible list (currIdx == -1 fallback)
+	regWithOnlyImages := module.NewRegistry()
+	regWithOnlyImages.Register(module.ImagesModule)
+	m.SetRegistry(regWithOnlyImages)
+
+	m.activeTab = TabDocker // not visible in registry
+	m.nextTab()
+	if m.activeTab != TabImages {
+		t.Errorf("expected nextTab when current tab not visible to jump to first visible (TabImages), got %v", m.activeTab)
+	}
+
+	m.activeTab = TabDocker // not visible in registry
+	m.prevTab()
+	if m.activeTab != TabImages {
+		t.Errorf("expected prevTab when current tab not visible to jump to last visible (TabImages), got %v", m.activeTab)
 	}
 }

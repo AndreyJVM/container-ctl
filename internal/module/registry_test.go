@@ -159,4 +159,23 @@ func TestRegistry_ApplyConfigs(t *testing.T) {
 	if cfg.Enabled == nil || !*cfg.Enabled {
 		t.Errorf("expected GetModuleConfig to reflect enabled swarm")
 	}
+
+	// Nil / empty map should do nothing
+	r.ApplyConfigs(nil)
+	r.ApplyConfigs(map[string]Config{})
+
+	// Unknown / custom module ID string
+	r.ApplyConfigs(map[string]Config{
+		"custom_ext": {Order: 99},
+	})
+	if customCfg := r.GetModuleConfig(ID("custom_ext")); customCfg.Order != 99 {
+		t.Errorf("expected custom_ext config order 99, got %d", customCfg.Order)
+	}
+
+	// Register nil should safely do nothing
+	countBefore := r.TotalCount()
+	r.Register(nil)
+	if r.TotalCount() != countBefore {
+		t.Errorf("expected TotalCount unchanged after Register(nil)")
+	}
 }

@@ -52,6 +52,11 @@ func TestParseExitCode(t *testing.T) {
 		{"", false, 0},
 		{"Exited ()", false, 0},
 		{"Exited (abc)", false, 0},
+		{"exitcode: 143", true, 143},
+		{"exitcode:", false, 0},
+		{"exitcode: notanumber", false, 0},
+		{"Exited (notanumber)", false, 0},
+		{"exited (exitcode: 99)", true, 99},
 	}
 
 	for _, tt := range tests {

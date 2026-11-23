@@ -211,9 +211,13 @@ func TestParseSizeToBytes(t *testing.T) {
 		{"invalid", -1},
 		{"100B", 100},
 		{"1KB", 1024},
+		{"2KiB", 2048},
 		{"10MB", 10 * 1024 * 1024},
+		{"5MiB", 5 * 1024 * 1024},
 		{"2.5GB", int64(2.5 * 1024 * 1024 * 1024)},
+		{"2GiB", 2 * 1024 * 1024 * 1024},
 		{"1TB", 1024 * 1024 * 1024 * 1024},
+		{"2TiB", 2 * 1024 * 1024 * 1024 * 1024},
 	}
 
 	for _, tt := range tests {
@@ -291,5 +295,83 @@ func TestParseRepoTags(t *testing.T) {
 					tt.tags, gotRepo, gotTag, gotDangling, tt.wantRepo, tt.wantTag, tt.wantDangling)
 			}
 		})
+	}
+}
+
+func TestSortDockerImages(t *testing.T) {
+	images := []DockerImage{
+		{ID: "img-dangling", Repository: "<none>", Tag: "<none>", Dangling: true},
+		{ID: "img-zeta", Repository: "zeta-service", Tag: "1.0", Dangling: false},
+		{ID: "img-alpha-latest", Repository: "alpha-service", Tag: "latest", Dangling: false},
+		{ID: "img-alpha-dev", Repository: "alpha-service", Tag: "dev", Dangling: false},
+	}
+
+	sortDockerImages(images)
+
+	// Expect non-dangling first, alphabetized by repository, then by tag
+	expectedIDs := []string{
+		"img-alpha-dev",
+		"img-alpha-latest",
+		"img-zeta",
+		"img-dangling",
+	}
+
+	for i, expected := range expectedIDs {
+		if images[i].ID != expected {
+			t.Errorf("sortDockerImages pos %d: expected %s, got %s", i, expected, images[i].ID)
+		}
+	}
+}
+
+func TestCleanImageID(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"sha256:c557bd415052858081f023e8d17500073317df437ae79ea4d2c4077cd9a1a6ae", "c557bd415052"},
+		{"c557bd415052", "c557bd415052"},
+		{"short", "short"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		if got := cleanImageID(tt.input); got != tt.want {
+			t.Errorf("cleanImageID(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestCleanImageDigest(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"", "-"},
+		{"<none>", "-"},
+		{"sambryx-web@sha256:1234567890abcdef1234567890abcdef", "1234567890ab"},
+		{"sha256:1234567890abcdef", "1234567890ab"},
+		{"1234567890abcdef", "1234567890ab"},
+		{"short", "short"},
+	}
+	for _, tt := range tests {
+		if got := cleanImageDigest(tt.input); got != tt.want {
+			t.Errorf("cleanImageDigest(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestFormatCLICreatedAt(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"2026-11-16 15:23:45 +0300 MSK", "2026-11-16 15:23"},
+		{"2026-11-16 15:23", "2026-11-16 15:23"},
+		{"2 hours ago", "2 hours ago"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		if got := formatCLICreatedAt(tt.input); got != tt.want {
+			t.Errorf("formatCLICreatedAt(%q) = %q, want %q", tt.input, got, tt.want)
+		}
 	}
 }

@@ -134,24 +134,51 @@ func TestFilterCompose(t *testing.T) {
 
 func TestFilterNetworksAndVolumes(t *testing.T) {
 	networks := []monitor.DockerNetwork{
-		{Name: "bridge", Driver: "bridge", Subnet: "172.17.0.0/16"},
-		{Name: "custom-net", Driver: "overlay", Subnet: "10.0.0.0/24"},
+		{ID: "net-br-1", Name: "bridge", Driver: "bridge", Scope: "local", Subnet: "172.17.0.0/16", Gateway: "172.17.0.1", ComposeProject: "alpha-proj"},
+		{ID: "net-ov-2", Name: "custom-net", Driver: "overlay", Scope: "swarm", Subnet: "10.0.0.0/24", Gateway: "10.0.0.1", ComposeProject: "beta-proj"},
 	}
 	vols := []monitor.DockerVolume{
-		{Name: "data-vol", Driver: "local", Mountpoint: "/var/lib/docker/volumes/data-vol"},
-		{Name: "cache-vol", Driver: "local", Mountpoint: "/var/lib/docker/volumes/cache-vol"},
+		{Name: "data-vol", Driver: "local", Scope: "local", Mountpoint: "/var/lib/docker/volumes/data-vol", ComposeProject: "alpha-proj"},
+		{Name: "cache-vol", Driver: "nfs", Scope: "global", Mountpoint: "/mnt/nfs/cache-vol", ComposeProject: "beta-proj"},
 	}
 
-	// Filter network by subnet
-	fn := Networks(networks, "10.0.0")
-	if len(fn) != 1 || fn[0].Name != "custom-net" {
-		t.Errorf("expected custom-net, got %+v", fn)
+	// 1. Empty query returns all
+	if len(Networks(networks, "")) != 2 || len(Networks(networks, "   ")) != 2 {
+		t.Errorf("expected all networks on empty query")
+	}
+	if len(Volumes(vols, "")) != 2 || len(Volumes(vols, "   ")) != 2 {
+		t.Errorf("expected all volumes on empty query")
 	}
 
-	// Filter volume by mountpoint
-	fv := Volumes(vols, "cache")
-	if len(fv) != 1 || fv[0].Name != "cache-vol" {
-		t.Errorf("expected cache-vol, got %+v", fv)
+	// 2. Filter network by various fields
+	if fn := Networks(networks, "net-br-1"); len(fn) != 1 || fn[0].Name != "bridge" {
+		t.Errorf("expected match by network ID, got %+v", fn)
+	}
+	if fn := Networks(networks, "overlay"); len(fn) != 1 || fn[0].Name != "custom-net" {
+		t.Errorf("expected match by network driver, got %+v", fn)
+	}
+	if fn := Networks(networks, "swarm"); len(fn) != 1 || fn[0].Name != "custom-net" {
+		t.Errorf("expected match by network scope, got %+v", fn)
+	}
+	if fn := Networks(networks, "10.0.0.1"); len(fn) != 1 || fn[0].Name != "custom-net" {
+		t.Errorf("expected match by network gateway, got %+v", fn)
+	}
+	if fn := Networks(networks, "alpha-proj"); len(fn) != 1 || fn[0].Name != "bridge" {
+		t.Errorf("expected match by network compose project, got %+v", fn)
+	}
+
+	// 3. Filter volume by various fields
+	if fv := Volumes(vols, "nfs"); len(fv) != 1 || fv[0].Name != "cache-vol" {
+		t.Errorf("expected match by volume driver, got %+v", fv)
+	}
+	if fv := Volumes(vols, "global"); len(fv) != 1 || fv[0].Name != "cache-vol" {
+		t.Errorf("expected match by volume scope, got %+v", fv)
+	}
+	if fv := Volumes(vols, "alpha-proj"); len(fv) != 1 || fv[0].Name != "data-vol" {
+		t.Errorf("expected match by volume compose project, got %+v", fv)
+	}
+	if fv := Volumes(vols, "cache"); len(fv) != 1 || fv[0].Name != "cache-vol" {
+		t.Errorf("expected match by mountpoint, got %+v", fv)
 	}
 }
 
