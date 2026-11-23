@@ -1,3 +1,9 @@
+container-ctl (0.22.2) unstable; urgency=medium
+
+  * Version 0.22.2 release
+
+ -- Andrey Vorobev <Andrey.Vorobev.AQA@gmail.com>  Mon, 23 Nov 2026 23:00:49 +0300
+
 container-ctl (0.22.1) unstable; urgency=medium
 
   * Version 0.22.1 release
