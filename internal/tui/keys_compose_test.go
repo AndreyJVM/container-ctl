@@ -147,6 +147,7 @@ func TestComposeTabNavigationAndActions(t *testing.T) {
 	})
 
 	t.Run("clipboard copy project name with 'y'", func(t *testing.T) {
+		defer clipboard.TestLock()()
 		origWriter := clipboard.GetOutputWriter()
 		var buf bytes.Buffer
 		clipboard.SetOutputWriter(&buf)

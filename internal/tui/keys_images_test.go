@@ -135,6 +135,7 @@ func TestFilterUnusedImages_ToggleAndSearch(t *testing.T) {
 }
 
 func TestImagesActions_RemoveModalAndCopy(t *testing.T) {
+	defer clipboard.TestLock()()
 	origWriter := clipboard.GetOutputWriter()
 	var buf bytes.Buffer
 	clipboard.SetOutputWriter(&buf)

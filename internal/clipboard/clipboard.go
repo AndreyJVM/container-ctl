@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	writerMu     sync.RWMutex
+	writerMu     sync.Mutex
 	outputWriter io.Writer = os.Stderr
+	testLockMu   sync.Mutex
 )
 
 // SetOutputWriter sets the writer used for sending OSC 52 sequences thread-safely.
@@ -23,9 +24,15 @@ func SetOutputWriter(w io.Writer) {
 
 // GetOutputWriter returns the current writer used for sending OSC 52 sequences thread-safely.
 func GetOutputWriter() io.Writer {
-	writerMu.RLock()
-	defer writerMu.RUnlock()
+	writerMu.Lock()
+	defer writerMu.Unlock()
 	return outputWriter
+}
+
+// TestLock serializes tests that mutate the package-level outputWriter.
+func TestLock() func() {
+	testLockMu.Lock()
+	return testLockMu.Unlock
 }
 
 // Write copies the given text to the system clipboard via terminal OSC 52 escape sequence.
@@ -35,9 +42,8 @@ func Write(text string) error {
 		return nil
 	}
 	seq := osc52.New(text)
-	writerMu.RLock()
-	w := outputWriter
-	writerMu.RUnlock()
-	_, err := fmt.Fprint(w, seq)
+	writerMu.Lock()
+	defer writerMu.Unlock()
+	_, err := fmt.Fprint(outputWriter, seq)
 	return err
 }

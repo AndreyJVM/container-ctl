@@ -191,3 +191,61 @@ func TestRemoveDockerVolume(t *testing.T) {
 		}
 	})
 }
+
+func TestMatchContainersForVolume(t *testing.T) {
+	if MatchContainersForVolume("", nil) != nil {
+		t.Errorf("expected nil for empty volume name")
+	}
+
+	containers := []ContainerItem{
+		{Name: "web", Mounts: []string{"app_data:/data", "logs:/var/log"}},
+		{Name: "worker", Mounts: []string{"logs:/var/log"}},
+		{Name: "db", Mounts: []string{"/host/path:/db"}},
+	}
+
+	matchedApp := MatchContainersForVolume("app_data", containers)
+	if len(matchedApp) != 1 || matchedApp[0] != "web" {
+		t.Errorf("expected ['web'] for app_data, got: %v", matchedApp)
+	}
+
+	matchedLogs := MatchContainersForVolume("logs", containers)
+	if len(matchedLogs) != 2 || matchedLogs[0] != "web" || matchedLogs[1] != "worker" {
+		t.Errorf("expected ['web', 'worker'] for logs, got: %v", matchedLogs)
+	}
+
+	matchedMissing := MatchContainersForVolume("unrelated", containers)
+	if len(matchedMissing) != 0 {
+		t.Errorf("expected empty for unrelated volume, got: %v", matchedMissing)
+	}
+}
+
+func TestEnrichVolumesWithContainers(t *testing.T) {
+	if EnrichVolumesWithContainers(nil, nil) != nil {
+		t.Errorf("expected nil for nil volumes")
+	}
+
+	volumes := []DockerVolume{
+		{Name: "app_data"},
+		{Name: "logs", Containers: []string{"pre-existing"}},
+		{Name: "unused"},
+	}
+
+	containers := []ContainerItem{
+		{Name: "web", Mounts: []string{"app_data:/data"}},
+	}
+
+	enriched := EnrichVolumesWithContainers(volumes, containers)
+	if len(enriched) != 3 {
+		t.Fatalf("expected 3 volumes, got %d", len(enriched))
+	}
+	if len(enriched[0].Containers) != 1 || enriched[0].Containers[0] != "web" {
+		t.Errorf("expected app_data to be enriched with web, got: %v", enriched[0].Containers)
+	}
+	// logs had pre-existing, should not be overwritten
+	if len(enriched[1].Containers) != 1 || enriched[1].Containers[0] != "pre-existing" {
+		t.Errorf("expected pre-existing containers preserved, got: %v", enriched[1].Containers)
+	}
+	if len(enriched[2].Containers) != 0 {
+		t.Errorf("expected empty containers for unused, got: %v", enriched[2].Containers)
+	}
+}

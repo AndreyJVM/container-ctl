@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 )
 
@@ -169,4 +170,37 @@ func RemoveDockerVolume(name string, force bool) error {
 		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
 	}
 	return nil
+}
+
+// MatchContainersForVolume finds container names that reference the given volume name in their mounts.
+func MatchContainersForVolume(volName string, containers []ContainerItem) []string {
+	if volName == "" {
+		return nil
+	}
+	var matched []string
+	for _, c := range containers {
+		for _, mount := range c.Mounts {
+			if strings.Contains(mount, volName) {
+				matched = append(matched, c.Name)
+				break
+			}
+		}
+	}
+	sort.Strings(matched)
+	return matched
+}
+
+// EnrichVolumesWithContainers populates Containers slice on volumes based on container mounts.
+func EnrichVolumesWithContainers(volumes []DockerVolume, containers []ContainerItem) []DockerVolume {
+	if len(volumes) == 0 {
+		return volumes
+	}
+	enriched := make([]DockerVolume, len(volumes))
+	copy(enriched, volumes)
+	for i := range enriched {
+		if len(enriched[i].Containers) == 0 {
+			enriched[i].Containers = MatchContainersForVolume(enriched[i].Name, containers)
+		}
+	}
+	return enriched
 }

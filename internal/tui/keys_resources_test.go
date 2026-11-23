@@ -32,6 +32,7 @@ func newFastSwarmTestModel() Model {
 }
 
 func TestNetworksInspectAndCopy(t *testing.T) {
+	defer clipboard.TestLock()()
 	origWriter := clipboard.GetOutputWriter()
 	var buf bytes.Buffer
 	clipboard.SetOutputWriter(&buf)
@@ -78,6 +79,7 @@ func TestNetworksInspectAndCopy(t *testing.T) {
 }
 
 func TestVolumesInspectAndCopy(t *testing.T) {
+	defer clipboard.TestLock()()
 	origWriter := clipboard.GetOutputWriter()
 	var buf bytes.Buffer
 	clipboard.SetOutputWriter(&buf)
@@ -123,6 +125,7 @@ func TestVolumesInspectAndCopy(t *testing.T) {
 }
 
 func TestSwarmLogsAndCopy(t *testing.T) {
+	defer clipboard.TestLock()()
 	origWriter := clipboard.GetOutputWriter()
 	var buf bytes.Buffer
 	clipboard.SetOutputWriter(&buf)
@@ -235,7 +238,7 @@ func TestSwarmScalingKeys(t *testing.T) {
 }
 
 func TestNetworksAndVolumesHotkeys(t *testing.T) {
-	t.Parallel()
+	defer clipboard.TestLock()()
 
 	m := newFastNetworksTestModel()
 	m.networks = []monitor.DockerNetwork{

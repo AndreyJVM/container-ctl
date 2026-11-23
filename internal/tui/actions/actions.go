@@ -107,7 +107,7 @@ func FetchAllDataFiltered(includeImages, includeNetworks, includeVolumes, includ
 		Images:     images,
 		Compose:    monitor.GetComposeProjects(dockerInfo.Containers),
 		Networks:   networks,
-		Volumes:    volumes,
+		Volumes:    monitor.EnrichVolumesWithContainers(volumes, dockerInfo.Containers),
 		Swarm:      swarm,
 		ImageErr:   formatFetchError(imageErr),
 		NetworkErr: formatFetchError(networkErr),

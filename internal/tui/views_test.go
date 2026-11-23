@@ -749,47 +749,21 @@ func TestViewModel_RemoveModalsAndVolumeContainerMatching(t *testing.T) {
 		}
 	})
 
-	t.Run("matchContainersForVolume helper", func(t *testing.T) {
-		t.Parallel()
-		if matchContainersForVolume("", nil) != nil {
-			t.Errorf("expected nil for empty volume name")
-		}
-
-		containers := []monitor.ContainerItem{
-			{Name: "web", Mounts: []string{"app_data:/data", "logs:/var/log"}},
-			{Name: "worker", Mounts: []string{"logs:/var/log"}},
-			{Name: "db", Mounts: []string{"/host/path:/db"}},
-		}
-
-		matchedApp := matchContainersForVolume("app_data", containers)
-		if len(matchedApp) != 1 || matchedApp[0] != "web" {
-			t.Errorf("expected ['web'] for app_data, got: %v", matchedApp)
-		}
-
-		matchedLogs := matchContainersForVolume("logs", containers)
-		if len(matchedLogs) != 2 || matchedLogs[0] != "web" || matchedLogs[1] != "worker" {
-			t.Errorf("expected ['web', 'worker'] for logs, got: %v", matchedLogs)
-		}
-
-		matchedMissing := matchContainersForVolume("unrelated", containers)
-		if len(matchedMissing) != 0 {
-			t.Errorf("expected empty for unrelated volume, got: %v", matchedMissing)
-		}
-	})
-
-	t.Run("renderVolumesTab enriches containers from dockerInfo", func(t *testing.T) {
+	t.Run("renderVolumesTab displays enriched volumes", func(t *testing.T) {
 		t.Parallel()
 		m := newFastTestModel()
 		m.activeTab = TabVolumes
 		m.volumes = []monitor.DockerVolume{
-			{Name: "pg_data", Driver: "local", RefCount: 1},
-		}
-		m.dockerInfo.Containers = []monitor.ContainerItem{
-			{Name: "postgres", Mounts: []string{"pg_data:/var/lib/postgresql/data"}},
+			{
+				Name:       "pg_data",
+				Driver:     "local",
+				RefCount:   1,
+				Containers: []string{"postgres"},
+			},
 		}
 		v := m.View()
 		if !strings.Contains(v, "pg_data") || !strings.Contains(v, "postgres") {
-			t.Errorf("expected volume pg_data and matched container postgres in view, got: %s", v)
+			t.Errorf("expected volume pg_data and container postgres in view, got: %s", v)
 		}
 	})
 }

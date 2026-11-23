@@ -113,6 +113,7 @@ func TestModalLogsSearch(t *testing.T) {
 }
 
 func TestModalInspectScrollingAndCopy(t *testing.T) {
+	defer clipboard.TestLock()()
 	origWriter := clipboard.GetOutputWriter()
 	var buf bytes.Buffer
 	clipboard.SetOutputWriter(&buf)

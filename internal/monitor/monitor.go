@@ -131,6 +131,16 @@ func RemoveDockerVolume(name string, force bool) error {
 	return docker.RemoveDockerVolume(name, force)
 }
 
+// MatchContainersForVolume finds container names that reference the given volume name in their mounts.
+func MatchContainersForVolume(volName string, containers []ContainerItem) []string {
+	return docker.MatchContainersForVolume(volName, containers)
+}
+
+// EnrichVolumesWithContainers populates Containers slice on volumes based on container mounts.
+func EnrichVolumesWithContainers(volumes []DockerVolume, containers []ContainerItem) []DockerVolume {
+	return docker.EnrichVolumesWithContainers(volumes, containers)
+}
+
 // GetDockerDiskUsage collects Docker disk usage statistics (system df) via socket or CLI fallback.
 func GetDockerDiskUsage() (DockerDiskUsage, error) { return docker.GetDockerDiskUsage() }
 
