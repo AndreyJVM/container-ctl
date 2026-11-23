@@ -58,6 +58,13 @@ checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
+release:
+  github:
+    owner: AndreyJVM
+    name: container-ctl
+  replace_existing_artifacts: true
+  mode: keep-existing
+
 changelog:
   sort: asc
   use: github
