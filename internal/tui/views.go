@@ -89,7 +89,7 @@ func (m Model) View() string {
 	b.WriteString(content)
 
 	// 4. Footer
-	b.WriteString(views.RenderFooter(views.FooterContext{
+	footer := views.RenderFooter(views.FooterContext{
 		ActiveTab:    int(m.activeTab),
 		ActiveModal:  string(m.activeModal),
 		PruneConfirm: m.pruneConfirm,
@@ -99,9 +99,19 @@ func (m Model) View() string {
 		ShellActive:  m.embeddedShell != nil,
 		ShellFocused: m.shellFocused,
 		SwarmVisible: m.IsSwarmVisible(),
-	}))
+	})
 
-	return b.String()
+	contentOutput := b.String()
+	combined := contentOutput + footer
+	if m.height > 0 {
+		currentHeight := lipgloss.Height(combined)
+		if m.height > currentHeight {
+			padding := strings.Repeat("\n", m.height-currentHeight)
+			return contentOutput + padding + footer
+		}
+	}
+
+	return combined
 }
 
 func (m Model) renderEmbeddedShellLayout(content string) string {

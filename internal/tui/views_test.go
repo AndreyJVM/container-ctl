@@ -7,6 +7,7 @@ import (
 
 	"github.com/AndreyJVM/container-ctl/internal/module"
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func TestViewModel_HeaderAndTabs(t *testing.T) {
@@ -998,5 +999,35 @@ func TestFormatSwarmStatus(t *testing.T) {
 				t.Errorf("isActive=%v: expected %q, got %q", tt.isActive, tt.expected, res)
 			}
 		})
+	}
+}
+
+func TestFooterAnchoringToBottom(t *testing.T) {
+	t.Parallel()
+
+	targetHeight := 35
+	targetWidth := 100
+
+	m := newFastTestModel()
+	m.height = targetHeight
+	m.width = targetWidth
+	m.showSwarm = true
+
+	tabs := []TabID{TabDocker, TabImages, TabCompose, TabNetworks, TabVolumes, TabSwarm}
+
+	for _, tab := range tabs {
+		m.activeTab = tab
+		view := m.View()
+
+		// Verify total rendered height matches terminal height exactly
+		renderedHeight := lipgloss.Height(view)
+		if renderedHeight != targetHeight {
+			t.Errorf("tab %d: expected view height %d, got %d", tab, targetHeight, renderedHeight)
+		}
+
+		// Verify footer content is present in the output
+		if !strings.Contains(view, "[Q]") || !strings.Contains(view, "Quit") {
+			t.Errorf("tab %d: expected footer quit hint in output", tab)
+		}
 	}
 }
