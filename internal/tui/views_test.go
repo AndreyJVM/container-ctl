@@ -1090,4 +1090,3 @@ func TestVirtualScrollingWindowing_50Containers(t *testing.T) {
 		t.Errorf("expected footer Quit in viewBottom")
 	}
 }
-

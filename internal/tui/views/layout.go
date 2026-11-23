@@ -63,13 +63,13 @@ func RenderTabs(tabs []string, activeTab int, width int) string {
 
 // FooterContext contains parameters needed to render context-aware bottom hotkey hints.
 type FooterContext struct {
-	ActiveTab    int
-	ActiveModal  string
-	PruneConfirm int
-	IsFiltering  bool
-	FilterQuery  string
-	Width        int
-	ShellActive  bool
+	ActiveTab     int
+	ActiveModal   string
+	PruneConfirm  int
+	IsFiltering   bool
+	FilterQuery   string
+	Width         int
+	ShellActive   bool
 	ShellFocused  bool
 	SwarmVisible  bool
 	SelectedCount int

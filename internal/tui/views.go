@@ -90,15 +90,15 @@ func (m Model) View() string {
 
 	// 4. Footer
 	footer := views.RenderFooter(views.FooterContext{
-		ActiveTab:    int(m.activeTab),
-		ActiveModal:  string(m.activeModal),
-		PruneConfirm: m.pruneConfirm,
-		IsFiltering:  m.isFiltering,
-		FilterQuery:  m.filterQuery,
-		Width:        m.width,
-		ShellActive:  m.embeddedShell != nil,
-		ShellFocused: m.shellFocused,
-		SwarmVisible: m.IsSwarmVisible(),
+		ActiveTab:     int(m.activeTab),
+		ActiveModal:   string(m.activeModal),
+		PruneConfirm:  m.pruneConfirm,
+		IsFiltering:   m.isFiltering,
+		FilterQuery:   m.filterQuery,
+		Width:         m.width,
+		ShellActive:   m.embeddedShell != nil,
+		ShellFocused:  m.shellFocused,
+		SwarmVisible:  m.IsSwarmVisible(),
 		SelectedCount: len(m.selectedContainers),
 	})
 
@@ -203,7 +203,7 @@ func (m Model) renderImagesTab() string {
 		FilterQuery:      m.filterQuery,
 		OnlyUnused:       m.onlyUnusedImages,
 		Width:            m.width,
-		MaxRows:              m.calculateTableMaxRows(8),
+		MaxRows:          m.calculateTableMaxRows(8),
 		HideDetails:      m.hideDetails,
 	})
 }
@@ -231,7 +231,7 @@ func (m Model) renderNetworksTab() string {
 		IsFiltering:        m.isFiltering,
 		FilterQuery:        m.filterQuery,
 		Width:              m.width,
-		MaxRows:              m.calculateTableMaxRows(8),
+		MaxRows:            m.calculateTableMaxRows(8),
 		HideDetails:        m.hideDetails,
 	})
 }
@@ -245,7 +245,7 @@ func (m Model) renderVolumesTab() string {
 		IsFiltering:       m.isFiltering,
 		FilterQuery:       m.filterQuery,
 		Width:             m.width,
-		MaxRows:              m.calculateTableMaxRows(8),
+		MaxRows:           m.calculateTableMaxRows(8),
 		HideDetails:       m.hideDetails,
 	})
 }

@@ -510,5 +510,3 @@ func TestRenderDocker_MultiSelectRendering(t *testing.T) {
 	testutil.AssertContainsAll(t, view, "backend")
 	testutil.AssertContainsAll(t, view, "database")
 }
-
-

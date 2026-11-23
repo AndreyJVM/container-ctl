@@ -108,15 +108,15 @@ type CommonState struct {
 
 // NavState holds cursor positions, scroll offsets, sorting, and search filter queries per tab.
 type NavState struct {
-	cursorIdx         int
-	imageCursorIdx    int
-	composeCursorIdx  int
-	networkCursorIdx  int
-	volumeCursorIdx   int
-	swarmCursorIdx    int
-	containerSortMode int
-	isFiltering       bool
-	filterQuery       string
+	cursorIdx          int
+	imageCursorIdx     int
+	composeCursorIdx   int
+	networkCursorIdx   int
+	volumeCursorIdx    int
+	swarmCursorIdx     int
+	containerSortMode  int
+	isFiltering        bool
+	filterQuery        string
 	showSwarm          bool
 	hideDetails        bool
 	onlyUnusedImages   bool
