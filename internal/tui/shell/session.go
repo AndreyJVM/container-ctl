@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -38,6 +39,7 @@ type Session struct {
 	terminal terminalBackend
 	cmd      *exec.Cmd
 	closed   bool
+	queryBuf []byte
 }
 
 // Start creates a PTY-backed interactive session for cmd.
@@ -91,7 +93,48 @@ func (s *Session) Read() ([]byte, error) {
 	}
 	data := make([]byte, n)
 	copy(data, buffer[:n])
+	s.handleTerminalQueries(data)
 	return data, err
+}
+
+func (s *Session) handleTerminalQueries(data []byte) {
+	if len(data) == 0 {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return
+	}
+
+	s.queryBuf = append(s.queryBuf, data...)
+
+	// 1. Device Status Report: Cursor Position (CPR - \x1b[6n)
+	// Sent by BusyBox ash (Alpine), zsh, lineedit etc. to query cursor row/col.
+	// Without this response, BusyBox ash hangs indefinitely waiting for terminal feedback.
+	if bytes.Contains(s.queryBuf, []byte("\x1b[6n")) {
+		_, _ = s.pty.Write([]byte("\x1b[1;1R"))
+		s.queryBuf = bytes.ReplaceAll(s.queryBuf, []byte("\x1b[6n"), nil)
+	}
+
+	// 2. Device Status Report: Operating Status (\x1b[5n)
+	if bytes.Contains(s.queryBuf, []byte("\x1b[5n")) {
+		_, _ = s.pty.Write([]byte("\x1b[0n"))
+		s.queryBuf = bytes.ReplaceAll(s.queryBuf, []byte("\x1b[5n"), nil)
+	}
+
+	// 3. Primary Device Attributes (\x1b[0c or \x1b[c)
+	if bytes.Contains(s.queryBuf, []byte("\x1b[0c")) {
+		_, _ = s.pty.Write([]byte("\x1b[?1;2c"))
+		s.queryBuf = bytes.ReplaceAll(s.queryBuf, []byte("\x1b[0c"), nil)
+	} else if bytes.Contains(s.queryBuf, []byte("\x1b[c")) {
+		_, _ = s.pty.Write([]byte("\x1b[?1;2c"))
+		s.queryBuf = bytes.ReplaceAll(s.queryBuf, []byte("\x1b[c"), nil)
+	}
+
+	if len(s.queryBuf) > 128 {
+		s.queryBuf = s.queryBuf[len(s.queryBuf)-32:]
+	}
 }
 
 // Write sends keyboard input to the interactive process.

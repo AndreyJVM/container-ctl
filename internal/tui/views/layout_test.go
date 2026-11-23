@@ -208,7 +208,7 @@ func TestRenderFooter_EmbeddedShell(t *testing.T) {
 			ShellFocused: true,
 			Width:        80,
 		})
-		testutil.AssertContainsAll(t, footer, "[Ctrl+]]", "Return to Dockpulse", "[Ctrl+D]", "Exit shell")
+		testutil.AssertContainsAll(t, footer, "[Ctrl+X]", "Close terminal", "[Ctrl+]]", "Return to Dockpulse", "[Ctrl+D]", "Exit shell")
 	})
 
 	t.Run("unfocused embedded shell hints", func(t *testing.T) {

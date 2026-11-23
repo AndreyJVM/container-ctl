@@ -109,6 +109,12 @@ func (m Model) handleEmbeddedShellKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.shellFocused = false
 		return m, nil
 	}
+	if msg.Type == tea.KeyCtrlX {
+		name := m.shellContainerName
+		m.closeEmbeddedShell()
+		m.showToast(fmt.Sprintf("Shell session in %s closed", name))
+		return m, fetchDataCmd()
+	}
 	data := shellKeyBytes(msg)
 	if len(data) == 0 {
 		return m, nil

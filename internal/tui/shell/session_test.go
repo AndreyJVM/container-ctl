@@ -337,3 +337,55 @@ func TestSession_LiveProcessExecutionAndTermination(t *testing.T) {
 		}
 	})
 }
+
+func TestSession_TerminalQueries(t *testing.T) {
+	t.Parallel()
+
+	t.Run("responds to cursor position report CPR \\x1b[6n", func(t *testing.T) {
+		t.Parallel()
+		fakePty := &fakePty{readData: []byte("/ # \x1b[6n")}
+		session := &Session{pty: fakePty, terminal: &fakeTerminal{}}
+
+		data, err := session.Read()
+		if err != nil {
+			t.Fatalf("unexpected read error: %v", err)
+		}
+		if !bytes.Contains(data, []byte("\x1b[6n")) {
+			t.Fatalf("expected data to contain escape sequence, got: %q", string(data))
+		}
+		written := fakePty.String()
+		if !strings.Contains(written, "\x1b[1;1R") {
+			t.Errorf("expected PTY response '\\x1b[1;1R' for CPR, got written: %q", written)
+		}
+	})
+
+	t.Run("responds to operating status DSR \\x1b[5n", func(t *testing.T) {
+		t.Parallel()
+		fakePty := &fakePty{readData: []byte("\x1b[5n")}
+		session := &Session{pty: fakePty, terminal: &fakeTerminal{}}
+
+		_, err := session.Read()
+		if err != nil {
+			t.Fatalf("unexpected read error: %v", err)
+		}
+		written := fakePty.String()
+		if !strings.Contains(written, "\x1b[0n") {
+			t.Errorf("expected PTY response '\\x1b[0n' for DSR, got written: %q", written)
+		}
+	})
+
+	t.Run("responds to device attributes DA \\x1b[0c", func(t *testing.T) {
+		t.Parallel()
+		fakePty := &fakePty{readData: []byte("\x1b[0c")}
+		session := &Session{pty: fakePty, terminal: &fakeTerminal{}}
+
+		_, err := session.Read()
+		if err != nil {
+			t.Fatalf("unexpected read error: %v", err)
+		}
+		written := fakePty.String()
+		if !strings.Contains(written, "\x1b[?1;2c") {
+			t.Errorf("expected PTY response '\\x1b[?1;2c' for DA, got written: %q", written)
+		}
+	})
+}

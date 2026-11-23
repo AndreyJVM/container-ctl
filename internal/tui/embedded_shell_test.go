@@ -481,6 +481,30 @@ func TestEmbeddedShell_KeyHandlingEdgeCases(t *testing.T) {
 			t.Errorf("expected shell focused after pressing 'E'")
 		}
 	})
+
+	t.Run("Ctrl+X closes shell when focused", func(t *testing.T) {
+		t.Parallel()
+		fake := &fakeEmbeddedShell{}
+		m := newFastTestModel()
+		m.embeddedShell = fake
+		m.shellFocused = true
+		m.shellContainerName = "alpine"
+
+		res, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlX})
+		updated := res.(Model)
+		if updated.embeddedShell != nil {
+			t.Errorf("expected embedded shell to be nil after Ctrl+X")
+		}
+		if updated.shellFocused {
+			t.Errorf("expected shellFocused to be false after Ctrl+X")
+		}
+		if cmd == nil {
+			t.Errorf("expected fetchDataCmd after closing shell")
+		}
+		if !strings.Contains(updated.actionMessage, "Shell session in alpine closed") {
+			t.Errorf("expected close toast message, got: %q", updated.actionMessage)
+		}
+	})
 }
 
 func TestViewRendersEmbeddedShellAndFocusHelp(t *testing.T) {

@@ -114,7 +114,8 @@ func RenderFooter(ctx FooterContext) string {
 		}
 	} else if ctx.ShellActive {
 		if ctx.ShellFocused {
-			content = theme.BoldStyle.Render("[Ctrl+]]") + " Return to Dockpulse  |  " +
+			content = theme.BoldStyle.Render("[Ctrl+X]") + " Close terminal  |  " +
+				theme.BoldStyle.Render("[Ctrl+]]") + " Return to Dockpulse  |  " +
 				theme.BoldStyle.Render("[Ctrl+D]") + " Exit shell"
 		} else {
 			content = theme.BoldStyle.Render("[E]") + " Focus terminal  |  " +
