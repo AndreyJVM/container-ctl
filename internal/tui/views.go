@@ -146,6 +146,7 @@ func (m Model) renderDockerTab() string {
 		SortMode:             m.containerSortMode,
 		SortNames:            sortNames,
 		Width:                m.width,
+		HideDetails:          m.hideDetails,
 	})
 }
 

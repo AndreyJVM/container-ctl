@@ -259,6 +259,18 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m.handleSwarmCopy()
 			}
 		}
+
+	// Toggle lower details card visibility.
+	case "v", "V":
+		if !m.isFiltering {
+			m.ToggleDetails()
+			if m.hideDetails {
+				m.showToast("Details card hidden (press 'V' to restore)")
+			} else {
+				m.showToast("Details card visible")
+			}
+			return m, nil
+		}
 	}
 	return m, nil
 }

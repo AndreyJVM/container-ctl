@@ -331,6 +331,7 @@ func renderContainerDetailsCard(ctx *DockerContext, s *strings.Builder) {
 			theme.BoldStyle.Render("[y]")+" Copy",
 			theme.BoldStyle.Render("[K]")+" Kill",
 			theme.BoldStyle.Render("[x]")+" Remove",
+			theme.BoldStyle.Render("[V]")+" Details",
 		)
 	} else {
 		actionHints = append(actionHints,
@@ -339,6 +340,7 @@ func renderContainerDetailsCard(ctx *DockerContext, s *strings.Builder) {
 			theme.BoldStyle.Render("[L]")+" Logs",
 			theme.BoldStyle.Render("[Enter]")+" Inspect",
 			theme.BoldStyle.Render("[y]")+" Copy",
+			theme.BoldStyle.Render("[V]")+" Details",
 		)
 	}
 	s.WriteString(renderDetailRow("Quick Actions:", strings.Join(actionHints, "  ")))

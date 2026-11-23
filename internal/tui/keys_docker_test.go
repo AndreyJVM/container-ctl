@@ -652,3 +652,42 @@ func TestDockerActions_EmptyListSafety(t *testing.T) {
 		}
 	}
 }
+
+func TestToggleDetailsHotkeys(t *testing.T) {
+	t.Parallel()
+
+	m := newFastDockerTestModel()
+	if m.hideDetails {
+		t.Errorf("expected hideDetails to be false initially")
+	}
+
+	// 1. Press 'v' to hide details
+	res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'v'}})
+	m = res.(Model)
+	if !m.hideDetails {
+		t.Errorf("expected hideDetails to be true after pressing 'v'")
+	}
+	if !strings.Contains(m.actionMessage, "hidden") {
+		t.Errorf("expected toast message mentioning hidden, got: %s", m.actionMessage)
+	}
+
+	// 2. Press 'V' to show details again
+	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'V'}})
+	m = res.(Model)
+	if m.hideDetails {
+		t.Errorf("expected hideDetails to be false after pressing 'V'")
+	}
+	if !strings.Contains(m.actionMessage, "visible") {
+		t.Errorf("expected toast message mentioning visible, got: %s", m.actionMessage)
+	}
+
+	// 3. Test SetHideDetails
+	m.SetHideDetails(true)
+	if !m.hideDetails {
+		t.Errorf("expected hideDetails true after SetHideDetails(true)")
+	}
+	m.SetHideDetails(false)
+	if m.hideDetails {
+		t.Errorf("expected hideDetails false after SetHideDetails(false)")
+	}
+}

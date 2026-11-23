@@ -171,7 +171,8 @@ type Model struct {
 	lastUpdate string
 
 	// showSwarm forces the Swarm tab to remain visible even when inactive.
-	showSwarm bool
+	showSwarm   bool
+	hideDetails bool
 
 	// onlyUnusedImages filters the image list to only unreferenced/reclaimable images.
 	onlyUnusedImages bool
@@ -391,4 +392,14 @@ func (m *Model) SetCursorForTesting(idx int) {
 	m.networkCursorIdx = idx
 	m.volumeCursorIdx = idx
 	m.swarmCursorIdx = idx
+}
+
+// ToggleDetails toggles visibility of the lower details card.
+func (m *Model) ToggleDetails() {
+	m.hideDetails = !m.hideDetails
+}
+
+// SetHideDetails explicitly sets visibility of the lower details card.
+func (m *Model) SetHideDetails(hide bool) {
+	m.hideDetails = hide
 }

@@ -137,6 +137,7 @@ func RenderFooter(ctx FooterContext) string {
 				theme.BoldStyle.Render("[K]") + " Kill  |  " +
 				theme.BoldStyle.Render("[x]") + " Remove"
 			row2 := theme.BoldStyle.Render("[O]") + " Sort  |  " +
+				theme.BoldStyle.Render("[V]") + " Details  |  " +
 				theme.BoldStyle.Render("[w]") + " Web  |  " +
 				theme.BoldStyle.Render("[y]") + " Copy  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
@@ -154,6 +155,7 @@ func RenderFooter(ctx FooterContext) string {
 				theme.BoldStyle.Render("[x]") + " Remove"
 			row2 := theme.BoldStyle.Render("[/]") + " Search  |  " +
 				theme.BoldStyle.Render("[O]") + " Sort  |  " +
+				theme.BoldStyle.Render("[V]") + " Details  |  " +
 				theme.BoldStyle.Render("[P]") + " Restart  |  " +
 				theme.BoldStyle.Render("[w]") + " Web  |  " +
 				theme.BoldStyle.Render("[y]") + " Copy  |  " +
@@ -166,6 +168,7 @@ func RenderFooter(ctx FooterContext) string {
 			content = theme.BoldStyle.Render("[↑ / ↓]") + " Select  |  " +
 				theme.BoldStyle.Render("[/]") + " Search  |  " +
 				theme.BoldStyle.Render("[O]") + " Sort  |  " +
+				theme.BoldStyle.Render("[V]") + " Details  |  " +
 				theme.BoldStyle.Render("[Enter/I]") + " Info  |  " +
 				theme.BoldStyle.Render("[L]") + " Logs  |  " +
 				theme.BoldStyle.Render("[E]") + " Shell  |  " +
@@ -190,6 +193,7 @@ func RenderFooter(ctx FooterContext) string {
 				theme.BoldStyle.Render("[x]") + " Remove"
 			row2 := theme.BoldStyle.Render("[/]") + " Search  |  " +
 				theme.BoldStyle.Render("[O]") + " Sort  |  " +
+				theme.BoldStyle.Render("[V]") + " Details  |  " +
 				theme.BoldStyle.Render("[w]") + " Web  |  " +
 				theme.BoldStyle.Render("[y]") + " Copy  |  " +
 				theme.BoldStyle.Render("[C]") + " Prune  |  " +
