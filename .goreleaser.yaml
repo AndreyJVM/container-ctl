@@ -36,6 +36,7 @@ archives:
       - README.md
       - LICENSE
       - CONTRIBUTING.md
+      - install.sh
 
 nfpms:
   - id: packages
@@ -64,6 +65,49 @@ release:
     name: container-ctl
   replace_existing_artifacts: true
   mode: keep-existing
+  footer: |
+    ## 🚀 Quick Install (Headless Server / No GUI)
+
+    **One-liner installer (auto-detects OS & CPU architecture):**
+    ```bash
+    wget -qO- https://raw.githubusercontent.com/AndreyJVM/container-ctl/main/install.sh | sudo bash
+    ```
+    *Or with curl:*
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/AndreyJVM/container-ctl/main/install.sh | sudo bash
+    ```
+
+    **Direct download via wget for this release (Linux amd64):**
+    ```bash
+    wget https://github.com/AndreyJVM/container-ctl/releases/download/{{ .Tag }}/container-ctl_{{ .Version }}_linux_amd64.tar.gz
+    tar -xzf container-ctl_{{ .Version }}_linux_amd64.tar.gz
+    sudo mv container-ctl /usr/local/bin/
+    ```
+
+    **Direct download via wget for this release (Linux arm64):**
+    ```bash
+    wget https://github.com/AndreyJVM/container-ctl/releases/download/{{ .Tag }}/container-ctl_{{ .Version }}_linux_arm64.tar.gz
+    tar -xzf container-ctl_{{ .Version }}_linux_arm64.tar.gz
+    sudo mv container-ctl /usr/local/bin/
+    ```
+
+    **Debian / Ubuntu / Raspberry Pi OS (.deb):**
+    ```bash
+    wget https://github.com/AndreyJVM/container-ctl/releases/download/{{ .Tag }}/container-ctl_{{ .Version }}_amd64.deb
+    sudo dpkg -i container-ctl_{{ .Version }}_amd64.deb
+    ```
+
+    **RHEL / CentOS / Rocky Linux / Fedora (.rpm):**
+    ```bash
+    wget https://github.com/AndreyJVM/container-ctl/releases/download/{{ .Tag }}/container-ctl_{{ .Version }}_amd64.rpm
+    sudo rpm -i container-ctl_{{ .Version }}_amd64.rpm
+    ```
+
+    **Alpine Linux (.apk):**
+    ```bash
+    wget https://github.com/AndreyJVM/container-ctl/releases/download/{{ .Tag }}/container-ctl_{{ .Version }}_amd64.apk
+    apk add --allow-untrusted container-ctl_{{ .Version }}_amd64.apk
+    ```
 
 changelog:
   sort: asc

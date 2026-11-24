@@ -12,7 +12,7 @@
 
 **A fast, lightweight terminal TUI for Docker containers and resources.**<br>
 
-[Key Features](#key-features) • [Installation](#installation) • [CLI Options](#command-line-options) • [Hotkeys](#hotkeys) • [Screenshots](docs/screenshots/) • [Contributing](CONTRIBUTING.md)
+[Quick Start](#quick-install-headless-server--no-gui) • [Key Features](#key-features) • [Installation](#installation) • [CLI Options](#command-line-options) • [Hotkeys](#hotkeys) • [Screenshots](docs/screenshots/) • [Contributing](CONTRIBUTING.md)
 
 ---
 
@@ -35,6 +35,7 @@
   - Embedded interactive terminal (`E` — `/bin/bash` or `/bin/sh`) without leaving container-ctl, plus a full-screen fallback.
   - Power control: Start / Stop (`S`), Restart (`P`), Force Kill (`K` — `SIGKILL`).
   - Safe container removal with confirmation (`x`, `d`).
+  - Multi-select & batch operations across Containers, Images, Networks, and Volumes (`Space`, `a`, `x`).
   - Docker System Prune modal (`C`) with disk reclaim estimates and confirmation.
   - Socket support: Docker daemon, Rootless Docker, and Rootless Podman (<2 ms latency) with automatic discovery across `XDG_RUNTIME_DIR`, `/run/user/$UID`, and candidate sockets.
 - **Docker Images**:
@@ -42,10 +43,10 @@
   - Status indicators: `[In Use]`, `[Unused]`, and `[Dangling]` (`<none>:<none>`).
   - Search & filter by repository, tag, ID, or digest (`/`).
   - Selected image details panel (full ID, digest, all tags, container usage count).
-  - Safe image removal with confirmation (`x`, `d`), including warning for in-use images.
+  - Safe image removal with confirmation (`x`, `d`), including warning for in-use images and batch support.
 - **Docker Compose**: Automatic project/service grouping, aggregated stack health, live stack logs (`L`), service control (`U` / `S` / `P`), and stack teardown (`D` / down) with confirmation.
-- **Docker Networks**: Network driver, scope, connected container count, subnet, gateway, and Compose ownership.
-- **Docker Volumes**: Volume driver, scope, reference count, disk usage, mountpoint, and Compose ownership.
+- **Docker Networks**: Network driver, scope, connected container count, subnet, gateway, and Compose ownership. Batch removal supported.
+- **Docker Volumes**: Volume driver, scope, reference count, disk usage, mountpoint, and Compose ownership. Batch removal supported.
 - **Docker Swarm**: Cluster node roles (Leader, Manager, Worker), service listings, replica counts with degradation highlights, and live service logs (`L`). Dynamically shown when Swarm is active on the daemon (or forced with `--show-swarm`).
 - **Modular Architecture ("Constructor")**: Pluggable subsystem registry. Administrators can tailor the dashboard by enabling only necessary tabs, reordering them, or assigning custom tab labels in `config.yaml`.
 - **English Interface**: Consistent English UI, CLI help, diagnostics, and documentation.
@@ -53,12 +54,38 @@
 
 ### Installation
 
-#### Go Install
+#### Quick Install (Headless Server / No GUI)
 
-Install the latest release directly via the Go toolchain (requires Go 1.24+):
+Install directly on any remote Linux server or headless machine via `wget` (or `curl`) with a single command:
 
 ```bash
-go install github.com/AndreyJVM/container-ctl/cmd/container-ctl@latest
+# Using wget (recommended for servers)
+wget -qO- https://raw.githubusercontent.com/AndreyJVM/container-ctl/main/install.sh | sudo bash
+
+# Or using curl
+curl -fsSL https://raw.githubusercontent.com/AndreyJVM/container-ctl/main/install.sh | sudo bash
+```
+
+> [!TIP]
+> To install without root/sudo privileges (into `~/.local/bin`):
+> ```bash
+> wget -qO- https://raw.githubusercontent.com/AndreyJVM/container-ctl/main/install.sh | bash
+> ```
+
+#### Direct Binary Download via `wget`
+
+Download and extract the latest standalone binary directly from GitHub:
+
+```bash
+# Linux amd64 (x86_64)
+wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.5_linux_amd64.tar.gz
+tar -xzf container-ctl_0.22.5_linux_amd64.tar.gz
+sudo mv container-ctl /usr/local/bin/
+
+# Linux arm64 (aarch64 / Raspberry Pi)
+wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.5_linux_arm64.tar.gz
+tar -xzf container-ctl_0.22.5_linux_arm64.tar.gz
+sudo mv container-ctl /usr/local/bin/
 ```
 
 #### Linux Packages (.deb / .rpm / .apk)
@@ -67,23 +94,24 @@ Pre-built packages for **amd64** and **arm64** are available on the [Releases](h
 
 ```bash
 # Debian / Ubuntu / Linux Mint (.deb)
-sudo dpkg -i container-ctl_0.18.1_amd64.deb
+wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.5_amd64.deb
+sudo dpkg -i container-ctl_0.22.5_amd64.deb
 
-# RHEL / Fedora / Rocky Linux (.rpm)
-sudo rpm -i container-ctl_0.18.1_amd64.rpm
+# RHEL / Fedora / Rocky Linux / CentOS (.rpm)
+wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.5_amd64.rpm
+sudo rpm -i container-ctl_0.22.5_amd64.rpm
 
 # Alpine Linux (.apk)
-apk add --allow-untrusted container-ctl_0.18.1_amd64.apk
+wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.5_amd64.apk
+apk add --allow-untrusted container-ctl_0.22.5_amd64.apk
 ```
 
-#### Pre-built Binaries (Linux, macOS, FreeBSD)
+#### Go Install
 
-Download the archive for your operating system and architecture from [Releases](https://github.com/AndreyJVM/container-ctl/releases):
+Install the latest release directly via the Go toolchain (requires Go 1.24+):
 
 ```bash
-# Example: Linux AMD64
-tar -xzf container-ctl_0.18.1_linux_amd64.tar.gz
-./container-ctl
+go install github.com/AndreyJVM/container-ctl/cmd/container-ctl@latest
 ```
 
 #### Build from Source
