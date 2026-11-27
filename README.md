@@ -106,6 +106,14 @@ wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/contain
 apk add --allow-untrusted container-ctl_0.22.5_amd64.apk
 ```
 
+#### Verifying Release Artifacts (SLSA Provenance)
+
+All official binaries, archives, and packages are signed via GitHub Artifact Attestations. You can verify the integrity and origin using the [GitHub CLI](https://cli.github.com/):
+
+```bash
+gh attestation verify <downloaded-file> --owner AndreyJVM
+```
+
 #### Go Install
 
 Install the latest release directly via the Go toolchain (requires Go 1.24+):

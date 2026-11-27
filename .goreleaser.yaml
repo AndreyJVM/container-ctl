@@ -109,6 +109,13 @@ release:
     apk add --allow-untrusted container-ctl_{{ .Version }}_amd64.apk
     ```
 
+    ## 🔐 Verify Provenance (SLSA v1.0)
+    All binary archives, Linux packages, and checksums are cryptographically attested via GitHub Artifact Attestations.
+    Verify any downloaded artifact with the GitHub CLI:
+    ```bash
+    gh attestation verify <filename> --owner AndreyJVM
+    ```
+
 changelog:
   sort: asc
   use: github
