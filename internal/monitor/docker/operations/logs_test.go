@@ -1,7 +1,5 @@
 package operations
 
-import ()
-
 import (
 	"bytes"
 	"encoding/binary"

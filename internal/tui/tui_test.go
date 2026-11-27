@@ -566,3 +566,178 @@ func TestModel_HiddenTabFallback(t *testing.T) {
 		t.Errorf("expected activeTab to fall back to TabDocker when Images disabled, got %v", m.activeTab)
 	}
 }
+
+func TestTabID_StringAndValidation(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		tab      TabID
+		expected string
+		valid    bool
+	}{
+		{TabDocker, "Containers", true},
+		{TabImages, "Images", true},
+		{TabCompose, "Compose", true},
+		{TabNetworks, "Networks", true},
+		{TabVolumes, "Volumes", true},
+		{TabSwarm, "Swarm", true},
+		{TabID(0), "Tab(0)", false},
+		{TabID(99), "Tab(99)", false},
+	}
+
+	for _, tc := range cases {
+		if tc.tab.String() != tc.expected {
+			t.Errorf("expected TabID(%d).String() = %q, got %q", tc.tab, tc.expected, tc.tab.String())
+		}
+		if tc.tab.IsValid() != tc.valid {
+			t.Errorf("expected TabID(%d).IsValid() = %v, got %v", tc.tab, tc.valid, tc.tab.IsValid())
+		}
+	}
+}
+
+func TestModalType_StringAndIsOpen(t *testing.T) {
+	t.Parallel()
+
+	if ModalNone.IsOpen() {
+		t.Errorf("expected ModalNone.IsOpen() = false")
+	}
+	if !ModalLogs.IsOpen() {
+		t.Errorf("expected ModalLogs.IsOpen() = true")
+	}
+	if ModalInspect.String() != "inspect" {
+		t.Errorf("expected ModalInspect.String() = 'inspect', got %q", ModalInspect.String())
+	}
+
+	var m Model
+	if m.IsModalOpen() {
+		t.Errorf("expected default model to have no open modal")
+	}
+	m.OpenModal(ModalPrune)
+	if !m.IsModalOpen() {
+		t.Errorf("expected IsModalOpen() = true after OpenModal(ModalPrune)")
+	}
+	m.CloseModal()
+	if m.IsModalOpen() {
+		t.Errorf("expected IsModalOpen() = false after CloseModal()")
+	}
+}
+
+func TestNewModelWithOptions(t *testing.T) {
+	t.Parallel()
+
+	reg := module.NewRegistry()
+	reg.Register(module.ContainersModule)
+
+	m := NewModelWithOptions(
+		3*time.Second,
+		int(TabCompose),
+		"v1.5.0",
+		WithShowSwarm(true),
+		WithRegistry(reg),
+		WithOnlyUnusedImages(true),
+		WithSortMode(SortCPU),
+		WithHideDetails(true),
+	)
+
+	if m.refreshInterval != 3*time.Second {
+		t.Errorf("expected interval 3s, got %v", m.refreshInterval)
+	}
+	if m.activeTab != TabCompose {
+		t.Errorf("expected active tab Compose, got %v", m.activeTab)
+	}
+	if m.version != "v1.5.0" {
+		t.Errorf("expected version v1.5.0, got %q", m.version)
+	}
+	if !m.showSwarm {
+		t.Errorf("expected showSwarm = true")
+	}
+	if m.Registry() != reg {
+		t.Errorf("expected custom registry to be set")
+	}
+	if !m.onlyUnusedImages {
+		t.Errorf("expected onlyUnusedImages = true")
+	}
+	if m.containerSortMode != SortCPU {
+		t.Errorf("expected sort mode SortCPU, got %v", m.containerSortMode)
+	}
+	if !m.hideDetails {
+		t.Errorf("expected hideDetails = true")
+	}
+}
+
+func TestCloseModal_FullCleanup(t *testing.T) {
+	t.Parallel()
+
+	m := newFastTestModel()
+	m.OpenModal(ModalRemoveContainer)
+
+	// Populate various modal fields to verify they are all cleared
+	m.execIsCustomInput = true
+	m.execCustomCmd = "sh"
+	m.execTargetID = "c123"
+	m.execTargetName = "my-cont"
+	m.logsLines = []string{"line 1", "line 2"}
+	m.inspectTarget = monitor.ContainerDetail{ID: "c123"}
+	m.inspectCustomLines = []string{"inspect 1"}
+	m.removeContainerBatch = []monitor.ContainerItem{{ID: "c1"}}
+	m.removeImageBatch = []monitor.DockerImage{{ID: "img1"}}
+	m.removeNetworkBatch = []monitor.DockerNetwork{{ID: "net1"}}
+	m.removeVolumeBatch = []monitor.DockerVolume{{Name: "vol1"}}
+	m.swarmScaleTargetID = "srv1"
+	m.swarmScaleDesired = 5
+
+	m.CloseModal()
+
+	if m.activeModal != ModalNone {
+		t.Errorf("expected activeModal = ModalNone")
+	}
+	if m.execIsCustomInput || m.execCustomCmd != "" || m.execTargetID != "" {
+		t.Errorf("expected exec state cleared")
+	}
+	if len(m.logsLines) != 0 {
+		t.Errorf("expected logsLines cleared")
+	}
+	if m.inspectTarget.ID != "" || len(m.inspectCustomLines) != 0 {
+		t.Errorf("expected inspect state cleared")
+	}
+	if len(m.removeContainerBatch) != 0 || len(m.removeImageBatch) != 0 || len(m.removeNetworkBatch) != 0 || len(m.removeVolumeBatch) != 0 {
+		t.Errorf("expected remove batches cleared")
+	}
+	if m.swarmScaleTargetID != "" || m.swarmScaleDesired != 0 {
+		t.Errorf("expected swarm scale state cleared")
+	}
+}
+
+func TestModel_FetchDataCmd(t *testing.T) {
+	m := newFastTestModel()
+	reg := module.NewRegistry()
+	reg.Register(module.ContainersModule)
+	m.SetRegistry(reg)
+
+	cmd := m.FetchDataCmd()
+	if cmd == nil {
+		t.Fatalf("expected non-nil tea.Cmd from FetchDataCmd()")
+	}
+
+	msg := cmd()
+	fetchedMsg, ok := msg.(actions.DataFetchedMsg)
+	if !ok {
+		t.Fatalf("expected DataFetchedMsg, got %T", msg)
+	}
+	if len(fetchedMsg.Timestamp) != 8 {
+		t.Errorf("expected valid timestamp in fetched message, got %q", fetchedMsg.Timestamp)
+	}
+}
+
+func TestModel_ShowToastAndClipboardExported(t *testing.T) {
+	m := newFastTestModel()
+	m.ShowToast("hello test")
+	if m.actionMessage != "hello test" {
+		t.Errorf("expected actionMessage = 'hello test', got %q", m.actionMessage)
+	}
+
+	m.CopyToClipboard("exported-id")
+	if m.actionMessage == "" {
+		t.Errorf("expected non-empty actionMessage after CopyToClipboard")
+	}
+}

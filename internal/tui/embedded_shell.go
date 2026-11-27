@@ -103,7 +103,7 @@ func (m Model) handleEmbeddedShellExited(msg embeddedShellExitedMsg) (tea.Model,
 	} else {
 		m.showToast(fmt.Sprintf("Shell error in %s: %v", name, msg.err))
 	}
-	return m, fetchDataCmd()
+	return m, m.FetchDataCmd()
 }
 
 func (m Model) handleEmbeddedShellKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -115,7 +115,7 @@ func (m Model) handleEmbeddedShellKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		name := m.shellContainerName
 		m.closeEmbeddedShell()
 		m.showToast(fmt.Sprintf("Shell session in %s closed", name))
-		return m, fetchDataCmd()
+		return m, m.FetchDataCmd()
 	}
 	data := shellKeyBytes(msg)
 	if len(data) == 0 {

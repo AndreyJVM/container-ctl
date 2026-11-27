@@ -62,7 +62,7 @@ func (m Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "r", "R":
 		m.showToast("Refreshing data...")
-		return m, fetchDataCmd()
+		return m, m.FetchDataCmd()
 
 	// Container sorting on the Docker tab.
 	case "o", "O":

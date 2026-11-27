@@ -33,8 +33,43 @@ const (
 	TabCount = 6
 )
 
+// String returns the human-readable display name of the tab.
+func (t TabID) String() string {
+	switch t {
+	case TabDocker:
+		return "Containers"
+	case TabImages:
+		return "Images"
+	case TabCompose:
+		return "Compose"
+	case TabNetworks:
+		return "Networks"
+	case TabVolumes:
+		return "Volumes"
+	case TabSwarm:
+		return "Swarm"
+	default:
+		return fmt.Sprintf("Tab(%d)", int(t))
+	}
+}
+
+// IsValid reports whether the tab ID corresponds to a known dashboard tab.
+func (t TabID) IsValid() bool {
+	return t >= TabDocker && t <= TabSwarm
+}
+
 // ModalType represents an active modal dialog.
 type ModalType string
+
+// String returns the string representation of the modal type.
+func (m ModalType) String() string {
+	return string(m)
+}
+
+// IsOpen reports whether an overlay modal is currently active.
+func (m ModalType) IsOpen() bool {
+	return m != ModalNone
+}
 
 type embeddedShellSession interface {
 	Read() ([]byte, error)
@@ -242,8 +277,47 @@ func (m Model) moduleContext() module.Context {
 	}
 }
 
-// NewModel creates a TUI model with a refresh interval and initial tab.
-func NewModel(refreshInterval time.Duration, initialTab int, version string, showSwarm ...bool) Model {
+// ModelOption configures a TUI Model instance during construction.
+type ModelOption func(*Model)
+
+// WithShowSwarm sets whether the Swarm tab should be forced to be visible.
+func WithShowSwarm(show bool) ModelOption {
+	return func(m *Model) {
+		m.showSwarm = show
+	}
+}
+
+// WithRegistry sets a custom module registry for the dashboard.
+func WithRegistry(r *module.Registry) ModelOption {
+	return func(m *Model) {
+		m.SetRegistry(r)
+	}
+}
+
+// WithOnlyUnusedImages configures the initial image filtering to show only unused images.
+func WithOnlyUnusedImages(val bool) ModelOption {
+	return func(m *Model) {
+		m.onlyUnusedImages = val
+	}
+}
+
+// WithSortMode sets the initial container sort mode.
+func WithSortMode(mode int) ModelOption {
+	return func(m *Model) {
+		m.containerSortMode = mode
+	}
+}
+
+// WithHideDetails sets whether the lower details pane should be hidden initially.
+func WithHideDetails(hide bool) ModelOption {
+	return func(m *Model) {
+		m.hideDetails = hide
+	}
+}
+
+// NewModelWithOptions creates a TUI model with a refresh interval, initial tab, version, and optional functional options.
+// Startup is completely non-blocking: data is fetched asynchronously via Bubble Tea's Init() command.
+func NewModelWithOptions(refreshInterval time.Duration, initialTab int, version string, opts ...ModelOption) Model {
 	tab := TabID(initialTab)
 	if tab < TabDocker || tab > TabCount {
 		tab = TabDocker
@@ -251,22 +325,34 @@ func NewModel(refreshInterval time.Duration, initialTab int, version string, sho
 	if refreshInterval <= 0 {
 		refreshInterval = 2 * time.Second
 	}
-	forceSwarm := tab == TabSwarm
-	if len(showSwarm) > 0 && showSwarm[0] {
-		forceSwarm = true
-	}
 	var m Model
 	m.version = version
 	m.activeTab = tab
 	m.refreshInterval = refreshInterval
-	m.showSwarm = forceSwarm
+	m.showSwarm = tab == TabSwarm
 	m.selectedContainers = make(map[string]struct{})
 	m.selectedImages = make(map[string]struct{})
 	m.selectedNetworks = make(map[string]struct{})
 	m.selectedVolumes = make(map[string]struct{})
 	m.registry = module.DefaultRegistry()
-	m.fetchAllData()
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&m)
+		}
+	}
+
 	return m
+}
+
+// NewModel creates a TUI model with a refresh interval and initial tab.
+// Preserves backward compatibility while delegating to non-blocking NewModelWithOptions.
+func NewModel(refreshInterval time.Duration, initialTab int, version string, showSwarm ...bool) Model {
+	var opts []ModelOption
+	if len(showSwarm) > 0 && showSwarm[0] {
+		opts = append(opts, WithShowSwarm(true))
+	}
+	return NewModelWithOptions(refreshInterval, initialTab, version, opts...)
 }
 
 func (m *Model) applyActionsData(d actions.DataFetchedMsg) {
@@ -321,13 +407,36 @@ func (m *Model) fetchAllData() {
 	m.applyFetchedData(fetchDockerData())
 }
 
+// FetchDataCmd returns a tea.Cmd that queries Docker resources for only the active and visible modules.
+func (m Model) FetchDataCmd() tea.Cmd {
+	ctx := m.moduleContext()
+	reg := m.Registry()
+	includeImages := reg.IsModuleVisible(module.IDImages, ctx)
+	includeNetworks := reg.IsModuleVisible(module.IDNetworks, ctx)
+	includeVolumes := reg.IsModuleVisible(module.IDVolumes, ctx)
+	includeSwarm := reg.IsModuleVisible(module.IDSwarm, ctx)
+
+	return func() tea.Msg {
+		return actions.FetchAllDataFiltered(includeImages, includeNetworks, includeVolumes, includeSwarm)
+	}
+}
+
+// Init starts the periodic ticker and asynchronously triggers the initial data fetch.
 func (m Model) Init() tea.Cmd {
-	return tickCmd(m.refreshInterval)
+	return tea.Batch(
+		tickCmd(m.refreshInterval),
+		m.FetchDataCmd(),
+	)
 }
 
 func (m *Model) showToast(msg string) {
 	m.actionMessage = msg
 	m.actionMessageExpiry = time.Now().Add(4 * time.Second)
+}
+
+// ShowToast displays an ephemeral notification message in the dashboard.
+func (m *Model) ShowToast(msg string) {
+	m.showToast(msg)
 }
 
 func (m *Model) copyToClipboard(text string) {
@@ -336,6 +445,11 @@ func (m *Model) copyToClipboard(text string) {
 	} else {
 		m.showToast(fmt.Sprintf("Copied to clipboard: %s", text))
 	}
+}
+
+// CopyToClipboard writes text to the system clipboard and notifies the user via a toast.
+func (m *Model) CopyToClipboard(text string) {
+	m.copyToClipboard(text)
 }
 
 func formatFetchError(err error) string {
@@ -354,14 +468,52 @@ func (m *Model) openModal(modal ModalType) {
 	}
 }
 
-// closeModal dismisses the active modal dialog and cleans ephemeral input state.
+// closeModal dismisses the active modal dialog and cleans ephemeral input state and allocations.
 func (m *Model) closeModal() {
 	m.activeModal = ModalNone
 	m.execIsCustomInput = false
 	m.execCustomCmd = ""
+	m.execTargetID = ""
+	m.execTargetName = ""
+	m.execCursorIdx = 0
+
 	m.logsFiltering = false
 	m.logsFilterQuery = ""
+	m.logsTargetName = ""
+	m.logsTargetID = ""
+	m.logsLines = nil
+	m.logsScroll = 0
+
+	m.inspectTarget = monitor.ContainerDetail{}
+	m.inspectCustomTitle = ""
+	m.inspectCustomLines = nil
+	m.inspectCopyID = ""
 	m.inspectScroll = 0
+
+	m.composeDownTarget = ""
+
+	m.removeContainerTargetID = ""
+	m.removeContainerTargetName = ""
+	m.removeContainerBatch = nil
+
+	m.removeImageTargetID = ""
+	m.removeImageTargetName = ""
+	m.removeImageTargetInUse = false
+	m.removeImageBatch = nil
+
+	m.removeNetworkTargetID = ""
+	m.removeNetworkTargetName = ""
+	m.removeNetworkContainersCount = 0
+	m.removeNetworkBatch = nil
+
+	m.removeVolumeTargetName = ""
+	m.removeVolumeTargetInUse = false
+	m.removeVolumeBatch = nil
+
+	m.pruneUsage = monitor.DockerDiskUsage{}
+	m.pruneUsageErr = ""
+	m.pruneConfirm = 0
+
 	m.swarmScaleTargetID = ""
 	m.swarmScaleTargetName = ""
 	m.swarmScaleCurrent = 0
@@ -377,6 +529,11 @@ func (m *Model) OpenModal(modal ModalType) {
 // CloseModal dismisses the active modal dialog.
 func (m *Model) CloseModal() {
 	m.closeModal()
+}
+
+// IsModalOpen reports whether an overlay modal dialog is currently active.
+func (m Model) IsModalOpen() bool {
+	return m.activeModal.IsOpen()
 }
 
 // ActiveModal returns the current active modal dialog.

@@ -233,21 +233,25 @@ func run(args []string, stdout, stderr io.Writer) error {
 		monitor.SetCustomSocketPath(cfg.appConfig.Docker.SocketPath)
 	}
 
-	model := tui.NewModel(cfg.interval, cfg.initialTab, version, cfg.showSwarm)
-
+	var opts []tui.ModelOption
+	if cfg.showSwarm {
+		opts = append(opts, tui.WithShowSwarm(true))
+	}
 	if cfg.appConfig != nil {
 		if len(cfg.appConfig.Modules) > 0 {
 			reg := module.DefaultRegistry()
 			reg.ApplyConfigs(cfg.appConfig.Modules)
-			model.SetRegistry(reg)
+			opts = append(opts, tui.WithRegistry(reg))
 		}
 		if cfg.appConfig.UI.OnlyUnusedImages {
-			model.SetOnlyUnusedImages(true)
+			opts = append(opts, tui.WithOnlyUnusedImages(true))
 		}
 		if sortMode, sErr := configPkg.ParseSortMode(cfg.appConfig.UI.DefaultSort); sErr == nil && sortMode != 0 {
-			model.SetContainerSortMode(sortMode)
+			opts = append(opts, tui.WithSortMode(sortMode))
 		}
 	}
+
+	model := tui.NewModelWithOptions(cfg.interval, cfg.initialTab, version, opts...)
 
 	return runProgram(model)
 }

@@ -78,7 +78,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 		return m, tea.Batch(
 			tickCmd(m.refreshInterval),
-			fetchDataCmd(),
+			m.FetchDataCmd(),
 		)
 	}
 	return m, nil
@@ -99,8 +99,7 @@ func (m Model) handleExecFinished(msg execFinishedMsg) (tea.Model, tea.Cmd) {
 	} else {
 		m.showToast(fmt.Sprintf("Shell session in %s ended", msg.containerName))
 	}
-	m.fetchAllData()
-	return m, nil
+	return m, m.FetchDataCmd()
 }
 
 func (m *Model) handleActionResult(err error, message string, refresh bool) (tea.Model, tea.Cmd) {
@@ -110,7 +109,7 @@ func (m *Model) handleActionResult(err error, message string, refresh bool) (tea
 		m.showToast(message)
 	}
 	if refresh {
-		return *m, fetchDataCmd()
+		return *m, m.FetchDataCmd()
 	}
 	return *m, nil
 }
