@@ -40,8 +40,8 @@ func TestRenderHeader(t *testing.T) {
 			FormattedDockerStatus: "Stopped",
 		})
 
-		if !strings.Contains(hdr, "v0.22.4") {
-			t.Errorf("expected fallback version 'v0.22.4' when Version is empty, got: %s", hdr)
+		if !strings.Contains(hdr, "v0.22.6") {
+			t.Errorf("expected fallback version 'v0.22.6' when Version is empty, got: %s", hdr)
 		}
 	})
 

@@ -20,7 +20,7 @@ type HeaderContext struct {
 func RenderHeader(ctx HeaderContext) string {
 	verStr := ctx.Version
 	if verStr == "" {
-		verStr = "v0.22.4"
+		verStr = "v0.22.6"
 	}
 	appLine := theme.HeaderStyle.Render("container-ctl") +
 		theme.DimStyle.Render(fmt.Sprintf("  %s  ", verStr)) +

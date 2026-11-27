@@ -8,7 +8,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/AndreyJVM/container-ctl/main/install.sh | sudo bash
 #
 # Environment variables:
-#   VERSION: Specify version to install (e.g. "0.22.5" or "v0.22.5", defaults to latest)
+#   VERSION: Specify version to install (e.g. "0.22.6" or "v0.22.6", defaults to latest)
 #   BIN_DIR: Directory to install container-ctl into (defaults to /usr/local/bin or ~/.local/bin)
 
 set -e
