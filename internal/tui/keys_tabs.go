@@ -450,6 +450,7 @@ func (m Model) handleSwarmQuickScale(delta int) (Model, tea.Cmd) {
 		if desired < 0 {
 			desired = 0
 		}
+		m.showToast(fmt.Sprintf("Scaling service %s to %d replicas...", svc.Name, desired))
 		return m, scaleSwarmServiceCmd(svc.ID, svc.Name, desired)
 	}
 	return m, nil

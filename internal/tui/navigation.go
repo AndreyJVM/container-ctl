@@ -194,6 +194,11 @@ func (m Model) activeListLength() int {
 	}
 }
 
+// ActiveCursor returns the cursor index of the currently active tab.
+func (m Model) ActiveCursor() int {
+	return m.activeCursor()
+}
+
 // activeCursor returns the cursor index of the currently active tab.
 func (m Model) activeCursor() int {
 	switch m.activeTab {
