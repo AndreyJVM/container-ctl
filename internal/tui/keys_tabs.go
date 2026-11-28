@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/AndreyJVM/container-ctl/internal/clipboard"
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
@@ -18,7 +19,10 @@ import (
 // Browser opener helper
 // -----------------------------------------------------------------------------
 
-var browserOpener = defaultBrowserOpener
+var (
+	browserOpenerMu sync.RWMutex
+	browserOpener   = defaultBrowserOpener
+)
 
 func defaultBrowserOpener(url string) bool {
 	var cmd *exec.Cmd
@@ -38,7 +42,10 @@ func defaultBrowserOpener(url string) bool {
 }
 
 func openBrowser(url string) bool {
-	return browserOpener(url)
+	browserOpenerMu.RLock()
+	fn := browserOpener
+	browserOpenerMu.RUnlock()
+	return fn(url)
 }
 
 // -----------------------------------------------------------------------------

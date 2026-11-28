@@ -195,7 +195,8 @@ func TestE2E_ImagesFilterAndInUseWarningWorkflow(t *testing.T) {
 // TestE2E_ContainerPortURLExtraction verifies opening and copying container URLs
 // with 'w', including handling running vs stopped containers.
 func TestE2E_ContainerPortURLExtraction(t *testing.T) {
-	t.Parallel()
+	cleanupOpener := tui.SetBrowserOpenerForTesting(func(_ string) bool { return true })
+	defer cleanupOpener()
 
 	m := createComprehensiveTestModel()
 

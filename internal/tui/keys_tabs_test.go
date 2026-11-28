@@ -571,9 +571,6 @@ func TestContainerKillAndRemoveWorkflow(t *testing.T) {
 }
 
 func TestContainerCopyAndOpenURL(t *testing.T) {
-	origOpener := browserOpener
-	defer func() { browserOpener = origOpener }()
-
 	m := newFastDockerTestModel()
 	m.dockerInfo.Status = "running"
 	m.dockerInfo.Containers = []monitor.ContainerItem{
@@ -605,19 +602,21 @@ func TestContainerCopyAndOpenURL(t *testing.T) {
 	}
 
 	// 2. Press 'w' when browser opener succeeds
-	browserOpener = func(_ string) bool { return true }
+	cleanupOpener := SetBrowserOpenerForTesting(func(_ string) bool { return true })
 	m.cursorIdx = 0
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
 	m = res.(Model)
+	cleanupOpener()
 	if !strings.Contains(m.actionMessage, "Opened http://localhost:3000 (copied to clipboard)") {
 		t.Errorf("expected opened toast, got: %s", m.actionMessage)
 	}
 
 	// 3. Press 'w' when browser opener fails (fallback to copied URL)
-	browserOpener = func(_ string) bool { return false }
+	cleanupOpenerFail := SetBrowserOpenerForTesting(func(_ string) bool { return false })
 	m.cursorIdx = 0
 	res, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'w'}})
 	m = res.(Model)
+	cleanupOpenerFail()
 	if !strings.Contains(m.actionMessage, "Copied URL: http://localhost:3000") {
 		t.Errorf("expected copied URL toast when browser open fails, got: %s", m.actionMessage)
 	}

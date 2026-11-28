@@ -112,6 +112,19 @@ func SetStartEmbeddedShellForTesting(fn func(cmd *exec.Cmd, width, height int) (
 	}
 }
 
+// SetBrowserOpenerForTesting overrides the browser opener hook and returns a cleanup func.
+func SetBrowserOpenerForTesting(fn func(url string) bool) func() {
+	browserOpenerMu.Lock()
+	prev := browserOpener
+	browserOpener = fn
+	browserOpenerMu.Unlock()
+	return func() {
+		browserOpenerMu.Lock()
+		browserOpener = prev
+		browserOpenerMu.Unlock()
+	}
+}
+
 const (
 	// ModalNone indicates no modal is active.
 	ModalNone ModalType = ""

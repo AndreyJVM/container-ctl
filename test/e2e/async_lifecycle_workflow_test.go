@@ -134,7 +134,8 @@ func TestE2E_EmbeddedShellWindowResizeAndAutoClose(t *testing.T) {
 // TestE2E_ContainerPortMappingAndBrowserURL verifies pressing 'w' extracts
 // container URLs and handles running vs stopped vs unmapped containers properly.
 func TestE2E_ContainerPortMappingAndBrowserURL(t *testing.T) {
-	t.Parallel()
+	cleanupOpener := tui.SetBrowserOpenerForTesting(func(_ string) bool { return true })
+	defer cleanupOpener()
 
 	m := createComprehensiveTestModel()
 
