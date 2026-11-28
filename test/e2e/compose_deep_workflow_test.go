@@ -15,7 +15,7 @@ func createMultiComposeModel() tui.Model {
 	m := tui.NewModelWithOptions(
 		2*time.Second,
 		int(tui.TabCompose),
-		"v0.22.6",
+		"v0.22.7",
 		tui.WithShowSwarm(true),
 	)
 

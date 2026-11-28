@@ -62,7 +62,7 @@ modules:
 	m := tui.NewModelWithOptions(
 		appCfg.Interval,
 		appCfg.InitialTab,
-		"v0.22.6",
+		"v0.22.7",
 		tui.WithRegistry(reg),
 		tui.WithShowSwarm(appCfg.ShowSwarm),
 		tui.WithOnlyUnusedImages(appCfg.UI.OnlyUnusedImages),

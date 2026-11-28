@@ -92,7 +92,7 @@ func createComprehensiveTestModel() tui.Model {
 	m := tui.NewModelWithOptions(
 		2*time.Second,
 		int(tui.TabDocker),
-		"v0.22.6",
+		"v0.22.7",
 		tui.WithShowSwarm(true),
 	)
 

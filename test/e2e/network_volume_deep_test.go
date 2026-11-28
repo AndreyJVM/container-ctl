@@ -15,7 +15,7 @@ func TestE2E_NetworkFilterAndBatchOperations(t *testing.T) {
 	m := tui.NewModelWithOptions(
 		2*time.Second,
 		int(tui.TabNetworks),
-		"v0.22.6",
+		"v0.22.7",
 	)
 
 	initialData := actions.DataFetchedMsg{
@@ -133,7 +133,7 @@ func TestE2E_VolumeFilterAndBatchOperations(t *testing.T) {
 	m := tui.NewModelWithOptions(
 		2*time.Second,
 		int(tui.TabVolumes),
-		"v0.22.6",
+		"v0.22.7",
 	)
 
 	initialData := actions.DataFetchedMsg{

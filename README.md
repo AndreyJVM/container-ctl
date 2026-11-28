@@ -78,13 +78,13 @@ Download and extract the latest standalone binary directly from GitHub:
 
 ```bash
 # Linux amd64 (x86_64)
-wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.6_linux_amd64.tar.gz
-tar -xzf container-ctl_0.22.6_linux_amd64.tar.gz
+wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.7_linux_amd64.tar.gz
+tar -xzf container-ctl_0.22.7_linux_amd64.tar.gz
 sudo mv container-ctl /usr/local/bin/
 
 # Linux arm64 (aarch64 / Raspberry Pi)
-wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.6_linux_arm64.tar.gz
-tar -xzf container-ctl_0.22.6_linux_arm64.tar.gz
+wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.7_linux_arm64.tar.gz
+tar -xzf container-ctl_0.22.7_linux_arm64.tar.gz
 sudo mv container-ctl /usr/local/bin/
 ```
 
@@ -94,16 +94,16 @@ Pre-built packages for **amd64** and **arm64** are available on the [Releases](h
 
 ```bash
 # Debian / Ubuntu / Linux Mint (.deb)
-wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.6_amd64.deb
-sudo dpkg -i container-ctl_0.22.6_amd64.deb
+wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.7_amd64.deb
+sudo dpkg -i container-ctl_0.22.7_amd64.deb
 
 # RHEL / Fedora / Rocky Linux / CentOS (.rpm)
-wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.6_amd64.rpm
-sudo rpm -i container-ctl_0.22.6_amd64.rpm
+wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.7_amd64.rpm
+sudo rpm -i container-ctl_0.22.7_amd64.rpm
 
 # Alpine Linux (.apk)
-wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.6_amd64.apk
-apk add --allow-untrusted container-ctl_0.22.6_amd64.apk
+wget https://github.com/AndreyJVM/container-ctl/releases/latest/download/container-ctl_0.22.7_amd64.apk
+apk add --allow-untrusted container-ctl_0.22.7_amd64.apk
 ```
 
 #### Verifying Release Artifacts (SLSA Provenance)
