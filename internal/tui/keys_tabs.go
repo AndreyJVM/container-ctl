@@ -3,6 +3,7 @@ package tui
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -25,6 +26,9 @@ var (
 )
 
 func defaultBrowserOpener(url string) bool {
+	if os.Getenv("CI") != "" {
+		return false
+	}
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":
