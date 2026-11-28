@@ -296,6 +296,31 @@ func (m *Model) SetContainerSortMode(mode int) {
 	}
 }
 
+// ContainerSortMode returns the currently active container sort mode.
+func (m Model) ContainerSortMode() int {
+	return m.containerSortMode
+}
+
+// FilteredContainers returns currently filtered and sorted containers.
+func (m Model) FilteredContainers() []monitor.ContainerItem {
+	return m.getFilteredContainers()
+}
+
+// FilteredImages returns currently filtered images.
+func (m Model) FilteredImages() []monitor.DockerImage {
+	return m.getFilteredImages()
+}
+
+// FilteredNetworks returns currently filtered networks.
+func (m Model) FilteredNetworks() []monitor.DockerNetwork {
+	return m.getFilteredNetworks()
+}
+
+// FilteredVolumes returns currently filtered volumes.
+func (m Model) FilteredVolumes() []monitor.DockerVolume {
+	return m.getFilteredVolumes()
+}
+
 func containerStatusScore(c monitor.ContainerItem) int {
 	return filter.ContainerStatusScore(c)
 }

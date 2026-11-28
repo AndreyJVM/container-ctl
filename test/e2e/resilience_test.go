@@ -14,67 +14,7 @@ import (
 )
 
 func createResilienceModel() tui.Model {
-	m := tui.NewModel(2*time.Second, 1, "v0.4.1")
-	m.SetShowSwarm(true)
-
-	data := actions.DataFetchedMsg{
-		DockerInfo: monitor.DockerSummary{
-			Status:            "running",
-			StatusDisplay:     "Running",
-			RunningContainers: 2,
-			StoppedContainers: 1,
-			ImagesCount:       3,
-			Version:           "27.4.0",
-			Containers: []monitor.ContainerItem{
-				testutil.AContainer(testutil.WithName("app-1"), testutil.WithState("running", "Up 2 hours")),
-				testutil.AContainer(testutil.WithName("app-2"), testutil.WithState("exited", "Exited (0) 10m ago")),
-			},
-		},
-		Images: []monitor.DockerImage{
-			testutil.AnImage(testutil.WithRepoTag("redis", "alpine")),
-			testutil.AnImage(testutil.WithRepoTag("postgres", "16")),
-		},
-		Compose: []monitor.ComposeProject{
-			{
-				Name:            "web-stack",
-				Status:          "running",
-				StatusDisplay:   "Running",
-				TotalServices:   2,
-				RunningServices: 2,
-				Services: []monitor.ComposeService{
-					{Name: "api", ContainerName: "web-stack_api_1", State: "running", Status: "Up"},
-					{Name: "db", ContainerName: "web-stack_db_1", State: "running", Status: "Up"},
-				},
-			},
-		},
-		Networks: []monitor.DockerNetwork{
-			testutil.ANetwork(),
-		},
-		Volumes: []monitor.DockerVolume{
-			testutil.AVolume(),
-		},
-		Swarm: monitor.SwarmSummary{
-			IsActive:      true,
-			StatusDisplay: "Active",
-			IsManager:     true,
-			NodesCount:    3,
-			ManagersCount: 1,
-			Services: []monitor.SwarmService{
-				{
-					ID:              "srv1",
-					Name:            "frontend",
-					Image:           "nginx:alpine",
-					Mode:            "replicated",
-					Replicas:        "3/3",
-					RunningReplicas: 3,
-					TargetReplicas:  3,
-				},
-			},
-		},
-	}
-
-	updated, _ := m.Update(data)
-	return updated.(tui.Model)
+	return createComprehensiveTestModel()
 }
 
 func TestResilience_ExtremeWindowSizes(t *testing.T) {

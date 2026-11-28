@@ -252,199 +252,257 @@ func (s *safeBuffer) Len() int {
 	return s.buf.Len()
 }
 
-func TestE2E_InteractivePTY_FullSession(t *testing.T) {
+type ptySession struct {
+	t      *testing.T
+	cmd    *exec.Cmd
+	ptmx   *os.File
+	outBuf safeBuffer
+	offset int
+}
+
+func startPTYSession(t *testing.T, cmd *exec.Cmd, size *pty.Winsize) *ptySession {
+	t.Helper()
 	if runtime.GOOS == "darwin" && os.Getenv("CI") != "" {
 		t.Skip("skipping interactive PTY test on macOS in headless CI environment")
 	}
-	cmd := exec.Command(binaryPath, "-i", "200ms")
-	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: 35, Cols: 120})
+
+	ptmx, err := pty.StartWithSize(cmd, size)
 	if err != nil {
 		t.Fatalf("failed to start pseudo-terminal: %v", err)
 	}
-	defer func() {
+
+	s := &ptySession{
+		t:    t,
+		cmd:  cmd,
+		ptmx: ptmx,
+	}
+
+	t.Cleanup(func() {
 		_ = ptmx.Close()
 		if cmd.Process != nil {
 			_ = cmd.Process.Kill()
 		}
-	}()
+	})
 
-	// Drain ptmx output in background to safeBuffer
-	var outBuf safeBuffer
 	go func() {
-		_, _ = io.Copy(&outBuf, ptmx)
+		_, _ = io.Copy(&s.outBuf, ptmx)
 	}()
 
-	var offset int
-	waitForOutput := func(expected string, timeout time.Duration) bool {
-		deadline := time.Now().Add(timeout)
-		for time.Now().Before(deadline) {
-			s := outBuf.String()
-			if offset < len(s) {
-				idx := strings.Index(s[offset:], expected)
-				if idx != -1 {
-					offset += idx + len(expected)
-					return true
-				}
-			}
-			time.Sleep(30 * time.Millisecond)
-		}
-		return false
-	}
+	return s
+}
 
-	// 1. Wait for child process TUI event loop to start and render initial Containers tab
-	time.Sleep(500 * time.Millisecond)
-	if !waitForOutput("[S] Start/Stop", 6*time.Second) {
-		t.Fatalf("timed out waiting for initial Containers frame")
-	}
+func (s *ptySession) Write(p []byte) {
+	s.t.Helper()
+	_, _ = s.ptmx.Write(p)
+}
 
-	// 2. Switch to Images tab (2)
-	_, _ = ptmx.Write([]byte("2"))
-	if !waitForOutput("[u] Filter Unused", 6*time.Second) {
-		t.Errorf("expected Images tab to render upon '2' keypress")
-	}
+func (s *ptySession) WriteString(str string) {
+	s.t.Helper()
+	_, _ = s.ptmx.Write([]byte(str))
+}
 
-	// 3. Press '?' to trigger Help modal and wait for it to appear
-	_, _ = ptmx.Write([]byte("?"))
-	if !waitForOutput("Auto-refresh interval:", 6*time.Second) {
-		t.Errorf("expected TUI to render help modal upon '?' keypress")
-	}
-
-	// 4. Press '?' again to dismiss help modal
-	_, _ = ptmx.Write([]byte("?"))
-	time.Sleep(200 * time.Millisecond)
-
-	// 5. Switch to Compose tab (3)
-	_, _ = ptmx.Write([]byte("3"))
-	if !waitForOutput("[D] Down", 6*time.Second) {
-		t.Errorf("expected Compose tab to render upon '3' keypress")
-	}
-
-	// 6. Switch to Networks tab (4)
-	_, _ = ptmx.Write([]byte("4"))
-	if !waitForOutput("[4: Networks]", 6*time.Second) {
-		t.Errorf("expected Networks tab to render upon '4' keypress")
-	}
-
-	// 7. Switch to Volumes tab (5)
-	_, _ = ptmx.Write([]byte("5"))
-	if !waitForOutput("[5: Volumes]", 6*time.Second) {
-		t.Errorf("expected Volumes tab to render upon '5' keypress")
-	}
-
-	// 8. Switch back to Containers tab (1)
-	_, _ = ptmx.Write([]byte("1"))
-	if !waitForOutput("[S] Start/Stop", 6*time.Second) {
-		t.Errorf("expected Containers tab to render upon '1' keypress")
-	}
-
-	// 9. Press 'q' to gracefully quit the TUI application
-	_, _ = ptmx.Write([]byte("q"))
-
-	done := make(chan error, 1)
-	go func() {
-		done <- cmd.Wait()
-	}()
-
-	select {
-	case waitErr := <-done:
-		if waitErr != nil {
-			t.Fatalf("expected clean exit 0 upon quitting with 'q', got: %v", waitErr)
-		}
-	case <-time.After(7 * time.Second):
-		t.Fatalf("timed out waiting for interactive container-ctl session to exit on 'q'")
-	}
-
-	captured := outBuf.String()
-	if !strings.Contains(captured, "DOCKER CONTAINERS") {
-		t.Errorf("expected TUI to render 'DOCKER CONTAINERS' screen, got output length %d", len(captured))
-	}
-	if !strings.Contains(captured, "Toggle this help window") {
-		t.Errorf("expected TUI to render help modal upon '?' keypress")
+func (s *ptySession) Resize(rows, cols uint16) {
+	s.t.Helper()
+	if err := pty.Setsize(s.ptmx, &pty.Winsize{Rows: rows, Cols: cols}); err != nil {
+		s.t.Fatalf("failed to resize PTY: %v", err)
 	}
 }
 
-func TestE2E_InteractivePTY_FilterAndPrune(t *testing.T) {
-	if runtime.GOOS == "darwin" && os.Getenv("CI") != "" {
-		t.Skip("skipping interactive PTY test on macOS in headless CI environment")
-	}
-	cmd := exec.Command(binaryPath, "-t", "networks", "-i", "200ms")
-	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: 35, Cols: 120})
-	if err != nil {
-		t.Fatalf("failed to start pseudo-terminal: %v", err)
-	}
-	defer func() {
-		_ = ptmx.Close()
-		if cmd.Process != nil {
-			_ = cmd.Process.Kill()
-		}
-	}()
-
-	var outBuf safeBuffer
-	go func() {
-		_, _ = io.Copy(&outBuf, ptmx)
-	}()
-
-	var offset int
-	waitForOutput := func(expected string, timeout time.Duration) bool {
-		deadline := time.Now().Add(timeout)
-		for time.Now().Before(deadline) {
-			s := outBuf.String()
-			if offset < len(s) {
-				idx := strings.Index(s[offset:], expected)
-				if idx != -1 {
-					offset += idx + len(expected)
-					return true
-				}
+func (s *ptySession) WaitForOutput(expected string, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		str := s.outBuf.String()
+		if s.offset < len(str) {
+			idx := strings.Index(str[s.offset:], expected)
+			if idx != -1 {
+				s.offset += idx + len(expected)
+				return true
 			}
-			time.Sleep(30 * time.Millisecond)
 		}
-		return false
+		time.Sleep(30 * time.Millisecond)
 	}
+	return false
+}
 
-	// 1. Wait for initial Networks tab
-	time.Sleep(500 * time.Millisecond)
-	if !waitForOutput("DOCKER NETWORKS", 6*time.Second) {
-		t.Fatalf("timed out waiting for initial Networks tab frame")
+func (s *ptySession) RequireOutput(expected string, timeout time.Duration) {
+	s.t.Helper()
+	if !s.WaitForOutput(expected, timeout) {
+		s.t.Fatalf("timed out waiting for output %q, current output:\n%s", expected, s.outBuf.String())
 	}
+}
 
-	// 2. Press '/' to trigger search filter
-	_, _ = ptmx.Write([]byte("/"))
-	if !waitForOutput("[Search:", 6*time.Second) {
-		t.Errorf("expected [Search: prompt upon pressing '/'")
-	}
+func (s *ptySession) Output() string {
+	return s.outBuf.String()
+}
 
-	// 3. Type query and press Enter
-	_, _ = ptmx.Write([]byte("bridge\r"))
-	time.Sleep(200 * time.Millisecond)
-
-	// 4. Press Esc to clear filter
-	_, _ = ptmx.Write([]byte{0x1b})
-	time.Sleep(200 * time.Millisecond)
-
-	// 5. Press 'C' to open Prune modal dialog
-	_, _ = ptmx.Write([]byte("C"))
-	if !waitForOutput("CLEANUP & PRUNE DOCKER RESOURCES", 8*time.Second) {
-		t.Errorf("expected CLEANUP & PRUNE dialog upon pressing 'C'")
-	}
-
-	// 6. Press Esc to cancel and dismiss Prune dialog
-	_, _ = ptmx.Write([]byte{0x1b})
-	time.Sleep(200 * time.Millisecond)
-
-	// 7. Quit with 'q'
-	_, _ = ptmx.Write([]byte("q"))
-
+func (s *ptySession) WaitExit(timeout time.Duration) error {
+	s.t.Helper()
 	done := make(chan error, 1)
 	go func() {
-		done <- cmd.Wait()
+		done <- s.cmd.Wait()
 	}()
 
 	select {
-	case waitErr := <-done:
-		if waitErr != nil {
-			t.Fatalf("expected clean exit code 0 on quit, got: %v", waitErr)
-		}
-	case <-time.After(7 * time.Second):
-		t.Fatalf("timed out waiting for container-ctl to exit cleanly")
+	case err := <-done:
+		return err
+	case <-time.After(timeout):
+		s.t.Fatalf("timed out waiting for process to exit within %v", timeout)
+		return nil
+	}
+}
+
+func TestE2E_InteractivePTY_FullSession(t *testing.T) {
+	cmd := exec.Command(binaryPath, "-i", "200ms")
+	s := startPTYSession(t, cmd, &pty.Winsize{Rows: 35, Cols: 120})
+
+	time.Sleep(500 * time.Millisecond)
+	s.RequireOutput("[S] Start/Stop", 6*time.Second)
+
+	s.WriteString("2")
+	if !s.WaitForOutput("[u] Filter Unused", 6*time.Second) {
+		t.Errorf("expected Images tab to render upon '2' keypress")
+	}
+
+	s.WriteString("?")
+	if !s.WaitForOutput("Auto-refresh interval:", 6*time.Second) {
+		t.Errorf("expected TUI to render help modal upon '?' keypress")
+	}
+
+	s.WriteString("?")
+	time.Sleep(200 * time.Millisecond)
+
+	s.WriteString("3")
+	if !s.WaitForOutput("[D] Down", 6*time.Second) {
+		t.Errorf("expected Compose tab to render upon '3' keypress")
+	}
+
+	s.WriteString("4")
+	if !s.WaitForOutput("[4: Networks]", 6*time.Second) {
+		t.Errorf("expected Networks tab to render upon '4' keypress")
+	}
+
+	s.WriteString("5")
+	if !s.WaitForOutput("[5: Volumes]", 6*time.Second) {
+		t.Errorf("expected Volumes tab to render upon '5' keypress")
+	}
+
+	s.WriteString("1")
+	if !s.WaitForOutput("[S] Start/Stop", 6*time.Second) {
+		t.Errorf("expected Containers tab to render upon '1' keypress")
+	}
+
+	s.WriteString("q")
+	if err := s.WaitExit(7 * time.Second); err != nil {
+		t.Fatalf("expected clean exit 0 upon quitting with 'q', got: %v", err)
+	}
+
+	captured := s.Output()
+	assertContains(t, captured, "DOCKER CONTAINERS")
+	assertContains(t, captured, "Toggle this help window")
+}
+
+func TestE2E_InteractivePTY_FilterAndPrune(t *testing.T) {
+	cmd := exec.Command(binaryPath, "-t", "networks", "-i", "200ms")
+	s := startPTYSession(t, cmd, &pty.Winsize{Rows: 35, Cols: 120})
+
+	time.Sleep(500 * time.Millisecond)
+	s.RequireOutput("DOCKER NETWORKS", 6*time.Second)
+
+	s.WriteString("/")
+	if !s.WaitForOutput("[Search:", 6*time.Second) {
+		t.Errorf("expected [Search: prompt upon pressing '/'")
+	}
+
+	s.WriteString("bridge\r")
+	time.Sleep(200 * time.Millisecond)
+
+	s.Write([]byte{0x1b}) // Esc
+	time.Sleep(200 * time.Millisecond)
+
+	s.WriteString("C") // Prune modal
+	if !s.WaitForOutput("CLEANUP & PRUNE DOCKER RESOURCES", 8*time.Second) {
+		t.Errorf("expected CLEANUP & PRUNE dialog upon pressing 'C'")
+	}
+
+	s.Write([]byte{0x1b}) // Esc
+	time.Sleep(200 * time.Millisecond)
+
+	s.WriteString("q")
+	if err := s.WaitExit(7 * time.Second); err != nil {
+		t.Fatalf("expected clean exit code 0 on quit, got: %v", err)
+	}
+}
+
+func TestE2E_InteractivePTY_CustomConfig(t *testing.T) {
+	customYAML := `
+interval: 200ms
+initial_tab: 4
+modules:
+  networks:
+    enabled: true
+    title: "NetMesh"
+    order: 1
+  containers:
+    enabled: true
+    title: "PodBox"
+    order: 2
+`
+	cfgPath := filepath.Join(t.TempDir(), "custom_e2e_config.yaml")
+	if err := os.WriteFile(cfgPath, []byte(customYAML), 0644); err != nil {
+		t.Fatalf("failed to write custom config file: %v", err)
+	}
+
+	cmd := exec.Command(binaryPath, "-c", cfgPath)
+	s := startPTYSession(t, cmd, &pty.Winsize{Rows: 35, Cols: 120})
+
+	time.Sleep(500 * time.Millisecond)
+	s.RequireOutput("NetMesh", 6*time.Second)
+
+	s.WriteString("2")
+	if !s.WaitForOutput("PodBox", 6*time.Second) {
+		t.Errorf("expected PodBox tab title to be active upon '2'")
+	}
+	time.Sleep(300 * time.Millisecond)
+
+	s.WriteString("q")
+	if err := s.WaitExit(7 * time.Second); err != nil {
+		t.Fatalf("expected clean exit code 0 on quit, got: %v", err)
+	}
+}
+
+func TestE2E_InteractivePTY_DynamicResize(t *testing.T) {
+	cmd := exec.Command(binaryPath, "-i", "200ms")
+	s := startPTYSession(t, cmd, &pty.Winsize{Rows: 24, Cols: 80})
+
+	time.Sleep(500 * time.Millisecond)
+	s.RequireOutput("[S] Start/Stop", 6*time.Second)
+
+	s.Resize(45, 160)
+	time.Sleep(300 * time.Millisecond)
+
+	s.WriteString("2")
+	if !s.WaitForOutput("DOCKER IMAGES", 6*time.Second) {
+		t.Errorf("expected Images view after wide resize")
+	}
+
+	s.Resize(20, 70)
+	time.Sleep(300 * time.Millisecond)
+
+	s.WriteString("q")
+	if err := s.WaitExit(7 * time.Second); err != nil {
+		t.Fatalf("expected clean exit code 0 on quit, got: %v", err)
+	}
+}
+
+func TestE2E_InteractivePTY_SignalInterrupt(t *testing.T) {
+	cmd := exec.Command(binaryPath, "-i", "200ms")
+	s := startPTYSession(t, cmd, &pty.Winsize{Rows: 30, Cols: 100})
+
+	time.Sleep(500 * time.Millisecond)
+	s.RequireOutput("[S] Start/Stop", 6*time.Second)
+
+	s.Write([]byte{0x03}) // Ctrl+C
+	if err := s.WaitExit(7 * time.Second); err != nil {
+		t.Fatalf("expected clean exit 0 upon Ctrl+C, got: %v", err)
 	}
 }

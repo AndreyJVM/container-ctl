@@ -401,3 +401,74 @@ func (m Model) handleVolumesBatchRemoveModal() (Model, tea.Cmd) {
 	m.openModal(ModalRemoveVolume)
 	return m, nil
 }
+
+// pruneSelections removes stale IDs from selection maps if the corresponding resources no longer exist.
+func (m *Model) pruneSelections() {
+	if len(m.selectedContainers) > 0 {
+		valid := make(map[string]struct{}, len(m.dockerInfo.Containers))
+		for _, c := range m.dockerInfo.Containers {
+			valid[c.ID] = struct{}{}
+		}
+		for id := range m.selectedContainers {
+			if _, exists := valid[id]; !exists {
+				delete(m.selectedContainers, id)
+			}
+		}
+	}
+
+	if len(m.selectedImages) > 0 {
+		valid := make(map[string]struct{}, len(m.images))
+		for _, img := range m.images {
+			valid[img.ID] = struct{}{}
+		}
+		for id := range m.selectedImages {
+			if _, exists := valid[id]; !exists {
+				delete(m.selectedImages, id)
+			}
+		}
+	}
+
+	if len(m.selectedNetworks) > 0 {
+		valid := make(map[string]struct{}, len(m.networks))
+		for _, net := range m.networks {
+			valid[net.ID] = struct{}{}
+		}
+		for id := range m.selectedNetworks {
+			if _, exists := valid[id]; !exists {
+				delete(m.selectedNetworks, id)
+			}
+		}
+	}
+
+	if len(m.selectedVolumes) > 0 {
+		valid := make(map[string]struct{}, len(m.volumes))
+		for _, vol := range m.volumes {
+			valid[vol.Name] = struct{}{}
+		}
+		for name := range m.selectedVolumes {
+			if _, exists := valid[name]; !exists {
+				delete(m.selectedVolumes, name)
+			}
+		}
+	}
+}
+
+// SelectedContainersCount returns the count of currently selected containers.
+func (m Model) SelectedContainersCount() int {
+	return len(m.selectedContainers)
+}
+
+// SelectedImagesCount returns the count of currently selected images.
+func (m Model) SelectedImagesCount() int {
+	return len(m.selectedImages)
+}
+
+// SelectedNetworksCount returns the count of currently selected networks.
+func (m Model) SelectedNetworksCount() int {
+	return len(m.selectedNetworks)
+}
+
+// SelectedVolumesCount returns the count of currently selected volumes.
+func (m Model) SelectedVolumesCount() int {
+	return len(m.selectedVolumes)
+}

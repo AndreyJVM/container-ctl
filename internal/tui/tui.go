@@ -368,6 +368,7 @@ func (m *Model) applyActionsData(d actions.DataFetchedMsg) {
 	m.lastUpdate = d.Timestamp
 
 	m.clampCursor()
+	m.pruneSelections()
 
 	if m.registry != nil {
 		currID, hasID := ModuleIDFromTabID(m.activeTab)
@@ -534,6 +535,11 @@ func (m *Model) CloseModal() {
 // IsModalOpen reports whether an overlay modal dialog is currently active.
 func (m Model) IsModalOpen() bool {
 	return m.activeModal.IsOpen()
+}
+
+// IsHelpOpen reports whether the help overlay window is currently active.
+func (m Model) IsHelpOpen() bool {
+	return m.showHelp
 }
 
 // ActiveModal returns the current active modal dialog.
