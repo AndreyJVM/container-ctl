@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	minCardWidth   = 80
+	minCardWidth   = 72
 	detailColWidth = 18
 )
 
@@ -27,42 +27,106 @@ type containerTableLayout struct {
 	showGauges   bool
 }
 
-func computeContainerTableLayout(termWidth int) containerTableLayout {
+func computeContainerTableLayout(termWidth int, containers ...monitor.ContainerItem) containerTableLayout {
 	contentWidth := max(termWidth-4, minCardWidth)
 
-	var idWidth, statusWidth, cpuWidth, memWidth, nameWidth, imageWidth int
-	showGauges := false
+	idWidth := 8
+	cpuWidth := 6
+	memWidth := 8
+	statusWidth := 13
 
-	idWidth = 8
-	cpuWidth = 6
-	memWidth = 8
-	statusWidth = 13
-
-	if contentWidth >= 120 {
-		nameWidth = 20
-		imageWidth = 22
-		baseUsed := 14 + idWidth + statusWidth + cpuWidth + memWidth + nameWidth + imageWidth
-		extra := contentWidth - baseUsed - 20
-		if extra > 0 {
-			nameWidth += extra * 30 / 100
-			imageWidth += extra * 30 / 100
-		}
-	} else if contentWidth >= 100 {
-		nameWidth = 15
-		imageWidth = 15
-	} else if contentWidth >= 90 {
-		nameWidth = 13
-		imageWidth = 13
-	} else {
-		nameWidth = 11
-		imageWidth = 11
+	// Fixed columns width + 7 column separators of 2 spaces each (including prefix) = 14 spaces
+	fixedUsed := 14 + idWidth + statusWidth + cpuWidth + memWidth // 49
+	available := contentWidth - fixedUsed
+	if available < 18 {
+		available = 18
+		contentWidth = fixedUsed + available
 	}
 
-	used := 14 + idWidth + nameWidth + imageWidth + statusWidth + cpuWidth + memWidth
-	portsWidth := contentWidth - used
-	if portsWidth < 6 {
-		portsWidth = 6
-		contentWidth = used + portsWidth
+	var nameWidth, imageWidth, portsWidth int
+
+	if len(containers) > 0 {
+		maxNameLen := len("NAME")
+		maxImgLen := len("IMAGE")
+		maxPortsLen := len("PORTS")
+
+		for _, c := range containers {
+			if w := lipgloss.Width(c.Name); w > maxNameLen {
+				maxNameLen = w
+			}
+			if w := lipgloss.Width(c.Image); w > maxImgLen {
+				maxImgLen = w
+			}
+			if p := CleanTablePorts(c.Ports); p != "-" {
+				if w := lipgloss.Width(p); w > maxPortsLen {
+					maxPortsLen = w
+				}
+			}
+		}
+
+		// Baseline nameWidth: fit actual container names up to a reasonable cap.
+		capName := 28
+		capImg := 28
+		if contentWidth >= 140 {
+			capName = 34
+			capImg = 38
+		}
+
+		minName := 11
+		nameWidth = max(maxNameLen, minName)
+		if nameWidth > capName {
+			nameWidth = capName
+		}
+
+		minImg := 9
+		imageWidth = max(maxImgLen, minImg)
+		if imageWidth > capImg {
+			imageWidth = capImg
+		}
+
+		// Ensure ports gets at least 6 columns
+		if nameWidth+imageWidth > available-6 {
+			overflow := (nameWidth + imageWidth) - (available - 6)
+			if imageWidth-overflow >= minImg {
+				imageWidth -= overflow
+			} else {
+				overflow -= (imageWidth - minImg)
+				imageWidth = minImg
+				nameWidth = max(minName, nameWidth-overflow)
+			}
+		}
+
+		portsWidth = available - nameWidth - imageWidth
+		if portsWidth < 6 {
+			portsWidth = 6
+			contentWidth = fixedUsed + nameWidth + imageWidth + portsWidth
+		}
+	} else {
+		// Fallback layout when no container list is passed
+		if contentWidth >= 120 {
+			nameWidth = 16
+			imageWidth = 20
+			extra := contentWidth - (fixedUsed + nameWidth + imageWidth + 20)
+			if extra > 0 {
+				nameWidth += extra * 25 / 100
+				imageWidth += extra * 25 / 100
+			}
+		} else if contentWidth >= 100 {
+			nameWidth = 14
+			imageWidth = 15
+		} else if contentWidth >= 90 {
+			nameWidth = 12
+			imageWidth = 12
+		} else {
+			nameWidth = 10
+			imageWidth = 10
+		}
+
+		portsWidth = contentWidth - (fixedUsed + nameWidth + imageWidth)
+		if portsWidth < 6 {
+			portsWidth = 6
+			contentWidth = fixedUsed + nameWidth + imageWidth + portsWidth
+		}
 	}
 
 	return containerTableLayout{
@@ -74,7 +138,7 @@ func computeContainerTableLayout(termWidth int) containerTableLayout {
 		cpuWidth:     cpuWidth,
 		memWidth:     memWidth,
 		portsWidth:   portsWidth,
-		showGauges:   showGauges,
+		showGauges:   false,
 	}
 }
 
@@ -268,7 +332,7 @@ func renderNoContainersFoundNotice(ctx *DockerContext, s *strings.Builder) {
 }
 
 func renderContainerTable(ctx *DockerContext, s *strings.Builder) {
-	layout := computeContainerTableLayout(ctx.Width)
+	layout := computeContainerTableLayout(ctx.Width, ctx.Containers...)
 
 	headerText := fmt.Sprintf("  %-*s  %-*s  %-*s  %-*s  %*s  %*s  %-*s",
 		layout.idWidth, "ID",

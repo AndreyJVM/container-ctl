@@ -40,7 +40,7 @@ func (m Model) launchEmbeddedShell() (tea.Model, tea.Cmd) {
 		Mode:     "auto",
 		Terminal: "xterm-256color",
 	})
-	session, err := startEmbeddedShell(cmd, width, height)
+	session, err := runStartEmbeddedShell(cmd, width, height)
 	if err != nil {
 		m.showToast(fmt.Sprintf("Shell error in %s: %v", targetName, err))
 		return m, nil

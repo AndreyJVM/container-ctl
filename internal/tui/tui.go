@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"os/exec"
+	"sync"
 	"time"
 
 	"github.com/AndreyJVM/container-ctl/internal/clipboard"
@@ -84,17 +85,31 @@ type EmbeddedShellSession interface {
 
 type embeddedShellSession = EmbeddedShellSession
 
-// SetStartEmbeddedShellForTesting overrides the shell launcher for testing and returns a cleanup func.
-func SetStartEmbeddedShellForTesting(fn func(cmd *exec.Cmd, width, height int) (EmbeddedShellSession, error)) func() {
-	prev := startEmbeddedShell
-	startEmbeddedShell = fn
-	return func() {
-		startEmbeddedShell = prev
+var (
+	embeddedShellMu    sync.RWMutex
+	startEmbeddedShell = func(cmd *exec.Cmd, width, height int) (embeddedShellSession, error) {
+		return shell.Start(cmd, width, height)
 	}
+)
+
+func runStartEmbeddedShell(cmd *exec.Cmd, width, height int) (embeddedShellSession, error) {
+	embeddedShellMu.RLock()
+	fn := startEmbeddedShell
+	embeddedShellMu.RUnlock()
+	return fn(cmd, width, height)
 }
 
-var startEmbeddedShell = func(cmd *exec.Cmd, width, height int) (embeddedShellSession, error) {
-	return shell.Start(cmd, width, height)
+// SetStartEmbeddedShellForTesting overrides the shell launcher for testing and returns a cleanup func.
+func SetStartEmbeddedShellForTesting(fn func(cmd *exec.Cmd, width, height int) (EmbeddedShellSession, error)) func() {
+	embeddedShellMu.Lock()
+	prev := startEmbeddedShell
+	startEmbeddedShell = fn
+	embeddedShellMu.Unlock()
+	return func() {
+		embeddedShellMu.Lock()
+		startEmbeddedShell = prev
+		embeddedShellMu.Unlock()
+	}
 }
 
 const (

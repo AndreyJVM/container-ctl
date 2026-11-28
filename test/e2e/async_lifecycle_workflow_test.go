@@ -89,8 +89,6 @@ func TestE2E_ExternalExecFinishedHandling(t *testing.T) {
 // TestE2E_EmbeddedShellWindowResizeAndAutoClose verifies dynamic PTY resizing
 // when terminal dimensions change, as well as automatic closure if resize fails.
 func TestE2E_EmbeddedShellWindowResizeAndAutoClose(t *testing.T) {
-	t.Parallel()
-
 	fake := &e2eFakeShellSession{}
 	cleanupShell := tui.SetStartEmbeddedShellForTesting(func(cmd *exec.Cmd, width, height int) (tui.EmbeddedShellSession, error) {
 		return fake, nil

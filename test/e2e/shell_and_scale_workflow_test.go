@@ -16,8 +16,6 @@ import (
 // keyboard focus toggling, input forwarding, clean closure via Ctrl+X, process exit handling,
 // and PTY launch failure handling.
 func TestE2E_EmbeddedShellFullLifecycle(t *testing.T) {
-	t.Parallel()
-
 	fake := &e2eFakeShellSession{}
 	cleanupShell := tui.SetStartEmbeddedShellForTesting(func(cmd *exec.Cmd, width, height int) (tui.EmbeddedShellSession, error) {
 		return fake, nil
@@ -142,8 +140,6 @@ func TestE2E_EmbeddedShellFullLifecycle(t *testing.T) {
 // with 'l' on TabCompose, viewing multi-service interleaved logs, searching within logs,
 // clearing search filter, and closing logs viewer.
 func TestE2E_ComposeServiceLogsWorkflow(t *testing.T) {
-	t.Parallel()
-
 	// Mock compose runner returning multi-service log entries
 	cleanupRunner := monitor.SetComposeCommandRunnerForTesting(func(ctx context.Context, args ...string) ([]byte, error) {
 		mockLogs := strings.Join([]string{

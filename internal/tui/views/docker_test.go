@@ -275,6 +275,29 @@ func TestComputeContainerTableLayout(t *testing.T) {
 	}
 }
 
+func TestComputeContainerTableLayout_ContentAware(t *testing.T) {
+	shortContainers := []monitor.ContainerItem{
+		testutil.AContainer(testutil.WithName("web"), testutil.WithPorts("8080->80/tcp, 8443->443/tcp")),
+		testutil.AContainer(testutil.WithName("api"), testutil.WithPorts("3000->3000/tcp")),
+	}
+
+	layoutShort := computeContainerTableLayout(120, shortContainers...)
+	if layoutShort.nameWidth > 12 {
+		t.Errorf("expected compact nameWidth for short container names, got %d", layoutShort.nameWidth)
+	}
+	if layoutShort.portsWidth < 35 {
+		t.Errorf("expected generous portsWidth for short container names, got %d", layoutShort.portsWidth)
+	}
+
+	longContainers := []monitor.ContainerItem{
+		testutil.AContainer(testutil.WithName("my-long-production-service-backend-v1")),
+	}
+	layoutLong := computeContainerTableLayout(140, longContainers...)
+	if layoutLong.nameWidth < 25 {
+		t.Errorf("expected expanded nameWidth for long container name, got %d", layoutLong.nameWidth)
+	}
+}
+
 func TestRenderDockerView_WideWithGauges(t *testing.T) {
 	containers := []monitor.ContainerItem{
 		testutil.AContainer(

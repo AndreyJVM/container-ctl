@@ -38,14 +38,28 @@ const (
 	containerStateRunning  = "running"
 )
 
-var composeCommandRunner = runComposeCommand
+var (
+	composeRunnerMu      sync.RWMutex
+	composeCommandRunner = runComposeCommand
+)
+
+func runCompose(ctx context.Context, args ...string) ([]byte, error) {
+	composeRunnerMu.RLock()
+	runner := composeCommandRunner
+	composeRunnerMu.RUnlock()
+	return runner(ctx, args...)
+}
 
 // SetComposeCommandRunnerForTesting sets a mock runner for Compose commands in tests.
 func SetComposeCommandRunnerForTesting(fn func(ctx context.Context, args ...string) ([]byte, error)) func() {
+	composeRunnerMu.Lock()
 	prev := composeCommandRunner
 	composeCommandRunner = fn
+	composeRunnerMu.Unlock()
 	return func() {
+		composeRunnerMu.Lock()
 		composeCommandRunner = prev
+		composeRunnerMu.Unlock()
 	}
 }
 
@@ -191,7 +205,7 @@ func GetComposeProjectLogs(projectName string, containers []docker.ContainerItem
 	if strings.TrimSpace(projectName) != "" {
 		ctx, cancel := context.WithTimeout(context.Background(), composeLogsTimeout)
 		defer cancel()
-		out, err := composeCommandRunner(ctx, "-p", projectName, "logs", "--tail", fmt.Sprintf("%d", tailLines))
+		out, err := runCompose(ctx, "-p", projectName, "logs", "--tail", fmt.Sprintf("%d", tailLines))
 		if err == nil && len(strings.TrimSpace(string(out))) > 0 {
 			return string(out), nil
 		}
@@ -259,7 +273,7 @@ func executeComposeProjectAction(projectName, actionName string, containers []do
 	if strings.TrimSpace(projectName) != "" {
 		ctx, cancel := context.WithTimeout(context.Background(), composeRestartTimeout)
 		defer cancel()
-		if _, err := composeCommandRunner(ctx, "-p", projectName, actionName); err == nil {
+		if _, err := runCompose(ctx, "-p", projectName, actionName); err == nil {
 			return nil
 		}
 	}
