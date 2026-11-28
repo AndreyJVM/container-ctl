@@ -326,6 +326,21 @@ func (m Model) FilteredVolumes() []monitor.DockerVolume {
 	return m.getFilteredVolumes()
 }
 
+// FilteredCompose returns currently filtered compose projects.
+func (m Model) FilteredCompose() []monitor.ComposeProject {
+	return m.getFilteredCompose()
+}
+
+// FilterQuery returns the current filter query string.
+func (m Model) FilterQuery() string {
+	return m.filterQuery
+}
+
+// IsFiltering returns true if the filter input mode is currently active.
+func (m Model) IsFiltering() bool {
+	return m.isFiltering
+}
+
 func containerStatusScore(c monitor.ContainerItem) int {
 	return filter.ContainerStatusScore(c)
 }
