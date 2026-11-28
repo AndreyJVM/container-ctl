@@ -18,19 +18,13 @@ func TestE2E_FullContainerWorkflow(t *testing.T) {
 
 	// 1. Initial State verification
 	view := m.View()
-	if !strings.Contains(view, "web-gateway") || !strings.Contains(view, "api-backend") {
-		t.Fatalf("expected initial containers to be listed in view, got: %s", view)
-	}
-	if !strings.Contains(view, "Containers: 2 active, 1 stopped") {
-		t.Fatalf("expected summary header, got: %s", view)
-	}
+	assertContains(t, view, "web-gateway")
+	assertContains(t, view, "api-backend")
+	assertContains(t, view, "Containers: 2 active, 1 stopped")
 
 	// 2. Cursor movement: move down, verify active cursor changed
 	m, _ = sendKey(m, "down")
-	viewAfterDown := m.View()
-	if !strings.Contains(viewAfterDown, "api-backend") {
-		t.Errorf("expected view to render api-backend, got: %s", viewAfterDown)
-	}
+	assertContains(t, m.View(), "api-backend")
 
 	// Move to bottom and back to top
 	m, _ = sendKey(m, "end")
@@ -43,27 +37,14 @@ func TestE2E_FullContainerWorkflow(t *testing.T) {
 	}
 
 	// 4. Search Filter Workflow:
-	// Press '/' to enter filter mode
-	m, _ = sendKey(m, "/")
-	// Type query "gateway"
-	m = sendTypeString(m, "gateway")
-	// Confirm filter with Enter
-	m, _ = sendKey(m, "enter")
-
+	m = sendFilterAndConfirm(m, "gateway")
 	filteredView := m.View()
-	if !strings.Contains(filteredView, "web-gateway") {
-		t.Errorf("expected filtered view to contain 'web-gateway'")
-	}
-	if strings.Contains(filteredView, "api-backend") {
-		t.Errorf("expected filtered view to exclude 'api-backend'")
-	}
+	assertContains(t, filteredView, "web-gateway")
+	assertNotContains(t, filteredView, "api-backend")
 
 	// Clear filter with Esc
 	m, _ = sendKey(m, "esc")
-	restoredView := m.View()
-	if !strings.Contains(restoredView, "api-backend") {
-		t.Errorf("expected view after clearing filter to restore all containers")
-	}
+	assertContains(t, m.View(), "api-backend")
 
 	// 5. Multi-selection Workflow:
 	// Select first container with Space
@@ -71,33 +52,24 @@ func TestE2E_FullContainerWorkflow(t *testing.T) {
 	// Move down and select second container
 	m, _ = sendKey(m, "down")
 	m, _ = sendKey(m, "space")
+	assertSelectedContainersCount(t, m, 2)
 
 	selectView := m.View()
-	if !strings.Contains(selectView, "Remove (2)") && !strings.Contains(selectView, "Start/Stop (2)") {
-		t.Errorf("expected view to reflect 2 selected containers in footer, got: %s", selectView)
-	}
+	assertContains(t, selectView, "Remove (2)")
+	assertContains(t, selectView, "Start/Stop (2)")
 
 	// Open Batch Delete Modal with 'x'
 	m, _ = sendKey(m, "x")
-	if !m.IsModalOpen() {
-		t.Fatalf("expected modal to open upon 'x' with active selection")
-	}
-	if m.ActiveModal() != tui.ModalRemoveContainer {
-		t.Errorf("expected ModalRemoveContainer, got: %s", m.ActiveModal())
-	}
-	batchModalView := m.View()
-	if !strings.Contains(batchModalView, "CONFIRM REMOVAL OF 2 CONTAINERS") {
-		t.Errorf("expected batch deletion confirmation prompt, got: %s", batchModalView)
-	}
+	assertModal(t, m, tui.ModalRemoveContainer)
+	assertContains(t, m.View(), "CONFIRM REMOVAL OF 2 CONTAINERS")
 
 	// Cancel modal with Esc
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected modal to close on Esc")
-	}
+	assertModalClosed(t, m)
 
 	// Clear selection with Esc
 	m, _ = sendKey(m, "esc")
+	assertSelectedContainersCount(t, m, 0)
 
 	// 6. Inspect Modal Workflow:
 	m.OpenModal(tui.ModalInspect)
@@ -110,9 +82,8 @@ func TestE2E_FullContainerWorkflow(t *testing.T) {
 		IP:     "172.17.0.2",
 	})
 	inspectView := m.View()
-	if !strings.Contains(inspectView, "CONTAINER INSPECTION") && !strings.Contains(inspectView, "web-gateway") {
-		t.Errorf("expected inspect modal to render container details, got: %s", inspectView)
-	}
+	assertContains(t, inspectView, "CONTAINER INSPECTION")
+	assertContains(t, inspectView, "web-gateway")
 
 	// Scroll inspect view
 	m, _ = sendKey(m, "down")
@@ -120,16 +91,11 @@ func TestE2E_FullContainerWorkflow(t *testing.T) {
 
 	// Close inspect modal with Esc
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected inspect modal to close on Esc")
-	}
+	assertModalClosed(t, m)
 
 	// 7. Toggle Details card with 'v'
 	m, _ = sendKey(m, "v")
-	viewNoDetails := m.View()
-	if !strings.Contains(viewNoDetails, "Details card hidden") {
-		t.Errorf("expected toast or indicator after toggling details off")
-	}
+	assertContains(t, m.View(), "Details card hidden")
 	// Restore details card
 	m, _ = sendKey(m, "v")
 
@@ -175,38 +141,37 @@ func TestE2E_MultiTabAndSelectionWorkflow(t *testing.T) {
 	// Test multi-select on Images tab
 	m, _ = sendKey(m, "2")
 	m, _ = sendKey(m, "a") // Select all images
-	viewImages := m.View()
-	if !strings.Contains(viewImages, "3 selected") && !strings.Contains(viewImages, "Selected: 3") && !strings.Contains(viewImages, "Delete (3)") {
-		t.Errorf("expected images select all to show 3 selected, view: %s", viewImages)
-	}
+	assertSelectedImagesCount(t, m, 3)
 
 	// Open Batch Remove Images modal with 'x'
 	m, _ = sendKey(m, "x")
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalRemoveImage {
-		t.Fatalf("expected ModalRemoveImage upon pressing 'x' with images selected")
-	}
+	assertModal(t, m, tui.ModalRemoveImage)
 	m, _ = sendKey(m, "esc") // Cancel modal
+	assertModalClosed(t, m)
 	m, _ = sendKey(m, "esc") // Clear selection
+	assertSelectedImagesCount(t, m, 0)
 
 	// Test multi-select on Networks tab
 	m, _ = sendKey(m, "4")
 	m, _ = sendKey(m, "space") // Select first network
-	m, _ = sendKey(m, "x")     // Open Remove modal
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalRemoveNetwork {
-		t.Fatalf("expected ModalRemoveNetwork upon pressing 'x' with network selected")
-	}
+	assertSelectedNetworksCount(t, m, 1)
+	m, _ = sendKey(m, "x") // Open Remove modal
+	assertModal(t, m, tui.ModalRemoveNetwork)
 	m, _ = sendKey(m, "esc")
+	assertModalClosed(t, m)
 	m, _ = sendKey(m, "esc")
+	assertSelectedNetworksCount(t, m, 0)
 
 	// Test multi-select on Volumes tab
 	m, _ = sendKey(m, "5")
 	m, _ = sendKey(m, "space") // Select first volume
-	m, _ = sendKey(m, "x")     // Open Remove modal
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalRemoveVolume {
-		t.Fatalf("expected ModalRemoveVolume upon pressing 'x' with volume selected")
-	}
+	assertSelectedVolumesCount(t, m, 1)
+	m, _ = sendKey(m, "x") // Open Remove modal
+	assertModal(t, m, tui.ModalRemoveVolume)
 	m, _ = sendKey(m, "esc")
+	assertModalClosed(t, m)
 	m, _ = sendKey(m, "esc")
+	assertSelectedVolumesCount(t, m, 0)
 }
 
 // TestE2E_SwarmScalingAndHelpModal tests scaling swarm service replicas and opening/closing the help overlay.
@@ -217,35 +182,25 @@ func TestE2E_SwarmScalingAndHelpModal(t *testing.T) {
 
 	// Switch to Swarm tab
 	m, _ = sendKey(m, "6")
-	if m.ActiveTab() != tui.TabSwarm {
-		t.Fatalf("expected TabSwarm, got: %s", m.ActiveTab())
-	}
+	assertTab(t, m, tui.TabSwarm)
 
 	// Open Swarm scale modal with 's' or 'S'
 	m, _ = sendKey(m, "s")
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalSwarmScale {
-		t.Fatalf("expected ModalSwarmScale upon pressing 's' on Swarm tab")
-	}
+	assertModal(t, m, tui.ModalSwarmScale)
 
 	// Cancel scale modal
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected scale modal to close on Esc")
-	}
+	assertModalClosed(t, m)
 
 	// Open Help overlay with '?'
 	m, _ = sendKey(m, "?")
-	helpView := m.View()
-	if !strings.Contains(helpView, "KEYBOARD SHORTCUTS") && !strings.Contains(helpView, "Help") && !strings.Contains(helpView, "Toggle this help window") {
-		t.Errorf("expected Help modal to be rendered on '?', got: %s", helpView)
-	}
+	assertHelpOpen(t, m)
+	assertContains(t, m.View(), "KEYBOARD SHORTCUTS")
 
 	// Close Help overlay with '?' or Esc
 	m, _ = sendKey(m, "esc")
-	normalView := m.View()
-	if strings.Contains(normalView, "KEYBOARD SHORTCUTS") {
-		t.Errorf("expected Help modal to be dismissed on Esc")
-	}
+	assertHelpClosed(t, m)
+	assertNotContains(t, m.View(), "KEYBOARD SHORTCUTS")
 
 	// Graceful Quit on 'q'
 	_, quitCmd := sendKey(m, "q")
@@ -265,13 +220,8 @@ func TestE2E_SelectionPrunedOnResourceRemoval(t *testing.T) {
 	// 1. Containers: Select c101 and c102
 	m, _ = sendKey(m, "space") // selects c101, cursor moves to c102
 	m, _ = sendKey(m, "space") // selects c102
-	if m.SelectedContainersCount() != 2 {
-		t.Fatalf("expected 2 selected containers, got: %d", m.SelectedContainersCount())
-	}
-	view := m.View()
-	if !strings.Contains(view, "Remove (2)") {
-		t.Fatalf("expected footer to show 'Remove (2)', got:\n%s", view)
-	}
+	assertSelectedContainersCount(t, m, 2)
+	assertContains(t, m.View(), "Remove (2)")
 
 	// External event: c102 was stopped and deleted outside container-ctl
 	updatedContainers := actions.DataFetchedMsg{
@@ -301,21 +251,14 @@ func TestE2E_SelectionPrunedOnResourceRemoval(t *testing.T) {
 	m = updated.(tui.Model)
 
 	// Ghost ID c102 must be pruned; only c101 remains
-	if m.SelectedContainersCount() != 1 {
-		t.Fatalf("expected 1 selected container after pruning, got: %d", m.SelectedContainersCount())
-	}
-	prunedView := m.View()
-	if !strings.Contains(prunedView, "Remove (1)") {
-		t.Errorf("expected footer to show 'Remove (1)', got:\n%s", prunedView)
-	}
+	assertSelectedContainersCount(t, m, 1)
+	assertContains(t, m.View(), "Remove (1)")
 
 	// 2. Images: Select img1 and img2, then prune img2
 	m, _ = sendKey(m, "2") // Switch to TabImages
 	m, _ = sendKey(m, "space")
 	m, _ = sendKey(m, "space")
-	if m.SelectedImagesCount() != 2 {
-		t.Fatalf("expected 2 selected images, got: %d", m.SelectedImagesCount())
-	}
+	assertSelectedImagesCount(t, m, 2)
 
 	updatedImages := updatedContainers
 	updatedImages.Images = []monitor.DockerImage{
@@ -324,18 +267,13 @@ func TestE2E_SelectionPrunedOnResourceRemoval(t *testing.T) {
 	}
 	updated, _ = m.Update(updatedImages)
 	m = updated.(tui.Model)
-
-	if m.SelectedImagesCount() != 1 {
-		t.Fatalf("expected 1 selected image after pruning, got: %d", m.SelectedImagesCount())
-	}
+	assertSelectedImagesCount(t, m, 1)
 
 	// 3. Networks: Select net1 and net2, then prune net1
 	m, _ = sendKey(m, "4") // Switch to TabNetworks
 	m, _ = sendKey(m, "space")
 	m, _ = sendKey(m, "space")
-	if m.SelectedNetworksCount() != 2 {
-		t.Fatalf("expected 2 selected networks, got: %d", m.SelectedNetworksCount())
-	}
+	assertSelectedNetworksCount(t, m, 2)
 
 	updatedNetworks := updatedImages
 	updatedNetworks.Networks = []monitor.DockerNetwork{
@@ -343,18 +281,13 @@ func TestE2E_SelectionPrunedOnResourceRemoval(t *testing.T) {
 	}
 	updated, _ = m.Update(updatedNetworks)
 	m = updated.(tui.Model)
-
-	if m.SelectedNetworksCount() != 1 {
-		t.Fatalf("expected 1 selected network after pruning, got: %d", m.SelectedNetworksCount())
-	}
+	assertSelectedNetworksCount(t, m, 1)
 
 	// 4. Volumes: Select pg_data and redis_cache, then prune pg_data
 	m, _ = sendKey(m, "5") // Switch to TabVolumes
 	m, _ = sendKey(m, "space")
 	m, _ = sendKey(m, "space")
-	if m.SelectedVolumesCount() != 2 {
-		t.Fatalf("expected 2 selected volumes, got: %d", m.SelectedVolumesCount())
-	}
+	assertSelectedVolumesCount(t, m, 2)
 
 	updatedVolumes := updatedNetworks
 	updatedVolumes.Volumes = []monitor.DockerVolume{
@@ -362,10 +295,7 @@ func TestE2E_SelectionPrunedOnResourceRemoval(t *testing.T) {
 	}
 	updated, _ = m.Update(updatedVolumes)
 	m = updated.(tui.Model)
-
-	if m.SelectedVolumesCount() != 1 {
-		t.Fatalf("expected 1 selected volume after pruning, got: %d", m.SelectedVolumesCount())
-	}
+	assertSelectedVolumesCount(t, m, 1)
 }
 
 // TestE2E_FilterZeroResults_KeyHandling verifies that navigation and selection keys
@@ -376,15 +306,8 @@ func TestE2E_FilterZeroResults_KeyHandling(t *testing.T) {
 	m := createComprehensiveTestModel()
 
 	// Type filter query matching nothing
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "nonexistent_container_pattern_999")
-	m, _ = sendKey(m, "enter")
-
-	// Verify no items match
-	view := m.View()
-	if strings.Contains(view, "web-gateway") {
-		t.Errorf("expected 'web-gateway' to be filtered out")
-	}
+	m = sendFilterAndConfirm(m, "nonexistent_container_pattern_999")
+	assertNotContains(t, m.View(), "web-gateway")
 
 	// Send various action and navigation keys on TabDocker - none should panic
 	testKeys := []string{"space", "a", "enter", "s", "r", "k", "d", "j", "k", "down", "up"}
@@ -394,10 +317,7 @@ func TestE2E_FilterZeroResults_KeyHandling(t *testing.T) {
 
 	// Esc should clear filter and restore all containers
 	m, _ = sendKey(m, "esc")
-	restoredView := m.View()
-	if !strings.Contains(restoredView, "web-gateway") {
-		t.Errorf("expected 'web-gateway' to be visible after clearing filter with Esc")
-	}
+	assertContains(t, m.View(), "web-gateway")
 }
 
 // TestE2E_BackgroundRefreshDuringModals verifies that background data polling
@@ -409,9 +329,7 @@ func TestE2E_BackgroundRefreshDuringModals(t *testing.T) {
 
 	// 1. Help overlay open
 	m, _ = sendKey(m, "?")
-	if !m.IsHelpOpen() {
-		t.Fatalf("expected Help overlay to be open")
-	}
+	assertHelpOpen(t, m)
 
 	// Background data fetch arrives while user is reading Help
 	refreshed, _ := m.Update(actions.DataFetchedMsg{
@@ -419,17 +337,11 @@ func TestE2E_BackgroundRefreshDuringModals(t *testing.T) {
 		Timestamp:  "12:02:00",
 	})
 	m = refreshed.(tui.Model)
-
-	// Help overlay must stay open
-	if !m.IsHelpOpen() {
-		t.Errorf("expected Help overlay to remain open after background data fetch")
-	}
+	assertHelpOpen(t, m)
 
 	// Close help
 	m, _ = sendKey(m, "esc")
-	if m.IsHelpOpen() {
-		t.Errorf("expected Help overlay closed on Esc")
-	}
+	assertHelpClosed(t, m)
 
 	// 2. Inspect Modal open
 	m.OpenModal(tui.ModalInspect)
@@ -438,10 +350,7 @@ func TestE2E_BackgroundRefreshDuringModals(t *testing.T) {
 		Name:  "web-gateway",
 		Image: "nginx:alpine",
 	})
-
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalInspect {
-		t.Fatalf("expected ModalInspect open")
-	}
+	assertModal(t, m, tui.ModalInspect)
 
 	// Background data fetch arrives
 	refreshed, _ = m.Update(actions.DataFetchedMsg{
@@ -449,13 +358,8 @@ func TestE2E_BackgroundRefreshDuringModals(t *testing.T) {
 		Timestamp:  "12:03:00",
 	})
 	m = refreshed.(tui.Model)
-
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalInspect {
-		t.Errorf("expected ModalInspect to remain open across background refresh")
-	}
+	assertModal(t, m, tui.ModalInspect)
 
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected ModalInspect closed on Esc")
-	}
+	assertModalClosed(t, m)
 }

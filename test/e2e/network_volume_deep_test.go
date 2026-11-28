@@ -71,8 +71,7 @@ func TestE2E_NetworkFilterAndBatchOperations(t *testing.T) {
 	}
 
 	// 1. Filter by Driver: "overlay"
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "overlay")
+	m = sendFilter(m, "overlay")
 	if len(m.FilteredNetworks()) != 1 || m.FilteredNetworks()[0].Name != "net-overlay-swarm" {
 		t.Fatalf("expected 1 network 'net-overlay-swarm' matching 'overlay', got %d", len(m.FilteredNetworks()))
 	}
@@ -84,8 +83,7 @@ func TestE2E_NetworkFilterAndBatchOperations(t *testing.T) {
 	}
 
 	// 2. Filter by Subnet: "172.21."
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "172.21.")
+	m = sendFilter(m, "172.21.")
 	if len(m.FilteredNetworks()) != 1 || m.FilteredNetworks()[0].Name != "net-backend" {
 		t.Fatalf("expected 1 network 'net-backend' matching subnet, got %d", len(m.FilteredNetworks()))
 	}
@@ -94,8 +92,7 @@ func TestE2E_NetworkFilterAndBatchOperations(t *testing.T) {
 	m, _ = sendKey(m, "esc")
 
 	// 3. Filter by Compose Project: "ecommerce"
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "ecommerce")
+	m = sendFilter(m, "ecommerce")
 	if len(m.FilteredNetworks()) != 2 {
 		t.Fatalf("expected 2 networks for project 'ecommerce', got %d", len(m.FilteredNetworks()))
 	}
@@ -107,9 +104,7 @@ func TestE2E_NetworkFilterAndBatchOperations(t *testing.T) {
 		t.Fatal("expected IsFiltering to be false after Enter")
 	}
 	m, _ = sendKey(m, "a")
-	if m.SelectedNetworksCount() != 2 {
-		t.Fatalf("expected 2 networks selected, got %d", m.SelectedNetworksCount())
-	}
+	assertSelectedNetworksCount(t, m, 2)
 
 	// Clear filter query with Esc: all 4 networks visible, but 2 remain selected
 	m, _ = sendKey(m, "esc")
@@ -119,9 +114,7 @@ func TestE2E_NetworkFilterAndBatchOperations(t *testing.T) {
 	if len(m.FilteredNetworks()) != 4 {
 		t.Fatalf("expected 4 networks visible, got %d", len(m.FilteredNetworks()))
 	}
-	if m.SelectedNetworksCount() != 2 {
-		t.Fatalf("expected selection of 2 networks to persist after clearing filter, got %d", m.SelectedNetworksCount())
-	}
+	assertSelectedNetworksCount(t, m, 2)
 
 	// 4. Open Batch Remove Modal with 'd'
 	m, _ = sendKey(m, "d")
@@ -134,9 +127,7 @@ func TestE2E_NetworkFilterAndBatchOperations(t *testing.T) {
 	if removeCmd == nil {
 		t.Fatal("expected non-nil removeCmd upon batch remove confirmation")
 	}
-	if m.SelectedNetworksCount() != 0 {
-		t.Fatalf("expected selected networks cleared after batch remove confirmation, got %d", m.SelectedNetworksCount())
-	}
+	assertSelectedNetworksCount(t, m, 0)
 	assertContains(t, m.View(), "Removing 2 selected network(s)...")
 }
 
@@ -183,16 +174,14 @@ func TestE2E_VolumeFilterAndBatchOperations(t *testing.T) {
 	}
 
 	// 1. Filter by Driver: "nfs"
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "nfs")
+	m = sendFilter(m, "nfs")
 	if len(m.FilteredVolumes()) != 1 || m.FilteredVolumes()[0].Name != "nfs_shared_storage" {
 		t.Fatalf("expected 1 volume 'nfs_shared_storage' matching driver 'nfs', got %d", len(m.FilteredVolumes()))
 	}
 	m, _ = sendKey(m, "esc")
 
 	// 2. Filter by Mountpoint: "_data"
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "_data")
+	m = sendFilter(m, "_data")
 	if len(m.FilteredVolumes()) != 2 {
 		t.Fatalf("expected 2 volumes matching mountpoint '_data', got %d", len(m.FilteredVolumes()))
 	}
@@ -200,41 +189,29 @@ func TestE2E_VolumeFilterAndBatchOperations(t *testing.T) {
 
 	// 3. Multi-Select across distinct filtered subsets
 	// Subset A: search "cache" -> select item with space
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "cache")
-	m, _ = sendKey(m, "enter")
+	m = sendFilterAndConfirm(m, "cache")
 	m, _ = sendKey(m, "space")
-	if m.SelectedVolumesCount() != 1 {
-		t.Fatalf("expected 1 volume selected, got %d", m.SelectedVolumesCount())
-	}
+	assertSelectedVolumesCount(t, m, 1)
 
 	// Clear filter: search "storage" -> select item with space
 	m, _ = sendKey(m, "esc")
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "storage")
-	m, _ = sendKey(m, "enter")
+	m = sendFilterAndConfirm(m, "storage")
 	m, _ = sendKey(m, "space")
-	if m.SelectedVolumesCount() != 2 {
-		t.Fatalf("expected 2 volumes selected across filters, got %d", m.SelectedVolumesCount())
-	}
+	assertSelectedVolumesCount(t, m, 2)
 
 	// Clear filter to see all 3 volumes
 	m, _ = sendKey(m, "esc")
 	if len(m.FilteredVolumes()) != 3 {
 		t.Fatalf("expected 3 volumes restored, got %d", len(m.FilteredVolumes()))
 	}
-	if m.SelectedVolumesCount() != 2 {
-		t.Fatalf("expected 2 selected volumes preserved, got %d", m.SelectedVolumesCount())
-	}
+	assertSelectedVolumesCount(t, m, 2)
 
 	// 4. Batch Remove Modal: open with 'x', cancel with 'esc'
 	m, _ = sendKey(m, "x")
 	assertModal(t, m, tui.ModalRemoveVolume)
 	m, _ = sendKey(m, "esc")
 	assertModalClosed(t, m)
-	if m.SelectedVolumesCount() != 2 {
-		t.Fatalf("expected selections kept after cancelling modal, got %d", m.SelectedVolumesCount())
-	}
+	assertSelectedVolumesCount(t, m, 2)
 
 	// Open again with 'd', confirm with 'y'
 	m, _ = sendKey(m, "d")
@@ -244,9 +221,7 @@ func TestE2E_VolumeFilterAndBatchOperations(t *testing.T) {
 	if removeCmd == nil {
 		t.Fatal("expected non-nil removeCmd upon volume batch remove confirmation")
 	}
-	if m.SelectedVolumesCount() != 0 {
-		t.Fatalf("expected volume selections cleared after confirmation, got %d", m.SelectedVolumesCount())
-	}
+	assertSelectedVolumesCount(t, m, 0)
 	assertContains(t, m.View(), "Removing 2 selected volume(s)...")
 }
 
@@ -255,11 +230,10 @@ func TestE2E_ConcurrentBackgroundRefreshDuringActiveFilter(t *testing.T) {
 	assertTab(t, m, tui.TabDocker)
 
 	// User initiates search with '/' and types partial prefix "web"
-	m, _ = sendKey(m, "/")
+	m = sendFilter(m, "web")
 	if !m.IsFiltering() {
 		t.Fatal("expected IsFiltering to be true")
 	}
-	m = sendTypeString(m, "web")
 	if m.FilterQuery() != "web" {
 		t.Fatalf("expected FilterQuery 'web', got %q", m.FilterQuery())
 	}

@@ -84,28 +84,21 @@ func TestE2E_ComposeDeepNavigationAndFilter(t *testing.T) {
 	}
 
 	// Initial cursor on 0 (frontend-app)
-	if m.ActiveCursor() != 0 {
-		t.Fatalf("expected initial cursor 0, got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 0)
 
 	// Cyclic wrap with up arrow: 0 -> 2 (monitoring-tools)
 	m, _ = sendKey(m, "up")
-	if m.ActiveCursor() != 2 {
-		t.Fatalf("expected cursor to wrap to 2, got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 2)
 
 	// Move down arrow: 2 -> 0
 	m, _ = sendKey(m, "down")
-	if m.ActiveCursor() != 0 {
-		t.Fatalf("expected cursor to wrap to 0, got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 0)
 
 	// Search by project name: "/" -> "analytics"
-	m, _ = sendKey(m, "/")
+	m = sendFilter(m, "analytics")
 	if !m.IsFiltering() {
-		t.Fatal("expected IsFiltering to be true after '/'")
+		t.Fatal("expected IsFiltering to be true after sendFilter")
 	}
-	m = sendTypeString(m, "analytics")
 	if m.FilterQuery() != "analytics" {
 		t.Fatalf("expected FilterQuery 'analytics', got %q", m.FilterQuery())
 	}
@@ -125,8 +118,7 @@ func TestE2E_ComposeDeepNavigationAndFilter(t *testing.T) {
 	}
 
 	// Search deep by service name inside project: "grafana"
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "grafana")
+	m = sendFilter(m, "grafana")
 	filtered = m.FilteredCompose()
 	if len(filtered) != 1 || filtered[0].Name != "monitoring-tools" {
 		t.Fatalf("expected 'monitoring-tools' found by service name 'grafana', got %d: %+v", len(filtered), filtered)
@@ -136,8 +128,7 @@ func TestE2E_ComposeDeepNavigationAndFilter(t *testing.T) {
 	m, _ = sendKey(m, "esc")
 
 	// Search by container image inside compose service: "clickhouse"
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "clickhouse")
+	m = sendFilter(m, "clickhouse")
 	filtered = m.FilteredCompose()
 	if len(filtered) != 1 || filtered[0].Name != "analytics-stack" {
 		t.Fatalf("expected 'analytics-stack' found by service image 'clickhouse', got %d: %+v", len(filtered), filtered)
@@ -155,9 +146,7 @@ func TestE2E_ComposeLifecycleActionsAndModals(t *testing.T) {
 	assertTab(t, m, tui.TabCompose)
 
 	// Cursor is at 0 ("frontend-app")
-	if m.ActiveCursor() != 0 {
-		t.Fatalf("expected cursor at 0, got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 0)
 
 	// Press 's' to stop running Compose project
 	m, stopCmd := sendKey(m, "s")
@@ -176,9 +165,7 @@ func TestE2E_ComposeLifecycleActionsAndModals(t *testing.T) {
 	// Move cursor to stopped project ("monitoring-tools" at index 2)
 	m, _ = sendKey(m, "down") // index 1
 	m, _ = sendKey(m, "down") // index 2
-	if m.ActiveCursor() != 2 {
-		t.Fatalf("expected cursor at 2, got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 2)
 
 	// Press 'u' to start stopped Compose project
 	m, startCmd := sendKey(m, "u")

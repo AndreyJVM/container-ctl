@@ -61,6 +61,19 @@ func sendTypeString(m tui.Model, text string) tui.Model {
 	return m
 }
 
+// sendFilter enters filter mode with '/' and types the query string.
+func sendFilter(m tui.Model, query string) tui.Model {
+	m, _ = sendKey(m, "/")
+	return sendTypeString(m, query)
+}
+
+// sendFilterAndConfirm enters filter mode, types the query, and commits with Enter.
+func sendFilterAndConfirm(m tui.Model, query string) tui.Model {
+	m = sendFilter(m, query)
+	m, _ = sendKey(m, "enter")
+	return m
+}
+
 // createComprehensiveTestModel builds an initialized model with realistic multi-container and multi-subsystem data.
 func createComprehensiveTestModel() tui.Model {
 	m := tui.NewModelWithOptions(
@@ -193,5 +206,61 @@ func assertTab(t *testing.T, m tui.Model, expected tui.TabID) {
 	t.Helper()
 	if m.ActiveTab() != expected {
 		t.Fatalf("expected active tab %q, got %q", expected, m.ActiveTab())
+	}
+}
+
+// assertCursor fails if model's active cursor index does not match expected.
+func assertCursor(t *testing.T, m tui.Model, expected int) {
+	t.Helper()
+	if m.ActiveCursor() != expected {
+		t.Fatalf("expected active cursor %d, got %d", expected, m.ActiveCursor())
+	}
+}
+
+// assertHelpOpen fails if the Help overlay is not open.
+func assertHelpOpen(t *testing.T, m tui.Model) {
+	t.Helper()
+	if !m.IsHelpOpen() {
+		t.Fatalf("expected Help overlay to be open")
+	}
+}
+
+// assertHelpClosed fails if the Help overlay is open.
+func assertHelpClosed(t *testing.T, m tui.Model) {
+	t.Helper()
+	if m.IsHelpOpen() {
+		t.Fatalf("expected Help overlay to be closed")
+	}
+}
+
+// assertSelectedContainersCount fails if selected containers count does not match expected.
+func assertSelectedContainersCount(t *testing.T, m tui.Model, expected int) {
+	t.Helper()
+	if m.SelectedContainersCount() != expected {
+		t.Fatalf("expected %d selected containers, got %d", expected, m.SelectedContainersCount())
+	}
+}
+
+// assertSelectedImagesCount fails if selected images count does not match expected.
+func assertSelectedImagesCount(t *testing.T, m tui.Model, expected int) {
+	t.Helper()
+	if m.SelectedImagesCount() != expected {
+		t.Fatalf("expected %d selected images, got %d", expected, m.SelectedImagesCount())
+	}
+}
+
+// assertSelectedNetworksCount fails if selected networks count does not match expected.
+func assertSelectedNetworksCount(t *testing.T, m tui.Model, expected int) {
+	t.Helper()
+	if m.SelectedNetworksCount() != expected {
+		t.Fatalf("expected %d selected networks, got %d", expected, m.SelectedNetworksCount())
+	}
+}
+
+// assertSelectedVolumesCount fails if selected volumes count does not match expected.
+func assertSelectedVolumesCount(t *testing.T, m tui.Model, expected int) {
+	t.Helper()
+	if m.SelectedVolumesCount() != expected {
+		t.Fatalf("expected %d selected volumes, got %d", expected, m.SelectedVolumesCount())
 	}
 }

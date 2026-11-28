@@ -17,14 +17,8 @@ func TestE2E_PruneModalWorkflow(t *testing.T) {
 
 	// 1. Open Prune Modal with 'c'
 	m, _ = sendKey(m, "c")
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalPrune {
-		t.Fatalf("expected ModalPrune to open upon pressing 'c'")
-	}
-
-	view := m.View()
-	if !strings.Contains(view, "CLEANUP & PRUNE DOCKER RESOURCES") {
-		t.Errorf("expected prune modal header in view, got:\n%s", view)
-	}
+	assertModal(t, m, tui.ModalPrune)
+	assertContains(t, m.View(), "CLEANUP & PRUNE DOCKER RESOURCES")
 
 	// 2. Select option 1 (Containers) -> enters confirmation step
 	m, _ = sendKey(m, "1")
@@ -36,42 +30,30 @@ func TestE2E_PruneModalWorkflow(t *testing.T) {
 	// 3. Cancel confirmation with 'n' -> returns to main prune menu
 	m, _ = sendKey(m, "n")
 	menuView := m.View()
-	if !strings.Contains(menuView, "[1]") || !strings.Contains(menuView, "Prune Stopped Containers") {
-		t.Errorf("expected return to prune action menu on 'n', got:\n%s", menuView)
-	}
+	assertContains(t, menuView, "[1]")
+	assertContains(t, menuView, "Prune Stopped Containers")
 
 	// 4. Select option 4 (All / System prune) -> enters full prune confirmation
 	m, _ = sendKey(m, "4")
-	confirmAllView := m.View()
-	if !strings.Contains(confirmAllView, "[Y] Confirm") {
-		t.Errorf("expected confirmation prompt for system prune, got:\n%s", confirmAllView)
-	}
+	assertContains(t, m.View(), "[Y] Confirm")
 
 	// 5. Cancel with Esc -> returns to menu
 	m, _ = sendKey(m, "esc")
-	if !m.IsModalOpen() {
-		t.Fatalf("expected modal still open in menu after cancelling step with Esc")
-	}
+	assertModal(t, m, tui.ModalPrune)
 
 	// 6. Select option 2 (Images) and confirm with 'y' -> executes prune command and closes modal
 	m, _ = sendKey(m, "2")
 	m, cmd := sendKey(m, "y")
-	if m.IsModalOpen() {
-		t.Errorf("expected prune modal to close upon confirmation 'y'")
-	}
+	assertModalClosed(t, m)
 	if cmd == nil {
 		t.Errorf("expected pruneCmd to be dispatched upon confirmation")
 	}
 
 	// 7. Verify Esc closes the prune modal when on root menu
 	m, _ = sendKey(m, "c")
-	if !m.IsModalOpen() {
-		t.Fatalf("expected prune modal open")
-	}
+	assertModal(t, m, tui.ModalPrune)
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected prune modal to close on Esc from root menu")
-	}
+	assertModalClosed(t, m)
 }
 
 // TestE2E_ExecModalWorkflow tests cursor cycling, custom command text entry,
@@ -83,17 +65,11 @@ func TestE2E_ExecModalWorkflow(t *testing.T) {
 
 	// 1. Open Exec modal with 'e' on running container (web-gateway)
 	m, _ = sendKey(m, "e")
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalExec {
-		t.Fatalf("expected ModalExec to open on running container with 'e'")
-	}
+	assertModal(t, m, tui.ModalExec)
 
 	view := m.View()
-	if !strings.Contains(view, "EXECUTE INTERACTIVE SHELL") {
-		t.Errorf("expected exec modal header, got:\n%s", view)
-	}
-	if !strings.Contains(view, "web-gateway") {
-		t.Errorf("expected container name in exec modal, got:\n%s", view)
-	}
+	assertContains(t, view, "EXECUTE INTERACTIVE SHELL")
+	assertContains(t, view, "web-gateway")
 
 	// 2. Cycle menu items with 'j' and 'k'
 	m, _ = sendKey(m, "j")
@@ -102,42 +78,29 @@ func TestE2E_ExecModalWorkflow(t *testing.T) {
 
 	// 3. Switch to custom command input mode with 'c'
 	m, _ = sendKey(m, "c")
-	customInputView := m.View()
-	if !strings.Contains(customInputView, "Enter custom command:") {
-		t.Errorf("expected custom command input prompt on 'c', got:\n%s", customInputView)
-	}
+	assertContains(t, m.View(), "Enter custom command:")
 
 	// 4. Type custom command and test backspace
 	m = sendTypeString(m, "cat /etc/hosts_temp")
-	typedView := m.View()
-	if !strings.Contains(typedView, "hosts_temp") {
-		t.Errorf("expected typed command in view, got:\n%s", typedView)
-	}
+	assertContains(t, m.View(), "hosts_temp")
 
 	// Delete "_temp" with 5 backspaces
 	for i := 0; i < 5; i++ {
 		m, _ = sendKey(m, "backspace")
 	}
 	deletedView := m.View()
-	if strings.Contains(deletedView, "hosts_temp") || !strings.Contains(deletedView, "/etc/hosts") {
-		t.Errorf("expected '_temp' deleted, got:\n%s", deletedView)
-	}
+	assertNotContains(t, deletedView, "hosts_temp")
+	assertContains(t, deletedView, "/etc/hosts")
 
 	// 5. Esc cancels custom input mode and returns to exec menu
 	m, _ = sendKey(m, "esc")
 	menuView := m.View()
-	if strings.Contains(menuView, "Enter custom command:") {
-		t.Errorf("expected custom input mode dismissed on Esc, got:\n%s", menuView)
-	}
-	if !strings.Contains(menuView, "EXECUTE INTERACTIVE SHELL") {
-		t.Errorf("expected exec menu preserved, got:\n%s", menuView)
-	}
+	assertNotContains(t, menuView, "Enter custom command:")
+	assertContains(t, menuView, "EXECUTE INTERACTIVE SHELL")
 
 	// 6. Esc closes the exec modal
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected exec modal closed on Esc")
-	}
+	assertModalClosed(t, m)
 }
 
 // TestE2E_LogsModalInteractiveWorkflow tests log viewing, scrolling,
@@ -180,30 +143,19 @@ func TestE2E_LogsModalInteractiveWorkflow(t *testing.T) {
 	m, _ = sendKey(m, "pgup")
 
 	// 3. Search and filter logs with '/'
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "ERROR")
-	m, _ = sendKey(m, "enter") // commit filter
+	m = sendFilterAndConfirm(m, "ERROR")
 
 	filteredView := m.View()
-	if !strings.Contains(filteredView, "[ERROR]") {
-		t.Errorf("expected filtered logs to contain [ERROR], got:\n%s", filteredView)
-	}
-	if strings.Contains(filteredView, "[INFO]") {
-		t.Errorf("expected [INFO] logs to be filtered out, got:\n%s", filteredView)
-	}
+	assertContains(t, filteredView, "[ERROR]")
+	assertNotContains(t, filteredView, "[INFO]")
 
 	// 4. Esc clears filter
 	m, _ = sendKey(m, "esc")
-	clearedView := m.View()
-	if !strings.Contains(clearedView, "[INFO]") {
-		t.Errorf("expected [INFO] logs restored after Esc cleared filter, got:\n%s", clearedView)
-	}
+	assertContains(t, m.View(), "[INFO]")
 
 	// 5. Esc closes modal
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected logs modal to close on Esc")
-	}
+	assertModalClosed(t, m)
 }
 
 // TestE2E_ComposeModalWorkflow tests Compose project actions:
@@ -216,38 +168,22 @@ func TestE2E_ComposeModalWorkflow(t *testing.T) {
 
 	// Switch to Compose tab (3)
 	m, _ = sendKey(m, "3")
-	if m.ActiveTab() != tui.TabCompose {
-		t.Fatalf("expected TabCompose, got: %s", m.ActiveTab())
-	}
-
-	composeView := m.View()
-	if !strings.Contains(composeView, "microservices-stack") {
-		t.Fatalf("expected 'microservices-stack' in Compose view, got:\n%s", composeView)
-	}
+	assertTab(t, m, tui.TabCompose)
+	assertContains(t, m.View(), "microservices-stack")
 
 	// 1. Open Compose Down modal with 'd'
 	m, _ = sendKey(m, "d")
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalComposeDown {
-		t.Fatalf("expected ModalComposeDown on 'd' key")
-	}
-
-	downModalView := m.View()
-	if !strings.Contains(downModalView, "microservices-stack") {
-		t.Errorf("expected project name in compose down modal, got:\n%s", downModalView)
-	}
+	assertModal(t, m, tui.ModalComposeDown)
+	assertContains(t, m.View(), "microservices-stack")
 
 	// 2. Cancel with Esc
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected compose down modal closed on Esc")
-	}
+	assertModalClosed(t, m)
 
 	// 3. Open again and confirm with 'y'
 	m, _ = sendKey(m, "d")
 	m, downCmd := sendKey(m, "y")
-	if m.IsModalOpen() {
-		t.Errorf("expected modal closed on 'y'")
-	}
+	assertModalClosed(t, m)
 	if downCmd == nil {
 		t.Errorf("expected downComposeCmd dispatched on confirm")
 	}

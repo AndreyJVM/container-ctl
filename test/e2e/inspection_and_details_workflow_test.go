@@ -80,20 +80,15 @@ func TestE2E_NetworkAndVolumeInspectionWorkflow(t *testing.T) {
 
 	// 1. Networks Tab (4) Inspect and Remove Modal
 	m, _ = sendKey(m, "4")
-	if m.ActiveTab() != tui.TabNetworks {
-		t.Fatalf("expected TabNetworks, got %s", m.ActiveTab())
-	}
+	assertTab(t, m, tui.TabNetworks)
 
 	// Open Network Inspect with Enter
 	m, _ = sendKey(m, "enter")
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalInspect {
-		t.Fatalf("expected ModalInspect on network with Enter")
-	}
+	assertModal(t, m, tui.ModalInspect)
 
 	inspectView := m.View()
-	if !strings.Contains(inspectView, "NETWORK INSPECTION") || !strings.Contains(inspectView, "frontend-bridge") {
-		t.Errorf("expected Network inspection view for frontend-bridge, got:\n%s", inspectView)
-	}
+	assertContains(t, inspectView, "NETWORK INSPECTION")
+	assertContains(t, inspectView, "frontend-bridge")
 
 	// Test scrolling inspect modal
 	m, _ = sendKey(m, "down")
@@ -103,64 +98,41 @@ func TestE2E_NetworkAndVolumeInspectionWorkflow(t *testing.T) {
 
 	// Close inspect modal
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected network inspect modal closed on Esc")
-	}
+	assertModalClosed(t, m)
 
 	// Open Network Remove modal with 'd'
 	m, _ = sendKey(m, "d")
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalRemoveNetwork {
-		t.Fatalf("expected ModalRemoveNetwork on 'd'")
-	}
-	removeNetView := m.View()
-	if !strings.Contains(removeNetView, "frontend-bridge") {
-		t.Errorf("expected target network in remove dialog, got:\n%s", removeNetView)
-	}
+	assertModal(t, m, tui.ModalRemoveNetwork)
+	assertContains(t, m.View(), "frontend-bridge")
 
 	// Cancel remove modal
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected remove network modal closed on Esc")
-	}
+	assertModalClosed(t, m)
 
 	// 2. Volumes Tab (5) Inspect and Remove Modal
 	m, _ = sendKey(m, "5")
-	if m.ActiveTab() != tui.TabVolumes {
-		t.Fatalf("expected TabVolumes, got %s", m.ActiveTab())
-	}
+	assertTab(t, m, tui.TabVolumes)
 
 	// Open Volume Inspect with 'i'
 	m, _ = sendKey(m, "i")
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalInspect {
-		t.Fatalf("expected ModalInspect on volume with 'i'")
-	}
+	assertModal(t, m, tui.ModalInspect)
 
 	volInspectView := m.View()
-	if !strings.Contains(volInspectView, "VOLUME INSPECTION") || !strings.Contains(volInspectView, "pg_data") {
-		t.Errorf("expected Volume inspection view for pg_data, got:\n%s", volInspectView)
-	}
+	assertContains(t, volInspectView, "VOLUME INSPECTION")
+	assertContains(t, volInspectView, "pg_data")
 
 	// Close volume inspect
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected volume inspect modal closed on Esc")
-	}
+	assertModalClosed(t, m)
 
 	// Open Volume Remove modal with 'd'
 	m, _ = sendKey(m, "d")
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalRemoveVolume {
-		t.Fatalf("expected ModalRemoveVolume on 'd'")
-	}
-	removeVolView := m.View()
-	if !strings.Contains(removeVolView, "pg_data") {
-		t.Errorf("expected volume name in remove dialog, got:\n%s", removeVolView)
-	}
+	assertModal(t, m, tui.ModalRemoveVolume)
+	assertContains(t, m.View(), "pg_data")
 
 	// Cancel volume removal
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected remove volume modal closed on Esc")
-	}
+	assertModalClosed(t, m)
 }
 
 // TestE2E_ImagesFilterAndInUseWarningWorkflow verifies unused image toggling
@@ -184,9 +156,7 @@ func TestE2E_ImagesFilterAndInUseWarningWorkflow(t *testing.T) {
 
 	// Switch to TabImages (2)
 	m, _ = sendKey(m, "2")
-	if m.ActiveTab() != tui.TabImages {
-		t.Fatalf("expected TabImages, got %s", m.ActiveTab())
-	}
+	assertTab(t, m, tui.TabImages)
 
 	// 1. Toggle unused images with 'u'
 	m, _ = sendKey(m, "u")
@@ -214,20 +184,12 @@ func TestE2E_ImagesFilterAndInUseWarningWorkflow(t *testing.T) {
 
 	// 3. Delete in-use image img1 (cursor is at 0: img1)
 	m, _ = sendKey(m, "d")
-	if !m.IsModalOpen() || m.ActiveModal() != tui.ModalRemoveImage {
-		t.Fatalf("expected ModalRemoveImage on 'd'")
-	}
-
-	removeImageView := m.View()
-	if !strings.Contains(removeImageView, "nginx:alpine") {
-		t.Errorf("expected 'nginx:alpine' in remove dialog, got:\n%s", removeImageView)
-	}
+	assertModal(t, m, tui.ModalRemoveImage)
+	assertContains(t, m.View(), "nginx:alpine")
 
 	// Cancel with Esc
 	m, _ = sendKey(m, "esc")
-	if m.IsModalOpen() {
-		t.Errorf("expected remove image modal closed on Esc")
-	}
+	assertModalClosed(t, m)
 }
 
 // TestE2E_ContainerPortURLExtraction verifies opening and copying container URLs

@@ -99,24 +99,14 @@ modules:
 	m = updated.(tui.Model)
 
 	// 1. Initial tab should be Networks (TabNetworks)
-	if m.ActiveTab() != tui.TabNetworks {
-		t.Fatalf("expected initial tab to be TabNetworks (4), got: %s", m.ActiveTab())
-	}
+	assertTab(t, m, tui.TabNetworks)
 
 	// 2. View should contain custom tab titles
 	view := m.View()
-	if !strings.Contains(view, "Virtual Networks") {
-		t.Errorf("expected view to contain custom title 'Virtual Networks', got: %s", view)
-	}
-	if !strings.Contains(view, "Active Pods") {
-		t.Errorf("expected view to contain custom title 'Active Pods', got: %s", view)
-	}
-	if !strings.Contains(view, "Services") {
-		t.Errorf("expected view to contain custom title 'Services', got: %s", view)
-	}
-	if !strings.Contains(view, "Storage") {
-		t.Errorf("expected view to contain custom title 'Storage', got: %s", view)
-	}
+	assertContains(t, view, "Virtual Networks")
+	assertContains(t, view, "Active Pods")
+	assertContains(t, view, "Services")
+	assertContains(t, view, "Storage")
 
 	// 3. Disabled module "images" should not be visible in tab list
 	if strings.Contains(view, "Images") && !strings.Contains(view, "Images:") {
@@ -130,36 +120,24 @@ modules:
 	// 4. Tab cycling: press Tab to cycle through visible modules in configured order
 	// Order: Networks (1) -> Containers (2) -> Compose (3) -> Volumes (4)
 	m, _ = sendKey(m, "tab")
-	if m.ActiveTab() != tui.TabDocker {
-		t.Errorf("expected next tab to be TabDocker (Active Pods), got: %s", m.ActiveTab())
-	}
+	assertTab(t, m, tui.TabDocker)
 
 	m, _ = sendKey(m, "tab")
-	if m.ActiveTab() != tui.TabCompose {
-		t.Errorf("expected next tab to be TabCompose (Services), got: %s", m.ActiveTab())
-	}
+	assertTab(t, m, tui.TabCompose)
 
 	m, _ = sendKey(m, "tab")
-	if m.ActiveTab() != tui.TabVolumes {
-		t.Errorf("expected next tab to be TabVolumes (Storage), got: %s", m.ActiveTab())
-	}
+	assertTab(t, m, tui.TabVolumes)
 
 	// Cycling past the end wraps back to first visible module (Networks)
 	m, _ = sendKey(m, "tab")
-	if m.ActiveTab() != tui.TabNetworks {
-		t.Errorf("expected tab wrap-around back to TabNetworks, got: %s", m.ActiveTab())
-	}
+	assertTab(t, m, tui.TabNetworks)
 
 	// 5. Direct number navigation
 	// Pressing '1' navigates to the 1st visible tab (Virtual Networks)
 	m, _ = sendKey(m, "1")
-	if m.ActiveTab() != tui.TabNetworks {
-		t.Errorf("expected key '1' to activate 1st configured module (Networks), got: %s", m.ActiveTab())
-	}
+	assertTab(t, m, tui.TabNetworks)
 
 	// Pressing '2' navigates to the 2nd visible tab (Active Pods / TabDocker)
 	m, _ = sendKey(m, "2")
-	if m.ActiveTab() != tui.TabDocker {
-		t.Errorf("expected key '2' to activate 2nd configured module (Containers), got: %s", m.ActiveTab())
-	}
+	assertTab(t, m, tui.TabDocker)
 }

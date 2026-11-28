@@ -17,79 +17,53 @@ func TestE2E_CursorNavigationAndWrapping(t *testing.T) {
 
 	// --- 1. TabDocker (3 containers: indices 0, 1, 2) ---
 	assertTab(t, m, tui.TabDocker)
-	if m.ActiveCursor() != 0 {
-		t.Fatalf("expected initial cursor 0, got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 0)
 
 	// Press 'up' at top -> wraps to bottom index 2
 	m, _ = sendKey(m, "up")
-	if m.ActiveCursor() != 2 {
-		t.Errorf("expected cursor wrap to index 2 on 'up', got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 2)
 
 	// Press 'down' at bottom -> wraps to top index 0
 	m, _ = sendKey(m, "down")
-	if m.ActiveCursor() != 0 {
-		t.Errorf("expected cursor wrap to index 0 on 'down', got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 0)
 
 	// 'G' (end) -> jumps to last item (2)
 	m, _ = sendKey(m, "G")
-	if m.ActiveCursor() != 2 {
-		t.Errorf("expected cursor at index 2 on 'G', got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 2)
 
 	// 'g' (home) -> jumps to first item (0)
 	m, _ = sendKey(m, "g")
-	if m.ActiveCursor() != 0 {
-		t.Errorf("expected cursor at index 0 on 'g', got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 0)
 
 	// 'j' moves down by 1
 	m, _ = sendKey(m, "j")
-	if m.ActiveCursor() != 1 {
-		t.Errorf("expected cursor at index 1 on 'j', got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 1)
 
 	// 'k' moves up by 1
 	m, _ = sendKey(m, "k")
-	if m.ActiveCursor() != 0 {
-		t.Errorf("expected cursor at index 0 on 'k', got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 0)
 
 	// --- 2. TabImages (3 images: indices 0, 1, 2) ---
 	m, _ = sendKey(m, "2")
 	assertTab(t, m, tui.TabImages)
-	if m.ActiveCursor() != 0 {
-		t.Fatalf("expected Images initial cursor 0, got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 0)
 
 	m, _ = sendKey(m, "up")
-	if m.ActiveCursor() != 2 {
-		t.Errorf("expected Images cursor wrap to index 2 on 'up', got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 2)
 
 	m, _ = sendKey(m, "down")
-	if m.ActiveCursor() != 0 {
-		t.Errorf("expected Images cursor wrap to index 0 on 'down', got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 0)
 
 	// --- 3. TabNetworks (2 networks: indices 0, 1) ---
 	m, _ = sendKey(m, "4")
 	assertTab(t, m, tui.TabNetworks)
-	if m.ActiveCursor() != 0 {
-		t.Fatalf("expected Networks initial cursor 0, got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 0)
 
 	m, _ = sendKey(m, "up")
-	if m.ActiveCursor() != 1 {
-		t.Errorf("expected Networks cursor wrap to index 1 on 'up', got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 1)
 
 	m, _ = sendKey(m, "down")
-	if m.ActiveCursor() != 0 {
-		t.Errorf("expected Networks cursor wrap to index 0 on 'down', got %d", m.ActiveCursor())
-	}
+	assertCursor(t, m, 0)
 }
 
 // TestE2E_SwarmQuickReplicaScaling verifies incrementing and decrementing
@@ -159,14 +133,10 @@ func TestE2E_FilterMultiSelectIntersection(t *testing.T) {
 
 	// 1. Select container c101 (web-gateway) with Space
 	m, _ = sendKey(m, "space")
-	if m.SelectedContainersCount() != 1 {
-		t.Fatalf("expected 1 container selected, got %d", m.SelectedContainersCount())
-	}
+	assertSelectedContainersCount(t, m, 1)
 
 	// 2. Filter by "redis" -> only c103 (redis-cache) is visible
-	m, _ = sendKey(m, "/")
-	m = sendTypeString(m, "redis")
-	m, _ = sendKey(m, "enter")
+	m = sendFilterAndConfirm(m, "redis")
 
 	filtered := m.FilteredContainers()
 	if len(filtered) != 1 || filtered[0].ID != "c103" {
@@ -176,9 +146,7 @@ func TestE2E_FilterMultiSelectIntersection(t *testing.T) {
 	// 3. Press 'a' (toggle select all visible) -> selects redis-cache
 	m, _ = sendKey(m, "a")
 	// Both c101 and c103 must now be selected (total = 2)
-	if m.SelectedContainersCount() != 2 {
-		t.Fatalf("expected 2 selected containers (c101 + c103), got %d", m.SelectedContainersCount())
-	}
+	assertSelectedContainersCount(t, m, 2)
 
 	// 4. Clear filter with Esc -> all 3 containers visible again
 	m, _ = sendKey(m, "esc")
@@ -186,21 +154,15 @@ func TestE2E_FilterMultiSelectIntersection(t *testing.T) {
 	if len(allContainers) != 3 {
 		t.Fatalf("expected all 3 containers restored, got %d", len(allContainers))
 	}
-	if m.SelectedContainersCount() != 2 {
-		t.Fatalf("expected selected count to remain 2 after clearing filter, got %d", m.SelectedContainersCount())
-	}
+	assertSelectedContainersCount(t, m, 2)
 
 	// 5. Press 'a' again: since not all 3 are selected, 'a' selects all 3
 	m, _ = sendKey(m, "a")
-	if m.SelectedContainersCount() != 3 {
-		t.Fatalf("expected all 3 containers selected, got %d", m.SelectedContainersCount())
-	}
+	assertSelectedContainersCount(t, m, 3)
 
 	// 6. Press 'a' again: all 3 are selected, so 'a' deselects all
 	m, _ = sendKey(m, "a")
-	if m.SelectedContainersCount() != 0 {
-		t.Fatalf("expected all containers deselected, got %d", m.SelectedContainersCount())
-	}
+	assertSelectedContainersCount(t, m, 0)
 }
 
 // TestE2E_SwarmLogsWorkflow verifies that pressing 'l' on a Swarm service
