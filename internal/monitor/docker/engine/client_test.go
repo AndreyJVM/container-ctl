@@ -43,15 +43,107 @@ func TestFindDockerSocket(t *testing.T) {
 	origHost := os.Getenv("DOCKER_HOST")
 	defer os.Setenv("DOCKER_HOST", origHost)
 
+	origContainerHost := os.Getenv("CONTAINER_HOST")
+	defer os.Setenv("CONTAINER_HOST", origContainerHost)
+
+	origPodmanSocket := os.Getenv("PODMAN_SOCKET")
+	defer os.Setenv("PODMAN_SOCKET", origPodmanSocket)
+
+	// 1. DOCKER_HOST
 	os.Setenv("DOCKER_HOST", "unix://"+tmpFile.Name())
 	detected := FindDockerSocket()
 	if detected != tmpFile.Name() {
 		t.Errorf("expected '%s', got '%s'", tmpFile.Name(), detected)
 	}
+	os.Setenv("DOCKER_HOST", "")
+
+	// 2. CONTAINER_HOST
+	os.Setenv("CONTAINER_HOST", "unix:"+tmpFile.Name())
+	detected = FindDockerSocket()
+	if detected != tmpFile.Name() {
+		t.Errorf("expected '%s', got '%s'", tmpFile.Name(), detected)
+	}
+	os.Setenv("CONTAINER_HOST", "")
+
+	// 3. PODMAN_SOCKET
+	os.Setenv("PODMAN_SOCKET", "unix://"+tmpFile.Name())
+	detected = FindDockerSocket()
+	if detected != tmpFile.Name() {
+		t.Errorf("expected '%s', got '%s'", tmpFile.Name(), detected)
+	}
+	os.Setenv("PODMAN_SOCKET", "")
+
+	// 4. CustomSocketPath
+	SetCustomSocketPath("unix://" + tmpFile.Name())
+	detected = FindDockerSocket()
+	if detected != tmpFile.Name() {
+		t.Errorf("expected '%s', got '%s'", tmpFile.Name(), detected)
+	}
+	SetCustomSocketPath("")
 }
 
-func TestIsDockerCLIAvailable(_ *testing.T) {
-	_ = IsDockerCLIAvailable()
+func TestGetContainerCLI_Lookups(t *testing.T) {
+	origLookPath := ExecLookPath
+	defer func() { ExecLookPath = origLookPath }()
+
+	// 1. Docker found
+	ExecLookPath = func(file string) (string, error) {
+		if file == "docker" {
+			return "/usr/bin/docker", nil
+		}
+		return "", os.ErrNotExist
+	}
+	if cli := GetContainerCLI(); cli != "docker" {
+		t.Errorf("expected 'docker', got '%s'", cli)
+	}
+
+	// 2. Only Podman found
+	ExecLookPath = func(file string) (string, error) {
+		if file == "podman" {
+			return "/usr/bin/podman", nil
+		}
+		return "", os.ErrNotExist
+	}
+	if cli := GetContainerCLI(); cli != "podman" {
+		t.Errorf("expected 'podman', got '%s'", cli)
+	}
+
+	// 3. Neither found -> defaults to "docker"
+	ExecLookPath = func(file string) (string, error) {
+		return "", os.ErrNotExist
+	}
+	if cli := GetContainerCLI(); cli != "docker" {
+		t.Errorf("expected 'docker', got '%s'", cli)
+	}
+}
+
+func TestIsDockerCLIAvailable_Checker(t *testing.T) {
+	restore := SetDockerCLIAvailableCheckerForTesting(func() bool {
+		return true
+	})
+	if !IsDockerCLIAvailable() {
+		t.Errorf("expected true from overridden checker")
+	}
+	restore()
+
+	restore = SetDockerCLIAvailableCheckerForTesting(func() bool {
+		return false
+	})
+	if IsDockerCLIAvailable() {
+		t.Errorf("expected false from overridden checker")
+	}
+	restore()
+}
+
+func TestRegisterHookPointers(_ *testing.T) {
+	var sf func() string
+	var scf func(string) *http.Client
+	var cr func(context.Context, ...string) ([]byte, error)
+	var elp func(string) (string, error)
+
+	RegisterHookPointers(&sf, &scf, &cr, &elp)
+	// Clear hook pointers
+	RegisterHookPointers(nil, nil, nil, nil)
 }
 
 func TestSocketClientPool(t *testing.T) {

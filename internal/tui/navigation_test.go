@@ -1017,3 +1017,70 @@ func TestComposeNetworksVolumesSearchFilter(t *testing.T) {
 		t.Errorf("expected filterQuery reset after Esc")
 	}
 }
+
+func TestNavigation_ExportedAccessors(t *testing.T) {
+	t.Parallel()
+
+	m := newFastTestModel()
+	m.dockerInfo.Containers = []monitor.ContainerItem{
+		testutil.AContainer(testutil.WithID("c1"), testutil.WithName("c1")),
+	}
+	m.images = []monitor.DockerImage{
+		{ID: "img1", Repository: "alpine", Tag: "latest"},
+	}
+	m.compose = []monitor.ComposeProject{
+		{Name: "p1", Status: "running"},
+	}
+	m.networks = []monitor.DockerNetwork{
+		{ID: "n1", Name: "net1"},
+	}
+	m.volumes = []monitor.DockerVolume{
+		{Name: "vol1"},
+	}
+
+	// 1. Cursor accessors
+	m.activeTab = TabDocker
+	m.cursorIdx = 0
+	if m.ActiveCursor() != 0 {
+		t.Errorf("expected ActiveCursor 0, got %d", m.ActiveCursor())
+	}
+
+	// 2. Filtered list accessors
+	if len(m.FilteredContainers()) != 1 {
+		t.Errorf("expected 1 container, got %d", len(m.FilteredContainers()))
+	}
+	if len(m.FilteredImages()) != 1 {
+		t.Errorf("expected 1 image, got %d", len(m.FilteredImages()))
+	}
+	if len(m.FilteredCompose()) != 1 {
+		t.Errorf("expected 1 compose project, got %d", len(m.FilteredCompose()))
+	}
+	if len(m.FilteredNetworks()) != 1 {
+		t.Errorf("expected 1 network, got %d", len(m.FilteredNetworks()))
+	}
+	if len(m.FilteredVolumes()) != 1 {
+		t.Errorf("expected 1 volume, got %d", len(m.FilteredVolumes()))
+	}
+
+	// 3. Filter query and status
+	m.filterQuery = "test-query"
+	m.isFiltering = true
+	if m.FilterQuery() != "test-query" {
+		t.Errorf("expected FilterQuery 'test-query', got %q", m.FilterQuery())
+	}
+	if !m.IsFiltering() {
+		t.Errorf("expected IsFiltering true")
+	}
+
+	// 4. Sort mode
+	m.containerSortMode = SortCPU
+	if m.ContainerSortMode() != SortCPU {
+		t.Errorf("expected ContainerSortMode SortCPU, got %d", m.ContainerSortMode())
+	}
+
+	// 5. ToastMessage
+	m.actionMessage = "Operation completed"
+	if m.ToastMessage() != "Operation completed" {
+		t.Errorf("expected ToastMessage 'Operation completed', got %q", m.ToastMessage())
+	}
+}

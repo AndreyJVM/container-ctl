@@ -1,10 +1,13 @@
 package operations
 
 import (
+	"net/http"
+	"strings"
+	"testing"
+
+	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/engine"
 	"github.com/AndreyJVM/container-ctl/internal/monitor/docker/types"
 )
-
-import "testing"
 
 func TestCalculateContainerStats(t *testing.T) {
 	t.Run("standard stats calculation", func(t *testing.T) {
@@ -103,4 +106,118 @@ func TestCalculateContainerStats(t *testing.T) {
 			t.Errorf("expected NetRx=1000, NetTx=2000, got NetRx=%d, NetTx=%d", stats.NetRxBytes, stats.NetTxBytes)
 		}
 	})
+}
+
+func TestFetchContainerStats_HTTP(t *testing.T) {
+	t.Run("success response", func(t *testing.T) {
+		client := newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
+			if strings.Contains(req.URL.Path, "/containers/c123/stats") {
+				var raw types.ContainerStatsRaw
+				raw.MemoryStats.Usage = 50 * 1024 * 1024
+				raw.MemoryStats.Limit = 100 * 1024 * 1024
+				return mockJSONResponse(http.StatusOK, raw), nil
+			}
+			return mockStringResponse(http.StatusNotFound, "not found"), nil
+		})
+
+		stats := FetchContainerStats(client, "c123")
+		if stats.MemUsageMB != 50.0 {
+			t.Errorf("expected MemUsageMB 50.0, got %.2f", stats.MemUsageMB)
+		}
+	})
+
+	t.Run("error response", func(t *testing.T) {
+		client := newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
+			return mockStringResponse(http.StatusInternalServerError, "server error"), nil
+		})
+
+		stats := FetchContainerStats(client, "c123")
+		if stats.MemUsageMB != 0.0 {
+			t.Errorf("expected empty stats on error, got %+v", stats)
+		}
+	})
+}
+
+func TestFetchContainerInspect_HTTP(t *testing.T) {
+	t.Run("success response with RFC3339 timestamp", func(t *testing.T) {
+		client := newMockHTTPClient(func(req *http.Request) (*http.Response, error) {
+			if strings.Contains(req.URL.Path, "/containers/c123/json") {
+				respMap := map[string]interface{}{
+					"HostConfig": map[string]interface{}{
+						"RestartPolicy": map[string]interface{}{
+							"Name": "unless-stopped",
+						},
+					},
+					"State": map[string]interface{}{
+						"StartedAt": "2026-11-28T02:00:00Z",
+					},
+				}
+				return mockJSONResponse(http.StatusOK, respMap), nil
+			}
+			return mockStringResponse(http.StatusNotFound, "not found"), nil
+		})
+
+		policy, started := FetchContainerInspect(client, "c123")
+		if policy != "unless-stopped" {
+			t.Errorf("expected restart policy 'unless-stopped', got %q", policy)
+		}
+		if len(started) != 19 {
+			t.Errorf("expected formatted date string of length 19 in started, got %q", started)
+		}
+	})
+
+	t.Run("error response", func(t *testing.T) {
+		client := newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
+			return mockStringResponse(http.StatusNotFound, "not found"), nil
+		})
+
+		policy, started := FetchContainerInspect(client, "nonexistent")
+		if policy != "" || started != "" {
+			t.Errorf("expected empty strings on error, got policy=%q, started=%q", policy, started)
+		}
+	})
+}
+
+func TestGetContainerStats_Validation(t *testing.T) {
+	// 1. Empty container ID
+	_, err := GetContainerStats("   ")
+	if err == nil {
+		t.Error("expected error for empty container ID")
+	}
+
+	// 2. No socket available
+	origFinder := engine.DockerSocketFinder
+	defer func() { engine.DockerSocketFinder = origFinder }()
+
+	engine.DockerSocketFinder = func() string {
+		return ""
+	}
+	_, err = GetContainerStats("c123")
+	if err == nil {
+		t.Error("expected error when Docker socket is unavailable")
+	}
+
+	// 3. Socket available with mock client
+	engine.DockerSocketFinder = func() string {
+		return "/tmp/mock.sock"
+	}
+	origFactory := engine.SocketClientFactory
+	defer func() { engine.SocketClientFactory = origFactory }()
+
+	engine.SocketClientFactory = func(_ string) *http.Client {
+		return newMockHTTPClient(func(_ *http.Request) (*http.Response, error) {
+			var raw types.ContainerStatsRaw
+			raw.MemoryStats.Usage = 10 * 1024 * 1024
+			raw.MemoryStats.Limit = 50 * 1024 * 1024
+			return mockJSONResponse(http.StatusOK, raw), nil
+		})
+	}
+
+	stats, err := GetContainerStats("c123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if stats.MemUsageMB != 10.0 {
+		t.Errorf("expected MemUsageMB 10.0, got %.2f", stats.MemUsageMB)
+	}
 }
