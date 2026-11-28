@@ -341,6 +341,11 @@ func (m Model) IsFiltering() bool {
 	return m.isFiltering
 }
 
+// ToastMessage returns the currently displayed action toast message, if any.
+func (m Model) ToastMessage() string {
+	return m.actionMessage
+}
+
 func containerStatusScore(c monitor.ContainerItem) int {
 	return filter.ContainerStatusScore(c)
 }
