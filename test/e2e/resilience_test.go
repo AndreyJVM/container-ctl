@@ -10,7 +10,6 @@ import (
 	"github.com/AndreyJVM/container-ctl/internal/testutil"
 	"github.com/AndreyJVM/container-ctl/internal/tui"
 	"github.com/AndreyJVM/container-ctl/internal/tui/actions"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func createResilienceModel() tui.Model {
@@ -18,6 +17,8 @@ func createResilienceModel() tui.Model {
 }
 
 func TestResilience_ExtremeWindowSizes(t *testing.T) {
+	t.Parallel()
+
 	testDimensions := []struct {
 		width  int
 		height int
@@ -80,9 +81,8 @@ func TestResilience_ExtremeWindowSizes(t *testing.T) {
 						Mounts: []string{"/host:/container"},
 					})
 
-					// Send WindowSizeMsg
-					updatedModel, _ := m.Update(tea.WindowSizeMsg{Width: dim.width, Height: dim.height})
-					resModel := updatedModel.(tui.Model)
+					// Send WindowSizeMsg using sendWindowSize helper
+					resModel := sendWindowSize(m, dim.width, dim.height)
 
 					// View() must render without crashing/panicking
 					out := resModel.View()
@@ -96,6 +96,8 @@ func TestResilience_ExtremeWindowSizes(t *testing.T) {
 }
 
 func TestResilience_CursorOutOfBoundsSafety(t *testing.T) {
+	t.Parallel()
+
 	tabs := []tui.TabID{tui.TabDocker, tui.TabImages, tui.TabCompose, tui.TabNetworks, tui.TabVolumes, tui.TabSwarm}
 
 	for _, tab := range tabs {
@@ -104,11 +106,10 @@ func TestResilience_CursorOutOfBoundsSafety(t *testing.T) {
 			m.SetShowSwarm(true)
 			m.SetTab(tab)
 
-			updated, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
-			m = updated.(tui.Model)
+			m = sendWindowSize(m, 120, 40)
 
 			// Completely empty data
-			updated, _ = m.Update(actions.DataFetchedMsg{})
+			updated, _ := m.Update(actions.DataFetchedMsg{})
 			m = updated.(tui.Model)
 
 			badIndices := []int{-999, -1, 0, 1, 999}
@@ -119,8 +120,7 @@ func TestResilience_CursorOutOfBoundsSafety(t *testing.T) {
 				_ = m.View()
 
 				for _, key := range []string{"up", "down", "pgup", "pgdown", "home", "end", "enter"} {
-					res, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(key)})
-					m = res.(tui.Model)
+					m, _ = sendKey(m, key)
 					_ = m.View()
 				}
 			}
@@ -129,6 +129,8 @@ func TestResilience_CursorOutOfBoundsSafety(t *testing.T) {
 }
 
 func TestResilience_CorruptedAndBoundaryContainerData(t *testing.T) {
+	t.Parallel()
+
 	boundaryData := actions.DataFetchedMsg{
 		DockerInfo: monitor.DockerSummary{
 			Status:        "running",
@@ -146,8 +148,7 @@ func TestResilience_CorruptedAndBoundaryContainerData(t *testing.T) {
 	updated, _ := m.Update(boundaryData)
 	m = updated.(tui.Model)
 
-	updated, _ = m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
-	m = updated.(tui.Model)
+	m = sendWindowSize(m, 120, 40)
 
 	defer func() {
 		if r := recover(); r != nil {

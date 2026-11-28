@@ -75,6 +75,7 @@ func createMultiComposeModel() tui.Model {
 }
 
 func TestE2E_ComposeDeepNavigationAndFilter(t *testing.T) {
+	t.Parallel()
 	m := createMultiComposeModel()
 	assertTab(t, m, tui.TabCompose)
 
@@ -96,12 +97,8 @@ func TestE2E_ComposeDeepNavigationAndFilter(t *testing.T) {
 
 	// Search by project name: "/" -> "analytics"
 	m = sendFilter(m, "analytics")
-	if !m.IsFiltering() {
-		t.Fatal("expected IsFiltering to be true after sendFilter")
-	}
-	if m.FilterQuery() != "analytics" {
-		t.Fatalf("expected FilterQuery 'analytics', got %q", m.FilterQuery())
-	}
+	assertFiltering(t, m, true)
+	assertFilterQuery(t, m, "analytics")
 
 	filtered := m.FilteredCompose()
 	if len(filtered) != 1 || filtered[0].Name != "analytics-stack" {
@@ -110,9 +107,7 @@ func TestE2E_ComposeDeepNavigationAndFilter(t *testing.T) {
 
 	// Clear filter with Esc
 	m, _ = sendKey(m, "esc")
-	if m.FilterQuery() != "" {
-		t.Fatalf("expected filterQuery cleared after Esc, got %q", m.FilterQuery())
-	}
+	assertFilterQuery(t, m, "")
 	if len(m.FilteredCompose()) != 3 {
 		t.Fatalf("expected 3 projects restored after Esc, got %d", len(m.FilteredCompose()))
 	}
@@ -142,6 +137,7 @@ func TestE2E_ComposeDeepNavigationAndFilter(t *testing.T) {
 }
 
 func TestE2E_ComposeLifecycleActionsAndModals(t *testing.T) {
+	t.Parallel()
 	m := createMultiComposeModel()
 	assertTab(t, m, tui.TabCompose)
 

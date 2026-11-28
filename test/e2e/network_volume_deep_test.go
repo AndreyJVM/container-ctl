@@ -11,6 +11,7 @@ import (
 )
 
 func TestE2E_NetworkFilterAndBatchOperations(t *testing.T) {
+	t.Parallel()
 	m := tui.NewModelWithOptions(
 		2*time.Second,
 		int(tui.TabNetworks),
@@ -100,17 +101,13 @@ func TestE2E_NetworkFilterAndBatchOperations(t *testing.T) {
 	// Multi-select all filtered networks with 'a'
 	// First press Enter to finalize filter input so 'a' acts as select all
 	m, _ = sendKey(m, "enter")
-	if m.IsFiltering() {
-		t.Fatal("expected IsFiltering to be false after Enter")
-	}
+	assertFiltering(t, m, false)
 	m, _ = sendKey(m, "a")
 	assertSelectedNetworksCount(t, m, 2)
 
 	// Clear filter query with Esc: all 4 networks visible, but 2 remain selected
 	m, _ = sendKey(m, "esc")
-	if m.FilterQuery() != "" {
-		t.Fatalf("expected filter query cleared, got %q", m.FilterQuery())
-	}
+	assertFilterQuery(t, m, "")
 	if len(m.FilteredNetworks()) != 4 {
 		t.Fatalf("expected 4 networks visible, got %d", len(m.FilteredNetworks()))
 	}
@@ -132,6 +129,7 @@ func TestE2E_NetworkFilterAndBatchOperations(t *testing.T) {
 }
 
 func TestE2E_VolumeFilterAndBatchOperations(t *testing.T) {
+	t.Parallel()
 	m := tui.NewModelWithOptions(
 		2*time.Second,
 		int(tui.TabVolumes),
@@ -226,17 +224,14 @@ func TestE2E_VolumeFilterAndBatchOperations(t *testing.T) {
 }
 
 func TestE2E_ConcurrentBackgroundRefreshDuringActiveFilter(t *testing.T) {
+	t.Parallel()
 	m := createComprehensiveTestModel()
 	assertTab(t, m, tui.TabDocker)
 
 	// User initiates search with '/' and types partial prefix "web"
 	m = sendFilter(m, "web")
-	if !m.IsFiltering() {
-		t.Fatal("expected IsFiltering to be true")
-	}
-	if m.FilterQuery() != "web" {
-		t.Fatalf("expected FilterQuery 'web', got %q", m.FilterQuery())
-	}
+	assertFiltering(t, m, true)
+	assertFilterQuery(t, m, "web")
 
 	initialFiltered := m.FilteredContainers()
 	if len(initialFiltered) != 1 || initialFiltered[0].Name != "web-gateway" {
@@ -264,14 +259,10 @@ func TestE2E_ConcurrentBackgroundRefreshDuringActiveFilter(t *testing.T) {
 
 	// CRITICAL UX INVARIANT CHECKS:
 	// 1. IsFiltering must remain true - user's input mode is NOT interrupted!
-	if !m.IsFiltering() {
-		t.Fatal("expected IsFiltering to remain true during background refresh")
-	}
+	assertFiltering(t, m, true)
 
 	// 2. FilterQuery must be untouched - user's typed characters are NOT lost!
-	if m.FilterQuery() != "web" {
-		t.Fatalf("expected FilterQuery 'web' preserved, got %q", m.FilterQuery())
-	}
+	assertFilterQuery(t, m, "web")
 
 	// 3. Filtered items must dynamically reflect the new data matching the query!
 	newFiltered := m.FilteredContainers()
@@ -286,9 +277,7 @@ func TestE2E_ConcurrentBackgroundRefreshDuringActiveFilter(t *testing.T) {
 
 	// 5. User continues typing "-gateway" smoothly
 	m = sendTypeString(m, "-gateway")
-	if m.FilterQuery() != "web-gateway" {
-		t.Fatalf("expected FilterQuery 'web-gateway', got %q", m.FilterQuery())
-	}
+	assertFilterQuery(t, m, "web-gateway")
 
 	finalFiltered := m.FilteredContainers()
 	if len(finalFiltered) != 1 || finalFiltered[0].Name != "web-gateway" {
@@ -297,18 +286,12 @@ func TestE2E_ConcurrentBackgroundRefreshDuringActiveFilter(t *testing.T) {
 
 	// Press Enter to confirm filter
 	m, _ = sendKey(m, "enter")
-	if m.IsFiltering() {
-		t.Fatal("expected IsFiltering to be false after Enter")
-	}
-	if m.FilterQuery() != "web-gateway" {
-		t.Fatalf("expected query 'web-gateway' preserved after Enter, got %q", m.FilterQuery())
-	}
+	assertFiltering(t, m, false)
+	assertFilterQuery(t, m, "web-gateway")
 
 	// Press Esc to clear filter
 	m, _ = sendKey(m, "esc")
-	if m.FilterQuery() != "" {
-		t.Fatalf("expected filter query cleared after Esc, got %q", m.FilterQuery())
-	}
+	assertFilterQuery(t, m, "")
 	if len(m.FilteredContainers()) != 3 {
 		t.Fatalf("expected all 3 containers restored, got %d", len(m.FilteredContainers()))
 	}

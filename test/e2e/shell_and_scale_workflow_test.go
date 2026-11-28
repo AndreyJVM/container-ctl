@@ -11,7 +11,6 @@ import (
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	"github.com/AndreyJVM/container-ctl/internal/tui"
 	"github.com/AndreyJVM/container-ctl/internal/tui/actions"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 type e2eFakeShellSession struct {
@@ -65,9 +64,7 @@ func TestE2E_EmbeddedShellFullLifecycle(t *testing.T) {
 	})
 	defer cleanupShell()
 
-	m := createComprehensiveTestModel()
-	updatedModel, _ := m.Update(tea.WindowSizeMsg{Width: 140, Height: 40})
-	m = updatedModel.(tui.Model)
+	m := sendWindowSize(createComprehensiveTestModel(), 140, 40)
 
 	// 1. Cursor starts on running container "web-gateway" (c101). Press 'e' to open Exec modal.
 	m, _ = sendKey(m, "e")
@@ -142,7 +139,7 @@ func TestE2E_EmbeddedShellFullLifecycle(t *testing.T) {
 	if closeCmd == nil {
 		t.Error("expected fetchDataCmd dispatched on shell close")
 	}
-	assertContains(t, m.ToastMessage(), "Shell session in web-gateway closed")
+	assertToastContains(t, m, "Shell session in web-gateway closed")
 
 	// 8. Test external process exit message handling (e.g. exit code 0)
 	// Launch shell again
@@ -159,7 +156,7 @@ func TestE2E_EmbeddedShellFullLifecycle(t *testing.T) {
 	if m.IsShellActive() {
 		t.Fatal("expected shell closed after exit message")
 	}
-	assertContains(t, m.ToastMessage(), "Shell session in web-gateway ended")
+	assertToastContains(t, m, "Shell session in web-gateway ended")
 	if refreshCmd == nil {
 		t.Error("expected fetchDataCmd dispatched after shell exited")
 	}
@@ -178,7 +175,7 @@ func TestE2E_EmbeddedShellFullLifecycle(t *testing.T) {
 	if m.IsShellActive() {
 		t.Fatal("expected shell not to be active after startup failure")
 	}
-	assertContains(t, m.ToastMessage(), "Shell error in web-gateway: PTY fork failed")
+	assertToastContains(t, m, "Shell error in web-gateway: PTY fork failed")
 }
 
 // TestE2E_ComposeServiceLogsWorkflow verifies opening aggregate Compose project logs
@@ -200,9 +197,7 @@ func TestE2E_ComposeServiceLogsWorkflow(t *testing.T) {
 	})
 	defer cleanupRunner()
 
-	m := createComprehensiveTestModel()
-	updatedModel, _ := m.Update(tea.WindowSizeMsg{Width: 140, Height: 40})
-	m = updatedModel.(tui.Model)
+	m := sendWindowSize(createComprehensiveTestModel(), 140, 40)
 
 	// 1. Switch to TabCompose (3)
 	m, _ = sendKey(m, "3")
@@ -298,7 +293,7 @@ func TestE2E_SwarmReplicaScalingModalDeepWorkflow(t *testing.T) {
 	if scaleCmd == nil {
 		t.Error("expected scaleSwarmServiceCmd dispatched upon Enter")
 	}
-	assertContains(t, m.ToastMessage(), "Scaling service web-proxy to 5 replicas...")
+	assertToastContains(t, m, "Scaling service web-proxy to 5 replicas...")
 
 	// 10. Test global service rejection: add a global service and verify 's' is rejected
 	mWithGlobal := m
@@ -329,5 +324,5 @@ func TestE2E_SwarmReplicaScalingModalDeepWorkflow(t *testing.T) {
 	// Attempting to scale global service
 	mWithGlobal, _ = sendKey(mWithGlobal, "s")
 	assertModalClosed(t, mWithGlobal)
-	assertContains(t, mWithGlobal.ToastMessage(), "Cannot scale global Swarm service")
+	assertToastContains(t, mWithGlobal, "Cannot scale global Swarm service")
 }

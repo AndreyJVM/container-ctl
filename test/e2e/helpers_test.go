@@ -276,3 +276,42 @@ func assertSelectedVolumesCount(t *testing.T, m tui.Model, expected int) {
 		t.Fatalf("expected %d selected volumes, got %d", expected, m.SelectedVolumesCount())
 	}
 }
+
+// sendWindowSize updates the model with the given terminal dimensions.
+func sendWindowSize(m tui.Model, width, height int) tui.Model {
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: width, Height: height})
+	return updated.(tui.Model)
+}
+
+// assertContainsAny fails if actual does not contain at least one of the expected substrings.
+func assertContainsAny(t *testing.T, actual string, expected ...string) {
+	t.Helper()
+	for _, exp := range expected {
+		if strings.Contains(actual, exp) {
+			return
+		}
+	}
+	t.Errorf("expected string to contain any of %v, but got:\n%s", expected, actual)
+}
+
+// assertToastContains fails if model's current toast message does not contain expected substring.
+func assertToastContains(t *testing.T, m tui.Model, expected string) {
+	t.Helper()
+	assertContains(t, m.ToastMessage(), expected)
+}
+
+// assertFiltering fails if model's IsFiltering state does not match expected.
+func assertFiltering(t *testing.T, m tui.Model, expected bool) {
+	t.Helper()
+	if m.IsFiltering() != expected {
+		t.Fatalf("expected IsFiltering = %v, got %v", expected, m.IsFiltering())
+	}
+}
+
+// assertFilterQuery fails if model's FilterQuery does not match expected.
+func assertFilterQuery(t *testing.T, m tui.Model, expected string) {
+	t.Helper()
+	if m.FilterQuery() != expected {
+		t.Fatalf("expected FilterQuery = %q, got %q", expected, m.FilterQuery())
+	}
+}

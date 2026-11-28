@@ -36,9 +36,12 @@ func TestMain(m *testing.M) {
 }
 
 func TestE2E_VersionFlag(t *testing.T) {
+	t.Parallel()
 	flags := []string{"--version", "-v"}
 	for _, flag := range flags {
+		flag := flag
 		t.Run(flag, func(t *testing.T) {
+			t.Parallel()
 			cmd := exec.Command(binaryPath, flag)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
@@ -53,9 +56,12 @@ func TestE2E_VersionFlag(t *testing.T) {
 }
 
 func TestE2E_HelpFlag(t *testing.T) {
+	t.Parallel()
 	flags := []string{"--help", "-h"}
 	for _, flag := range flags {
+		flag := flag
 		t.Run(flag, func(t *testing.T) {
+			t.Parallel()
 			cmd := exec.Command(binaryPath, flag)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
@@ -70,6 +76,7 @@ func TestE2E_HelpFlag(t *testing.T) {
 }
 
 func TestE2E_PrintConfig(t *testing.T) {
+	t.Parallel()
 	cmd := exec.Command(binaryPath, "--print-config")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -82,6 +89,7 @@ func TestE2E_PrintConfig(t *testing.T) {
 }
 
 func TestE2E_InitConfig(t *testing.T) {
+	t.Parallel()
 	tempFile := filepath.Join(t.TempDir(), "config.yaml")
 	cmd := exec.Command(binaryPath, "--init-config", "-c", tempFile)
 	output, err := cmd.CombinedOutput()
@@ -122,6 +130,7 @@ func TestE2E_InitConfig(t *testing.T) {
 }
 
 func TestE2E_InvalidFlag(t *testing.T) {
+	t.Parallel()
 	cmd := exec.Command(binaryPath, "--unknown-flag-xyz")
 	output, err := cmd.CombinedOutput()
 	if err == nil {
@@ -134,6 +143,7 @@ func TestE2E_InvalidFlag(t *testing.T) {
 }
 
 func TestE2E_IntervalAndTabFlags(t *testing.T) {
+	t.Parallel()
 	// Valid interval and tab
 	cmd := exec.Command(binaryPath, "-i", "1s", "-t", "images", "-v")
 	output, err := cmd.CombinedOutput()
@@ -157,6 +167,7 @@ func TestE2E_IntervalAndTabFlags(t *testing.T) {
 }
 
 func TestE2E_NonInteractiveTerminalCheck(t *testing.T) {
+	t.Parallel()
 	// Running container-ctl directly without a real TTY must fail gracefully with descriptive error
 	cmd := exec.Command(binaryPath)
 	output, err := cmd.CombinedOutput()
@@ -170,6 +181,7 @@ func TestE2E_NonInteractiveTerminalCheck(t *testing.T) {
 }
 
 func TestE2E_PositionalArgumentsError(t *testing.T) {
+	t.Parallel()
 	cmd := exec.Command(binaryPath, "unexpected-arg")
 	output, err := cmd.CombinedOutput()
 	if err == nil {
@@ -182,6 +194,7 @@ func TestE2E_PositionalArgumentsError(t *testing.T) {
 }
 
 func TestE2E_NonExistentConfigFile(t *testing.T) {
+	t.Parallel()
 	nonExistent := filepath.Join(t.TempDir(), "does-not-exist.yaml")
 	cmd := exec.Command(binaryPath, "-c", nonExistent)
 	output, err := cmd.CombinedOutput()
@@ -195,6 +208,7 @@ func TestE2E_NonExistentConfigFile(t *testing.T) {
 }
 
 func TestE2E_EnvironmentVariables(t *testing.T) {
+	t.Parallel()
 	cmd := exec.Command(binaryPath, "--print-config")
 	cmd.Env = append(os.Environ(),
 		"DOCKPULSE_INTERVAL=3s",

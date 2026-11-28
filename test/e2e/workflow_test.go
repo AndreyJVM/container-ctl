@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
@@ -101,10 +100,7 @@ func TestE2E_FullContainerWorkflow(t *testing.T) {
 
 	// 8. Copy resource ID / command with 'y' (yank)
 	m, _ = sendKey(m, "y")
-	copyView := m.View()
-	if !strings.Contains(copyView, "Copied") && !strings.Contains(copyView, "Clipboard") {
-		t.Errorf("expected clipboard notification toast on 'y'")
-	}
+	assertContainsAny(t, m.View(), "Copied", "Clipboard")
 }
 
 // TestE2E_MultiTabAndSelectionWorkflow tests navigating across all tabs and verifying multi-selection on Images, Networks, and Volumes.
@@ -129,13 +125,8 @@ func TestE2E_MultiTabAndSelectionWorkflow(t *testing.T) {
 
 	for _, step := range tabSequence {
 		m, _ = sendKey(m, step.key)
-		if m.ActiveTab() != step.expectedTab {
-			t.Fatalf("after key %q: expected active tab %s, got %s", step.key, step.expectedTab, m.ActiveTab())
-		}
-		view := m.View()
-		if !strings.Contains(view, step.headerText) {
-			t.Errorf("expected tab view to contain %q, got: %s", step.headerText, view)
-		}
+		assertTab(t, m, step.expectedTab)
+		assertContains(t, m.View(), step.headerText)
 	}
 
 	// Test multi-select on Images tab

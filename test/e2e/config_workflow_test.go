@@ -11,7 +11,6 @@ import (
 	"github.com/AndreyJVM/container-ctl/internal/monitor"
 	"github.com/AndreyJVM/container-ctl/internal/tui"
 	"github.com/AndreyJVM/container-ctl/internal/tui/actions"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func TestE2E_ConfigConstructor_CustomOrderingAndLabels(t *testing.T) {
@@ -93,10 +92,7 @@ modules:
 	}
 
 	updated, _ := m.Update(data)
-	m = updated.(tui.Model)
-
-	updated, _ = m.Update(tea.WindowSizeMsg{Width: 140, Height: 40})
-	m = updated.(tui.Model)
+	m = sendWindowSize(updated.(tui.Model), 140, 40)
 
 	// 1. Initial tab should be Networks (TabNetworks)
 	assertTab(t, m, tui.TabNetworks)

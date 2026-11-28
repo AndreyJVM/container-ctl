@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/AndreyJVM/container-ctl/internal/tui"
@@ -22,10 +21,7 @@ func TestE2E_PruneModalWorkflow(t *testing.T) {
 
 	// 2. Select option 1 (Containers) -> enters confirmation step
 	m, _ = sendKey(m, "1")
-	confirmView := m.View()
-	if !strings.Contains(confirmView, "Confirm Pruning") && !strings.Contains(confirmView, "[Y] Confirm") {
-		t.Errorf("expected container prune confirmation prompt, got:\n%s", confirmView)
-	}
+	assertContainsAny(t, m.View(), "Confirm Pruning", "[Y] Confirm")
 
 	// 3. Cancel confirmation with 'n' -> returns to main prune menu
 	m, _ = sendKey(m, "n")
@@ -130,10 +126,7 @@ func TestE2E_LogsModalInteractiveWorkflow(t *testing.T) {
 	}
 
 	// 1. Initial view renders logs
-	initialView := m.View()
-	if !strings.Contains(initialView, "LOGS") && !strings.Contains(initialView, "web-gateway") {
-		t.Errorf("expected logs header for web-gateway, got:\n%s", initialView)
-	}
+	assertContainsAny(t, m.View(), "LOGS", "web-gateway")
 
 	// 2. Scrolling down and up
 	m, _ = sendKey(m, "down")
