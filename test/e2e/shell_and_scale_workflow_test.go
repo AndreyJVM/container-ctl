@@ -3,7 +3,6 @@ package e2e
 import (
 	"context"
 	"errors"
-	"io"
 	"os/exec"
 	"strings"
 	"testing"
@@ -12,45 +11,6 @@ import (
 	"github.com/AndreyJVM/container-ctl/internal/tui"
 	"github.com/AndreyJVM/container-ctl/internal/tui/actions"
 )
-
-type e2eFakeShellSession struct {
-	writes     [][]byte
-	closeCount int
-	render     string
-}
-
-func (s *e2eFakeShellSession) Read() ([]byte, error) {
-	return nil, io.EOF
-}
-
-func (s *e2eFakeShellSession) Write(data []byte) error {
-	s.writes = append(s.writes, append([]byte(nil), data...))
-	return nil
-}
-
-func (s *e2eFakeShellSession) Feed(data []byte) error {
-	return nil
-}
-
-func (s *e2eFakeShellSession) Render() string {
-	if s.render != "" {
-		return s.render
-	}
-	return "root@web-gateway:/app# ls -la"
-}
-
-func (s *e2eFakeShellSession) Resize(width, height int) error {
-	return nil
-}
-
-func (s *e2eFakeShellSession) Wait() error {
-	return nil
-}
-
-func (s *e2eFakeShellSession) Close() error {
-	s.closeCount++
-	return nil
-}
 
 // TestE2E_EmbeddedShellFullLifecycle verifies opening an in-app embedded shell session,
 // keyboard focus toggling, input forwarding, clean closure via Ctrl+X, process exit handling,

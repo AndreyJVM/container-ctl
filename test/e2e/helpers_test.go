@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -314,4 +315,47 @@ func assertFilterQuery(t *testing.T, m tui.Model, expected string) {
 	if m.FilterQuery() != expected {
 		t.Fatalf("expected FilterQuery = %q, got %q", expected, m.FilterQuery())
 	}
+}
+
+// e2eFakeShellSession implements tui.EmbeddedShellSession for testing embedded terminal interactions.
+type e2eFakeShellSession struct {
+	writes      [][]byte
+	closeCount  int
+	render      string
+	resizeCalls []struct{ W, H int }
+	resizeErr   error
+}
+
+func (s *e2eFakeShellSession) Read() ([]byte, error) {
+	return nil, io.EOF
+}
+
+func (s *e2eFakeShellSession) Write(data []byte) error {
+	s.writes = append(s.writes, append([]byte(nil), data...))
+	return nil
+}
+
+func (s *e2eFakeShellSession) Feed(data []byte) error {
+	return nil
+}
+
+func (s *e2eFakeShellSession) Render() string {
+	if s.render != "" {
+		return s.render
+	}
+	return "root@web-gateway:/app# ls -la"
+}
+
+func (s *e2eFakeShellSession) Resize(width, height int) error {
+	s.resizeCalls = append(s.resizeCalls, struct{ W, H int }{W: width, H: height})
+	return s.resizeErr
+}
+
+func (s *e2eFakeShellSession) Wait() error {
+	return nil
+}
+
+func (s *e2eFakeShellSession) Close() error {
+	s.closeCount++
+	return nil
 }

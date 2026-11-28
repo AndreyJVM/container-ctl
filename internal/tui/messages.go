@@ -15,6 +15,11 @@ type execFinishedMsg struct {
 	err           error
 }
 
+// NewExecFinishedMsg constructs an execFinishedMsg for testing.
+func NewExecFinishedMsg(containerName string, err error) any {
+	return execFinishedMsg{containerName: containerName, err: err}
+}
+
 type embeddedShellOutputMsg struct {
 	session embeddedShellSession
 	data    []byte

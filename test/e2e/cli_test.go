@@ -520,3 +520,29 @@ func TestE2E_InteractivePTY_SignalInterrupt(t *testing.T) {
 		t.Fatalf("expected clean exit 0 upon Ctrl+C, got: %v", err)
 	}
 }
+
+func TestE2E_InteractivePTY_SortingAndDetailsToggle(t *testing.T) {
+	cmd := exec.Command(binaryPath, "-i", "200ms")
+	s := startPTYSession(t, cmd, &pty.Winsize{Rows: 35, Cols: 120})
+
+	time.Sleep(500 * time.Millisecond)
+	s.RequireOutput("[S] Start/Stop", 6*time.Second)
+
+	// Cycle sort with 'o'
+	s.WriteString("o")
+	time.Sleep(200 * time.Millisecond)
+
+	// Toggle details card with 'v'
+	s.WriteString("v")
+	time.Sleep(200 * time.Millisecond)
+
+	// Toggle details card back with 'v'
+	s.WriteString("v")
+	time.Sleep(200 * time.Millisecond)
+
+	// Quit cleanly with 'q'
+	s.WriteString("q")
+	if err := s.WaitExit(7 * time.Second); err != nil {
+		t.Fatalf("expected clean exit 0 upon quitting with 'q', got: %v", err)
+	}
+}
