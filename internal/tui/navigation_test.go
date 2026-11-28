@@ -1083,4 +1083,29 @@ func TestNavigation_ExportedAccessors(t *testing.T) {
 	if m.ToastMessage() != "Operation completed" {
 		t.Errorf("expected ToastMessage 'Operation completed', got %q", m.ToastMessage())
 	}
+
+	// 6. Shell state accessors
+	if m.IsShellActive() {
+		t.Errorf("expected IsShellActive false initially")
+	}
+	if m.IsShellFocused() {
+		t.Errorf("expected IsShellFocused false initially")
+	}
+	if m.ShellContainerName() != "" {
+		t.Errorf("expected ShellContainerName empty initially, got %q", m.ShellContainerName())
+	}
+
+	m.embeddedShell = &fakeEmbeddedShell{}
+	m.shellFocused = true
+	m.shellContainerName = "api-service"
+
+	if !m.IsShellActive() {
+		t.Errorf("expected IsShellActive true")
+	}
+	if !m.IsShellFocused() {
+		t.Errorf("expected IsShellFocused true")
+	}
+	if m.ShellContainerName() != "api-service" {
+		t.Errorf("expected ShellContainerName 'api-service', got %q", m.ShellContainerName())
+	}
 }

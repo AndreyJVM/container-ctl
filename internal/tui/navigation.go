@@ -346,6 +346,21 @@ func (m Model) ToastMessage() string {
 	return m.actionMessage
 }
 
+// IsShellActive reports whether an embedded terminal shell session is currently open.
+func (m Model) IsShellActive() bool {
+	return m.embeddedShell != nil
+}
+
+// IsShellFocused reports whether the embedded terminal shell currently has keyboard input focus.
+func (m Model) IsShellFocused() bool {
+	return m.shellFocused
+}
+
+// ShellContainerName returns the container name currently connected to the embedded shell.
+func (m Model) ShellContainerName() string {
+	return m.shellContainerName
+}
+
 func containerStatusScore(c monitor.ContainerItem) int {
 	return filter.ContainerStatusScore(c)
 }

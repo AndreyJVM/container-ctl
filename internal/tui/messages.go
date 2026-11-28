@@ -21,9 +21,19 @@ type embeddedShellOutputMsg struct {
 	err     error
 }
 
+// NewEmbeddedShellOutputMsg constructs an embeddedShellOutputMsg for tests.
+func NewEmbeddedShellOutputMsg(session EmbeddedShellSession, data []byte, err error) any {
+	return embeddedShellOutputMsg{session: session, data: data, err: err}
+}
+
 type embeddedShellExitedMsg struct {
 	session embeddedShellSession
 	err     error
+}
+
+// NewEmbeddedShellExitedMsg constructs an embeddedShellExitedMsg for tests.
+func NewEmbeddedShellExitedMsg(session EmbeddedShellSession, err error) any {
+	return embeddedShellExitedMsg{session: session, err: err}
 }
 
 // dataFetchedMsg delivers freshly gathered metrics and container lists across all domains.

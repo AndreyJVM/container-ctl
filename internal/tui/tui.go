@@ -71,7 +71,8 @@ func (m ModalType) IsOpen() bool {
 	return m != ModalNone
 }
 
-type embeddedShellSession interface {
+// EmbeddedShellSession defines the interface for an active PTY shell session.
+type EmbeddedShellSession interface {
 	Read() ([]byte, error)
 	Write(data []byte) error
 	Feed(data []byte) error
@@ -79,6 +80,17 @@ type embeddedShellSession interface {
 	Resize(width, height int) error
 	Wait() error
 	Close() error
+}
+
+type embeddedShellSession = EmbeddedShellSession
+
+// SetStartEmbeddedShellForTesting overrides the shell launcher for testing and returns a cleanup func.
+func SetStartEmbeddedShellForTesting(fn func(cmd *exec.Cmd, width, height int) (EmbeddedShellSession, error)) func() {
+	prev := startEmbeddedShell
+	startEmbeddedShell = fn
+	return func() {
+		startEmbeddedShell = prev
+	}
 }
 
 var startEmbeddedShell = func(cmd *exec.Cmd, width, height int) (embeddedShellSession, error) {

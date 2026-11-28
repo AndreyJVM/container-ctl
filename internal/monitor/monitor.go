@@ -5,6 +5,7 @@
 package monitor
 
 import (
+	"context"
 	"os/exec"
 
 	"github.com/AndreyJVM/container-ctl/internal/monitor/compose"
@@ -242,6 +243,11 @@ func StartComposeProject(name string, containers []ContainerItem) error {
 // DownComposeProject tears down a Compose project.
 func DownComposeProject(name string, containers []ContainerItem) error {
 	return compose.DownComposeProject(name, containers)
+}
+
+// SetComposeCommandRunnerForTesting sets a mock runner for Compose commands in tests.
+func SetComposeCommandRunnerForTesting(fn func(ctx context.Context, args ...string) ([]byte, error)) func() {
+	return compose.SetComposeCommandRunnerForTesting(fn)
 }
 
 // ---------------------------------------------------------------------------

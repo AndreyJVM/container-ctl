@@ -40,6 +40,15 @@ const (
 
 var composeCommandRunner = runComposeCommand
 
+// SetComposeCommandRunnerForTesting sets a mock runner for Compose commands in tests.
+func SetComposeCommandRunnerForTesting(fn func(ctx context.Context, args ...string) ([]byte, error)) func() {
+	prev := composeCommandRunner
+	composeCommandRunner = fn
+	return func() {
+		composeCommandRunner = prev
+	}
+}
+
 // ComposeService represents a service container inside a Compose project.
 type ComposeService struct {
 	Name          string

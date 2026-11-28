@@ -36,6 +36,18 @@ func sendKey(m tui.Model, key string) (tui.Model, tea.Cmd) {
 		keyMsg = tea.KeyMsg{Type: tea.KeyBackspace}
 	case "space", " ":
 		keyMsg = tea.KeyMsg{Type: tea.KeySpace}
+	case "pgup":
+		keyMsg = tea.KeyMsg{Type: tea.KeyPgUp}
+	case "pgdown":
+		keyMsg = tea.KeyMsg{Type: tea.KeyPgDown}
+	case "ctrl+]", "ctrl+close_bracket":
+		keyMsg = tea.KeyMsg{Type: tea.KeyCtrlCloseBracket}
+	case "ctrl+x":
+		keyMsg = tea.KeyMsg{Type: tea.KeyCtrlX}
+	case "ctrl+c":
+		keyMsg = tea.KeyMsg{Type: tea.KeyCtrlC}
+	case "ctrl+d":
+		keyMsg = tea.KeyMsg{Type: tea.KeyCtrlD}
 	default:
 		keyMsg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(key)}
 	}
